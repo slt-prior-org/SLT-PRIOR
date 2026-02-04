@@ -26,7 +26,7 @@
       <div
         v-for="(message, index) in messages"
         :key="index"
-        :class="['message', message.from === 'self' ? 'self' : 'other']"
+        :class="['message', message.from === 'self' ? 'self' : 'other', message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '']"
       >
         <div
           class="message-content"
@@ -111,8 +111,12 @@ export default {
           message: this.newMessage,
         });
 
-        // Lisää palvelimen vastaus chattiin
-        this.messages.push({ text: response.data.reply, from: "other" });
+        // Lisää palvelimen vastaus chattiin luokittelutiedon kanssa
+        this.messages.push({
+          text: response.data.reply,
+          from: "other",
+          classification: response.data.classification || "SAFE"
+        });
       } catch (error) {
         console.error(this.$t("send-error"), error);
         this.messages.push({ text: this.$t("connection-error"), from: "other" });
@@ -201,6 +205,13 @@ body {
   background: #e0e0e0;
   color: #333;
 }
+
+.message.needs-review .message-content {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
 
 .input-area {
   display: flex;

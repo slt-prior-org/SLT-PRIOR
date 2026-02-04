@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.users import router as user_router, current_user_id, logged_in
 from ai_model import rag_cloud
 from ai_model import utils
+from ai_model.classifier import classify_question, Classification
 from bson import ObjectId
 from database.db import users_collection
 
@@ -60,7 +61,14 @@ async def send_message(payload: dict):
             user_doc["_id"] = str(user_doc["_id"])  # Muunnetaan _id stringiksi
             user_data = user_doc
 
-    # 2) Rakennetaan prompt, jossa lisätään käyttäjädata mukaan
+    # 2) Luokitellaan kysymys ENNEN RAG-kutsua (EU AI Act)
+    classification_result = await classify_question(
+        question=user_message,
+        user_data=user_data,
+        is_logged_in=logged_in
+    )
+
+    # 3) Rakennetaan prompt, jossa lisätään käyttäjädata mukaan
     if logged_in:
         if user_data:
             prompt = f"{user_message}\n\nUser data:\n{user_data}"
@@ -69,15 +77,39 @@ async def send_message(payload: dict):
     else:
         prompt = user_message
 
-    # 3) Kutsutaan RAG-mallia
+    # 4) Kutsutaan RAG-mallia
     try:
         raw_response = await rag_cloud.get_rag_response(prompt)
         formatted_text = utils.formatGeminiResponse(raw_response)
-        return {"reply": formatted_text}
     except Exception as e:
         import traceback
-        traceback.print_exc()  # Näyttää tarkemman syyn konsolissa
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+    # 5) Palautetaan vastaus luokittelun perusteella
+    if classification_result.classification == Classification.SAFE:
+        return {
+            "reply": formatted_text,
+            "classification": "SAFE"
+        }
+    else:
+        # NEEDS_REVIEW: käyttäjälle turvallinen viesti, luonnos ammattilaiselle
+        safe_message = (
+            "Tämä aihe liittyy henkilökohtaiseen "
+            "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
+            "on välitetty ammattilaiselle arvioitavaksi."
+            "<br><br>"
+            "This topic relates to a personal "
+            "health assessment that I cannot answer. Your conversation has been "
+            "forwarded to a professional for review."
+        )
+        return {
+            "reply": safe_message,
+            "classification": "NEEDS_REVIEW",
+            "requires_professional": True,
+            "draft_response": formatted_text,
+            "classification_reasoning": classification_result.reasoning
+        }
 
 # Register user routes
 app.include_router(user_router, prefix="/users", tags=["users"])

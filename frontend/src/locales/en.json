@@ -20,6 +20,7 @@
     "personalInfo": "Personal Info",
     "modifyPersonalInfo": "Modify Personal Info",
     "login": "Login",
+    "register": "Register",
     "accessibility": "Accessibility",
     "analytics": "Analytics & Insights"
   },
@@ -86,6 +87,14 @@
     "username": "Enter user ID",
     "logIn": "Log In",
     "Logout": "Logout"
+  },
+  "register": {
+    "title": "Register",
+    "firstName": "Enter first name",
+    "lastName": "Enter last name",
+    "email": "Enter email",
+    "password": "Enter password",
+    "register": "Register"
   },
   "patientForm": {
     "title": "Preliminary Form",

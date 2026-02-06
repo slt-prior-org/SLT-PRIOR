@@ -24,6 +24,7 @@
           <PersonalInfo v-if="activeSection === 'personalInfo'" />
           <ModifyPersonalInfo v-if="activeSection === 'modifyPersonalInfo'" />
           <UserLogin v-if="activeSection === 'login'" />
+          <UserRegister v-if="activeSection === 'register'" />
           <AccessibilitySettings v-if="activeSection === 'accessibility'" />
           <AnalyticsInsights v-if="activeSection === 'analytics'" />
         </div>
@@ -37,6 +38,7 @@ import { ref, watch } from "vue";
 import PersonalInfo from "./settings/PersonalInfo.vue";
 import ModifyPersonalInfo from "./settings/ModifyPersonalInfo.vue";
 import UserLogin from "./settings/UserLogin.vue";
+import UserRegister from "./settings/UserRegister.vue";
 
 const activeSection = ref("personalInfo");
 
@@ -69,6 +71,7 @@ const sections = [
   { key: "personalInfo" },
   { key: "modifyPersonalInfo" },
   { key: "login" },
+  { key: "register" }
 ];
 </script>
 

@@ -20,6 +20,7 @@
     "personalInfo": "Henkilötiedot",
     "modifyPersonalInfo": "Muokkaa henkilötietoja",
     "login": "Kirjaudu sisään",
+    "register": "Rekisteröidy",
     "accessibility": "Saavutettavuus",
     "analytics": "Analytiikka"
   },
@@ -86,6 +87,14 @@
     "username": "Syötä käyttäjä ID",
     "logIn": "Kirjaudu sisään",
     "Logout": "Kirjaudu ulos"
+  },
+  "register": {
+    "title": "Rekisteröidy",
+    "firstName": "Etunimi",
+    "lastName": "Sukunimi",
+    "email": "sähköposti",
+    "password": "Salasana",
+    "register": "Rekisteröidy"
   },
   "patientForm": {
     "title": "Esitietolomake",

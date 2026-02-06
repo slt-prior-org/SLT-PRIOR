@@ -9,10 +9,15 @@
         >{{ $t("settings.title") }}</a>
       </li>
       <li>
-        <a href="#" @click.prevent="handleLoginLogout">
-          <p>{{ loggedIn ? $t("logout") : $t("settings.login") }}</p>
-        </a>
-      </li>
+  <a href="#" @click.prevent="handleLoginLogout">
+    <p>{{ loggedIn ? $t("logout") : $t("settings.login") }}</p>
+  </a>
+  </li>
+  <li v-if="!loggedIn">
+    <a href="#" @click.prevent="openRegisterForm">
+      <p>{{ $t("settings.register") }}</p>
+    </a>
+  </li>
       <li v-if="!loggedIn">
         <a href="#" @click.prevent="openPatientForm">
           <p>{{ $t("preliminaryForm") }}</p>
@@ -67,6 +72,13 @@ const handleLoginLogout = async () => {
     initialSettingsSection.value = "login";
   }
 };
+
+const openRegisterForm = () => {
+  settingsOpen.value = true;
+  initialSettingsSection.value = "register";
+};
+
+
 </script>
 
 

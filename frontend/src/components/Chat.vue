@@ -26,7 +26,7 @@
       <div
         v-for="(message, index) in messages"
         :key="index"
-        :class="['message', message.from === 'self' ? 'self' : 'other', message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '']"
+        :class="['message', message.from === 'self' ? 'self' : 'other', message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '', message.classification === 'EMERGENCY' ? 'emergency' : '']"
       >
         <div
           class="message-content"
@@ -212,6 +212,12 @@ body {
   border: 1px solid #ffc107;
 }
 
+.message.emergency .message-content {
+  background: #f8d7da;
+  color: #721c24;
+  border: 2px solid #dc3545;
+  font-weight: bold;
+}
 
 .input-area {
   display: flex;

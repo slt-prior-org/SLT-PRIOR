@@ -5,6 +5,7 @@ from routes.users import router as user_router, current_user_id, logged_in
 from ai_model import rag_cloud
 from ai_model import utils
 from ai_model.classifier import classify_question, Classification
+from ai_model.emergency import detect_emergency
 from bson import ObjectId
 from database.db import users_collection
 
@@ -61,14 +62,23 @@ async def send_message(payload: dict):
             user_doc["_id"] = str(user_doc["_id"])  # Muunnetaan _id stringiksi
             user_data = user_doc
 
-    # 2) Luokitellaan kysymys ENNEN RAG-kutsua (EU AI Act)
+    # 2) Hätätilanteen tunnistus ENNEN luokittelua ja RAG-kutsua
+    emergency = detect_emergency(user_message)
+    if emergency:
+        return {
+            "reply": emergency.emergency_message_en,
+            "classification": "EMERGENCY",
+            "is_emergency": True
+        }
+
+    # 3) Luokitellaan kysymys ENNEN RAG-kutsua (EU AI Act)
     classification_result = await classify_question(
         question=user_message,
         user_data=user_data,
         is_logged_in=logged_in
     )
 
-    # 3) Rakennetaan prompt, jossa lisätään käyttäjädata mukaan
+    # 4) Rakennetaan prompt, jossa lisätään käyttäjädata mukaan
     if logged_in:
         if user_data:
             prompt = f"{user_message}\n\nUser data:\n{user_data}"
@@ -77,7 +87,7 @@ async def send_message(payload: dict):
     else:
         prompt = user_message
 
-    # 4) Kutsutaan RAG-mallia
+    # 5) Kutsutaan RAG-mallia
     try:
         raw_response = await rag_cloud.get_rag_response(prompt)
         formatted_text = utils.formatGeminiResponse(raw_response)
@@ -86,7 +96,7 @@ async def send_message(payload: dict):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-    # 5) Palautetaan vastaus luokittelun perusteella
+    # 6) Palautetaan vastaus luokittelun perusteella
     if classification_result.classification == Classification.SAFE:
         return {
             "reply": formatted_text,

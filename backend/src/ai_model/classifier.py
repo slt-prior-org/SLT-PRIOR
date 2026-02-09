@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 class Classification(str, Enum):
     SAFE = "SAFE"
     NEEDS_REVIEW = "NEEDS_REVIEW"
+    EMERGENCY = "EMERGENCY"
 
 
 @dataclass

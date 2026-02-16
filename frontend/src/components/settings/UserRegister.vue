@@ -47,10 +47,10 @@
 
       <form @submit.prevent="submitAll">
         <label>{{ $t("patientForm.weight") }} (kg):</label>
-        <input v-model="patient.weight" type="number" required>
+        <input v-model="patient.weight" type="number">
 
         <label>{{ $t("patientForm.height") }} (cm):</label>
-        <input v-model="patient.height" type="number" required>
+        <input v-model="patient.height" type="number">
 
         <label>{{ $t("patientForm.conditions") }}:</label>
         <input
@@ -109,7 +109,7 @@
 </template>
 
 <script>
-import { createUser } from '@/api/users';
+import { registerUser } from '@/api/users';
 
 export default {
   props: ["show"],
@@ -200,7 +200,8 @@ export default {
           }
         };
 
-        const response = await createUser(formattedData);
+        const response = await registerUser(formattedData);
+        console.log("Response from MongoDB:", response);
 
         this.userId = response;
 

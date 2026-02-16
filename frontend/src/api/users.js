@@ -15,7 +15,7 @@ export const createUser = async (userData) => {
 
 export const registerUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/newUsers/`, userData);
+    const response = await axios.post(`${API_URL}/users/register`, userData);
     console.log("✅ User created:", response.data);
     return response.data.user_id;  // Return user ID to the frontend
   } catch (error) {

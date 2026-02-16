@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 class UserModel(BaseModel):
     weight: float
@@ -12,3 +12,9 @@ class UserModel(BaseModel):
     activity: str
     medications: List[str] = []
     heart_procedures: List[str] = []
+
+class RegisterModel(BaseModel):
+    email: str
+    password: str
+    role: str
+    patient_info: Optional[UserModel] = None

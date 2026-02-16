@@ -2,7 +2,7 @@ import logging
 from ai_model import rag_cloud
 from fastapi import APIRouter, HTTPException, FastAPI
 from database.db import users_collection
-from database.models import UserModel
+from database.models import UserModel, RegisterModel
 from bson import ObjectId
 from flask import jsonify
 from fastapi import Request
@@ -101,6 +101,25 @@ async def create_user(user: UserModel, request: Request):
     except Exception as e:
         logging.exception("❌ Unexpected error occurred while creating user")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+
+@router.post("/register", response_model=dict)
+async def register_user(user: RegisterModel, request: Request):
+
+    user_dict = user.model_dump() 
+    result = await users_collection.insert_one(user_dict)
+    if not result.inserted_id:
+        raise HTTPException(status_code=500, detail="Failed to insert user.")
+    
+    object_id = str(result.inserted_id) 
+
+    logged_in = False
+    current_user_id = None
+
+    request.app.state.logged_in = True
+    request.app.state.current_user_id = str(result.inserted_id)
+
+    logging.info(f"✅ User saved with ObjectId: {object_id}")
+    return {"user_id": object_id, "message": "User created successfully"}       
 
 # Get user by userId
 """"

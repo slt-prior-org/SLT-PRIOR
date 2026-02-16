@@ -13,6 +13,17 @@ export const createUser = async (userData) => {
   }
 };
 
+export const registerUser = async (userData) => {
+  try {
+    const response = await axios.post(`${API_URL}/newUsers/`, userData);
+    console.log("✅ User created:", response.data);
+    return response.data.user_id;  // Return user ID to the frontend
+  } catch (error) {
+    console.error("❌ Error creating user:", error.response?.data || error.message);
+    return null;
+  }
+};
+
 
 /*export const getUser = async (patientId) => {
   try {

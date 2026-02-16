@@ -94,7 +94,9 @@
     "lastName": "Sukunimi",
     "email": "sähköposti",
     "password": "Salasana",
-    "register": "Rekisteröidy"
+    "register": "Rekisteröidy",
+    "continue": "Jatka",
+    "return": "Takaisin"
   },
   "patientForm": {
     "title": "Esitietolomake",

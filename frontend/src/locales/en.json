@@ -94,7 +94,10 @@
     "lastName": "Enter last name",
     "email": "Enter email",
     "password": "Enter password",
-    "register": "Register"
+    "register": "Register",
+    "continue": "Continue",
+    "back": "Return",
+    "optional": "All fields are optional"
   },
   "patientForm": {
     "title": "Preliminary Form",

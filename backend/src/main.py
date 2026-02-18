@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 # Haetaan kirjautuneen käyttäjän tiedot ja kirjautumisen tila
@@ -8,6 +9,8 @@ from ai_model.classifier import classify_question, Classification
 from ai_model.emergency import detect_emergency
 from bson import ObjectId
 from database.db import users_collection
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI()
@@ -78,32 +81,8 @@ async def send_message(payload: dict):
         is_logged_in=logged_in
     )
 
-    # 4) Rakennetaan prompt, jossa lisätään käyttäjädata mukaan
-    if logged_in:
-        if user_data:
-            prompt = f"{user_message}\n\nUser data:\n{user_data}"
-        else:
-            prompt = user_message
-    else:
-        prompt = user_message
-
-    # 5) Kutsutaan RAG-mallia
-    try:
-        raw_response = await rag_cloud.get_rag_response(prompt)
-        formatted_text = utils.formatGeminiResponse(raw_response)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-    # 6) Palautetaan vastaus luokittelun perusteella
-    if classification_result.classification == Classification.SAFE:
-        return {
-            "reply": formatted_text,
-            "classification": "SAFE"
-        }
-    else:
-        # NEEDS_REVIEW: käyttäjälle turvallinen viesti, luonnos ammattilaiselle
+    # 4) NEEDS_REVIEW: ei tarvita RAG-kutsua, draft generoidaan myöhemmin
+    if classification_result.classification == Classification.NEEDS_REVIEW:
         safe_message = (
             "Tämä aihe liittyy henkilökohtaiseen "
             "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
@@ -113,13 +92,36 @@ async def send_message(payload: dict):
             "health assessment that I cannot answer. Your conversation has been "
             "forwarded to a professional for review."
         )
+
         return {
             "reply": safe_message,
             "classification": "NEEDS_REVIEW",
             "requires_professional": True,
-            "draft_response": formatted_text,
-            "classification_reasoning": classification_result.reasoning
+            "classification_reasoning": classification_result.reasoning,
         }
+
+    # 5) SAFE: rakennetaan prompt ja kutsutaan RAG-mallia
+    if logged_in:
+        if user_data:
+            prompt = f"{user_message}\n\nUser data:\n{user_data}"
+        else:
+            prompt = user_message
+    else:
+        prompt = user_message
+
+    try:
+        raw_response = await rag_cloud.get_rag_response(prompt)
+        formatted_text = utils.formatGeminiResponse(raw_response)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "reply": formatted_text,
+        "classification": "SAFE"
+    }
+
 
 # Register user routes
 app.include_router(user_router, prefix="/users", tags=["users"])

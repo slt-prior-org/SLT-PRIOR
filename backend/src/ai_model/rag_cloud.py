@@ -174,6 +174,32 @@ async def get_rag_response(user_input: str) -> str:
     return response
 
 
+async def generate_draft_response(user_input: str) -> str:
+    """Generoi RAG-luonnosvastauksen ilman muistiin tallennusta."""
+    relevant_docs = await retriever.ainvoke(user_input)
+
+    if not relevant_docs:
+        fallback_retriever = vectorstore.as_retriever(
+            search_type="mmr",
+            search_kwargs={"k": 5}
+        )
+        relevant_docs = await fallback_retriever.ainvoke(user_input)
+
+        if not relevant_docs:
+            return (
+                "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
+                "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
+            )
+
+    response = await question_answer_chain.ainvoke({
+        "input": user_input,
+        "context": relevant_docs,
+        "chat_history": []
+    })
+
+    return response
+
+
 def clear_conversation_memory():
     """ Tyhjentää keskustelumuistin """
     memory.clear()

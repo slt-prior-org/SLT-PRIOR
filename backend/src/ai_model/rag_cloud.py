@@ -97,13 +97,16 @@ async def retrieve_with_fallback(user_input: str, vectorstore, top_k: int = 6, s
 # -----------------------------
 # 4) Julkaistava funktio, jolla saa RAG-vastauksen
 # -----------------------------
-async def get_rag_response(user_input: str) -> str:
+async def get_rag_response(user_input: str, save_to_memory: bool = True) -> str:
     """
-    Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen tekstinä.
+    Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen tekstinä. 
+    Draft_response-ominaisuus: save_to_memory=False hakee vastauksen ilman, 
+    että keskustelumuistiin tallennetaan uusia viestejä.
     """
-    memory.add_user_message(user_input)
+    if save_to_memory:
+        memory.add_user_message(user_input)
 
-     # Hae dokumentit threshold + fallback -logiikalla
+    # Hae dokumentit threshold + fallback -logiikalla
     relevant_docs = await retrieve_with_fallback(user_input, vectorstore)
 
     if not relevant_docs:
@@ -111,45 +114,26 @@ async def get_rag_response(user_input: str) -> str:
             "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
             "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
         )
-        memory.add_ai_message(no_info_msg)
+        if save_to_memory:
+            memory.add_ai_message(no_info_msg)
         return no_info_msg
 
     # Vastauksen generointi (asynkronisesti)
-    response = await rag_chain.ainvoke({ 
-        "context": relevant_docs, 
-        "chat_history": memory.messages, 
-        "input": user_input 
+    response = await rag_chain.ainvoke({
+        "context": relevant_docs,
+        "chat_history": memory.messages if save_to_memory else [],
+        "input": user_input
     })
 
-    memory.add_ai_message(response.content)
-    print(f"Chat memory: {memory.messages}")
+    if save_to_memory:
+        memory.add_ai_message(response.content)
+        print(f"Chat memory: {memory.messages}")
 
     return response.content
 
 async def generate_draft_response(user_input: str) -> str:
     """Generoi RAG-luonnosvastauksen ilman muistiin tallennusta."""
-    relevant_docs = await retriever.ainvoke(user_input)
-
-    if not relevant_docs:
-        fallback_retriever = vectorstore.as_retriever(
-            search_type="mmr",
-            search_kwargs={"k": 5}
-        )
-        relevant_docs = await fallback_retriever.ainvoke(user_input)
-
-        if not relevant_docs:
-            return (
-                "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
-                "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
-            )
-
-    response = await question_answer_chain.ainvoke({
-        "input": user_input,
-        "context": relevant_docs,
-        "chat_history": []
-    })
-
-    return response
+    return await get_rag_response(user_input, save_to_memory=False)
 
 
 def clear_conversation_memory():

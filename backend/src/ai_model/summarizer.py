@@ -8,14 +8,10 @@ Tiivistelmä tallennetaan MongoDB:hen ja voidaan myöhemmin hakea
 ammattilaiselle välitettäväksi.
 """
 
-import os
+from config import settings
 import logging
 from typing import Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
-from dotenv import load_dotenv
-
-load_dotenv()
-google_api_key = os.getenv('GEMINI_API')
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +21,7 @@ summarizer_llm = ChatGoogleGenerativeAI(
     model='gemini-2.0-flash-001',
     temperature=0.3,
     max_tokens=800,
-    google_api_key=google_api_key
+    google_api_key=settings.GOOGLE_API_KEY
 )
 
 def _format_history(messages) -> str:

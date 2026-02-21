@@ -55,7 +55,7 @@
 <script>
 import axios from "axios";
 import PatientForm from "./PatientForm.vue";
-import { useI18n } from "vue-i18n"; // Lisätty kielituki
+import { useI18n } from "vue-i18n";
 
 export default {
   name: "ChatComponent",
@@ -66,23 +66,34 @@ export default {
     externalShowForm: Boolean,
   },
   setup() {
-    const { t, locale } = useI18n(); // Hae kielituki
+    const { t, locale } = useI18n();
     return { t, locale };
   },
   data() {
     return {
       userId: "user123",
+      chatId: null,
       messages: [],
       newMessage: "",
       showForm: false,
-      welcomeMessageDisplayed: true, // Tervetuloviesti näytetään vain kerran
+      welcomeMessageDisplayed: true,
     };
   },
+
+  mounted() {
+    // Palauta aiempi chat_id (jos olemassa), jotta keskustelu jatkuu refreshin jälkeen
+    const storedChatId = localStorage.getItem("chat_id");
+    if (storedChatId) {
+      this.chatId = storedChatId;
+    }
+  },
+
   watch: {
     externalShowForm(newVal) {
       this.showForm = newVal;
     },
   },
+
   methods: {
     openPatientForm() {
       this.showForm = true;
@@ -92,6 +103,15 @@ export default {
       this.showForm = false;
       this.$emit("update:externalShowForm", false);
     },
+
+    // (Valinnainen) Aloita uusi keskustelu
+    newChat() {
+      this.chatId = null;
+      localStorage.removeItem("chat_id");
+      this.messages = [];
+      this.welcomeMessageDisplayed = true;
+    },
+
     async fetchMapping() {
       try {
         const response = await axios.get("http://127.0.0.1:8000/api/data");
@@ -100,16 +120,28 @@ export default {
         console.error(this.$t("data-error"), error);
       }
     },
+
     async sendMessage() {
       if (this.newMessage.trim() === "") return;
 
       // Lisää käyttäjän viesti chattiin
-      this.messages.push({ text: this.newMessage, from: "self" });
+      const userText = this.newMessage;
+      this.messages.push({ text: userText, from: "self" });
+
+      // Tyhjennä syötekenttä heti (UI tuntuu nopeammalta)
+      this.newMessage = "";
 
       try {
         const response = await axios.post("http://127.0.0.1:8000/api/send", {
-          message: this.newMessage,
+          message: userText,
+          chat_id: this.chatId, // lähetetään sama chat_id jokaisella viestillä
         });
+
+        // Tallenna chat_id, jotta seuraavat viestit menevät samaan keskusteluun
+        if (response.data.chat_id) {
+          this.chatId = response.data.chat_id;
+          localStorage.setItem("chat_id", this.chatId);
+        }
 
         // Lisää palvelimen vastaus chattiin
         this.messages.push({ text: response.data.reply, from: "other" });
@@ -117,9 +149,6 @@ export default {
         console.error(this.$t("send-error"), error);
         this.messages.push({ text: this.$t("connection-error"), from: "other" });
       }
-
-      // Tyhjennä syötekenttä
-      this.newMessage = "";
     },
   },
 };

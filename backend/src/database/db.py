@@ -30,16 +30,19 @@ logger.info(f"Loaded MONGO_URI: {MONGO_URI}")
 client = None
 db = None
 users_collection = None
+chat_messages_collection = None
 
 # Connect to MongoDB
 try:
     client = AsyncIOMotorClient(MONGO_URI)
     db = client["chatbot_database"] 
     users_collection = db["users"]
+    messages_collection = db["messages"]
+    chat_messages_collection = messages_collection
     logger.info("✅ Successfully connected to MongoDB!")
 except Exception as e:
     logger.error(f"❌ ERROR: Failed to connect to MongoDB: {e}")
     raise
 
 # Expose db and users_collection for other modules
-__all__ = ["db", "users_collection"]
+__all__ = ["db", "users_collection", "messages_collection", "chat_messages_collection"]

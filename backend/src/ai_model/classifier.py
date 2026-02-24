@@ -8,16 +8,12 @@ Luokittelee käyttäjän kysymykset kahteen kategoriaan:
 EU AI Act -yhteensopivuus: epäselvissä tapauksissa aina NEEDS_REVIEW (fail-safe).
 """
 
-import os
 import json
 import logging
 from enum import Enum
 from dataclasses import dataclass
 from langchain_google_genai import ChatGoogleGenerativeAI
-from dotenv import load_dotenv
-
-load_dotenv()
-google_api_key = os.getenv('GEMINI_API')
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +36,7 @@ classifier_llm = ChatGoogleGenerativeAI(
     model='gemini-2.0-flash-001',
     temperature=0.0,
     max_tokens=300,
-    google_api_key=google_api_key
+    google_api_key=settings.GOOGLE_API_KEY
 )
 
 CLASSIFICATION_PROMPT = """You are a safety classifier for a heart health chatbot focused on coronary artery disease.

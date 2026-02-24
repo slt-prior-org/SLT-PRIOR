@@ -29,7 +29,6 @@ class EmergencyResult:
 EMERGENCY_KEYWORDS_EN = [
     "heart attack",
     "cardiac arrest",
-    "chest pain",
     "stroke",
     "can't breathe",
     "cannot breathe",
@@ -65,7 +64,6 @@ EMERGENCY_KEYWORDS_EN = [
 EMERGENCY_KEYWORDS_FI = [
     "sydänkohtaus",
     "sydänpysähdys",
-    "rintakipu",
     "aivohalvaus",
     "aivoverenvuoto",
     "aivoverenkiertohäiriö",
@@ -111,7 +109,6 @@ EMERGENCY_KEYWORDS_FI = [
 # ---------------------------------------------------------------------------
 
 EMERGENCY_PATTERNS_FI = [
-    re.compile(r"\brintakipu\w*\b", re.IGNORECASE),          # rintakipua, rintakipuja
     re.compile(r"\bsydänkohtau\w*\b", re.IGNORECASE),        # sydänkohtauksen, sydänkohtausta
     re.compile(r"\bsydänpysähdy\w*\b", re.IGNORECASE),       # sydänpysähdyksen
     re.compile(r"\baivohalvau\w*\b", re.IGNORECASE),         # aivohalvauksen, aivohalvausta
@@ -121,7 +118,11 @@ EMERGENCY_PATTERNS_FI = [
     re.compile(r"\bhengenahdist\w*\b", re.IGNORECASE),       # hengenahdistusta
     re.compile(r"\btukehtu\w*\b", re.IGNORECASE),            # tukehtuu, tukehtuminen, tukehtumassa, tukehtui
     re.compile(r"\bkourist\w*\b", re.IGNORECASE),            # kouristus, kouristelee, kouristaa, kouristuksia
-    re.compile(r"\bkuole\w*\b", re.IGNORECASE),              # kuolen, kuolee, kuolemassa, kuolemaisillaan
+    re.compile(                                                # vain verbimuodot, ei kuolematon/kuolevainen
+        r"\bkuole(n|e|mme|tte|vat|taan|maisillaan|eko|si)\b"
+        r"|\bkuolemassa\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bpyörty\w*\b", re.IGNORECASE),             # pyörtyi, pyörtynyt, pyörtyminen
     re.compile(r"\baivoverenvuod\w*\b", re.IGNORECASE),      # aivoverenvuodon, aivoverenvuotoa
     re.compile(r"\bambulanssi\w*\b", re.IGNORECASE),         # ambulanssin, ambulanssiin
@@ -134,6 +135,98 @@ EMERGENCY_PATTERNS_EN = [
     re.compile(r"\bcan'?t\s+breathe\b", re.IGNORECASE),
     re.compile(r"\bunconscious\w*\b", re.IGNORECASE),
 ]
+
+# ---------------------------------------------------------------------------
+# Kiireellisyyssignaalit — estävät poisjätön aina
+# ---------------------------------------------------------------------------
+URGENCY_SIGNALS = re.compile(
+    r"\b(right now|right away|immediately|help me|need help|i need|call now|"
+    r"nyt|heti|apua|auta|välittömästi|nopeasti|kiireesti)\b",
+    re.IGNORECASE,
+)
+
+# ---------------------------------------------------------------------------
+# Poisjättöpatternit — vähentävät vääriä hälytyksiä
+# ---------------------------------------------------------------------------
+
+# A) Kasvatukselliset kysymykset (FI)
+_EXCL_EDU_FI = [
+    re.compile(
+        r"\b(mitä on|mikä on|miten|kuinka|kerro|selitä)\b"
+        r".{0,80}\b(sydänkohtau|aivohalvau|elvyt|ambulanssi)\w*\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(sydänkohtau|aivohalvau|elvyt|ambulanssi)\w*\b"
+        r".{0,60}\b(tunnistaminen|yleisesti|tietoa|selitä|opas)\b",
+        re.IGNORECASE,
+    ),
+]
+
+# B) Kielikuvat (FI): "Kuolen nälkään"
+_EXCL_FIG_FI = [
+    re.compile(
+        r"\bkuolen\b.{0,30}"
+        r"\b(nälkään|janoon|nauruun|tylsyyteen|häpeään|innosta|väsymykseen|ikävästä)\b",
+        re.IGNORECASE,
+    ),
+]
+
+# C) Menneisyys/historia (FI)
+_EXCL_PAST_FI = [
+    re.compile(
+        r"\b(sai|koki|tapahtui|kuoli|menehtyi)\b.{0,80}"
+        r"\b(sydänkohtau|aivohalvau)\w*\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(viime vuonna|kauan sitten|\d+ vuotta sitten|aikoinaan)\b",
+        re.IGNORECASE,
+    ),
+]
+
+# D) Kasvatukselliset kysymykset (EN)
+_EXCL_EDU_EN = [
+    re.compile(
+        r"\b(what is|what are|how to|how do|tell me about|explain|describe)\b"
+        r".{0,60}\b(heart attack|stroke|cardiac arrest|cpr|ambulance)\w*\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(heart attack|stroke|cardiac arrest)\w*\b"
+        r".{0,50}\b(symptoms?|signs?|in general|generally|information)\b",
+        re.IGNORECASE,
+    ),
+]
+
+# E) Kielikuvat (EN): "I'm dying of laughter"
+_EXCL_FIG_EN = [
+    re.compile(
+        r"\b(im dying|i am dying|i'm dying)\b.{0,30}"
+        r"\bof\s+(laughter|boredom|embarrassment|hunger|thirst|excitement|joy)\b",
+        re.IGNORECASE,
+    ),
+]
+
+# F) Menneisyys/historia (EN)
+_EXCL_PAST_EN = [
+    re.compile(
+        r"\b(grandfather|grandmother|father|mother|dad|mom|parent|relative)\b"
+        r".{0,40}\b(had|suffered|experienced)\b.{0,40}"
+        r"\b(heart attack|stroke|cardiac arrest)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(heart attack|stroke)\b.{0,50}"
+        r"\b(in\s+\d{4}|last year|years ago|in the past)\b",
+        re.IGNORECASE,
+    ),
+]
+
+NON_EMERGENCY_EXCLUSIONS: list[re.Pattern] = (
+    _EXCL_EDU_FI + _EXCL_FIG_FI + _EXCL_PAST_FI
+    + _EXCL_EDU_EN + _EXCL_FIG_EN + _EXCL_PAST_EN
+)
 
 # ---------------------------------------------------------------------------
 # Hätäviesti
@@ -152,6 +245,16 @@ EMERGENCY_MESSAGE_EN = (
     "<strong>call the emergency number 112 immediately.</strong><br><br>"
     "This chatbot cannot provide first aid or replace emergency services."
 )
+
+
+def is_non_emergency_context(message_lower: str) -> bool:
+    """Palauttaa True jos viesti on todennäköisesti väärä positiivi."""
+    if URGENCY_SIGNALS.search(message_lower):
+        return False   # kiireellisyyssignaali → älä koskaan jätä pois
+    for pattern in NON_EMERGENCY_EXCLUSIONS:
+        if pattern.search(message_lower):
+            return True
+    return False
 
 
 def detect_emergency(message: str) -> EmergencyResult | None:
@@ -190,6 +293,14 @@ def detect_emergency(message: str) -> EmergencyResult | None:
                 matched.append(match_text)
 
     if not matched:
+        return None
+
+    # Poisjätön tarkistus
+    if is_non_emergency_context(message_lower):
+        logger.debug(
+            f"Emergency match suppressed (non-emergency context). "
+            f"Keywords: {matched}, Message: {message[:100]}"
+        )
         return None
 
     logger.warning(

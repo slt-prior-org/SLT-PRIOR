@@ -72,10 +72,16 @@ async def send_message(payload: dict):
         }
 
     # 3) Luokitellaan kysymys ENNEN RAG-kutsua (EU AI Act)
+    history_messages = []
+    for msg in rag_cloud.memory.chat_memory.messages[-10:]:
+        role = "User" if msg.type == "human" else "Assistant"
+        history_messages.append({"role": role, "content": msg.content})
+
     classification_result = await classify_question(
         question=user_message,
         user_data=user_data,
-        is_logged_in=logged_in
+        is_logged_in=logged_in,
+        conversation_history=history_messages or None,
     )
 
     # 4) Rakennetaan prompt, jossa lisätään käyttäjädata mukaan

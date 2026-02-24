@@ -401,10 +401,10 @@ class TestConversationContext:
     async def test_duration_after_cardiac_symptoms_needs_review(self):
         # "Tämä on kestänyt viikon" yksinään SAFE, mutta kardiaalisten oireiden jälkeen → NEEDS_REVIEW
         history = [
-            {"role": "User",      "content": "Minulla on rintakipua"},
-            {"role": "Assistant", "content": "Rintakipu voi johtua monesta syystä..."},
-            {"role": "User",      "content": "Minulla on myös hengenahdistusta"},
-            {"role": "Assistant", "content": "Hengenahdistuksella voi olla monia syitä..."},
+            {"sender": "user", "content": "Minulla on rintakipua"},
+            {"sender": "bot",  "content": "Rintakipu voi johtua monesta syystä..."},
+            {"sender": "user", "content": "Minulla on myös hengenahdistusta"},
+            {"sender": "bot",  "content": "Hengenahdistuksella voi olla monia syitä..."},
         ]
         assert await classify("Tämä on kestänyt viikon", history=history) == Classification.NEEDS_REVIEW
 
@@ -412,8 +412,8 @@ class TestConversationContext:
     async def test_general_history_does_not_escalate_safe_message(self):
         # Yleinen kasvatuskeskustelu ei eskaloidu NEEDS_REVIEWiksi
         history = [
-            {"role": "User",      "content": "Mikä on sepelvaltimotauti?"},
-            {"role": "Assistant", "content": "Sepelvaltimotauti on..."},
+            {"sender": "user", "content": "Mikä on sepelvaltimotauti?"},
+            {"sender": "bot",  "content": "Sepelvaltimotauti on..."},
         ]
         assert await classify("Minulla on lievää rintakipua", history=history) == Classification.SAFE
 

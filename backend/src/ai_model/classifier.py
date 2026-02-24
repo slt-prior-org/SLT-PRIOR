@@ -92,13 +92,16 @@ async def classify_question(
         if conversation_history:
             lines = []
             for msg in conversation_history[-10:]:
-                role = "User" if msg["role"] == "User" else "Assistant"
+                role = "User" if msg["sender"] == "user" else "Assistant"
                 lines.append(f"{role}: {msg['content']}")
             history_text = "\n".join(lines)
             conversation_history_section = (
                 f"CONVERSATION HISTORY (oldest first):\n{history_text}\n"
                 f"If the history reveals an accumulating pattern of cardiac symptoms, "
-                f"classify as NEEDS_REVIEW even if the current message alone would be SAFE.\n\n"
+                f"classify as NEEDS_REVIEW even if the current message alone would be SAFE.\n"
+                f"If the current message appears to be answering a follow-up question from the assistant "
+                f"(e.g. a duration, severity, or yes/no reply), use the full conversation context "
+                f"to determine the classification — do not evaluate the reply in isolation.\n\n"
             )
         else:
             conversation_history_section = ""

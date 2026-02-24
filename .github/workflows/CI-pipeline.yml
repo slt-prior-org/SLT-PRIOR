@@ -1,0 +1,125 @@
+# CI pipeline for testing both the backend and frontend of the application
+# and performs a Docker based smoke test to verify the application starts correctly.
+
+name: CI Pipeline
+on:
+  push:
+    branches: ["main", "development"]
+  pull_request:
+    branches: ["main", "development"]
+
+jobs:
+  backend:
+    name: Test backend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest -v --maxfail=1 tests/example_test.py
+
+  frontend:
+    name: Test frontend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test --if-present
+
+  smoke-test:
+    name: Smoke test (Docker compose)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create backend/.env file
+        run: |
+          echo "${{ secrets.CLOUD_STORAGE_KEY_BASE64 }}" | base64 --decode > backend/cloud_storage_key.json
+          echo "GEMINI_API=${{ secrets.GEMINI_API }}" >> backend/.env
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/app/cloud_storage_key.json" >> backend/.env
+          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> backend/.env
+
+      - name: Run Docker compose
+        run: |
+          docker compose up --build -d
+
+      - name: Create fake Chroma DB inside container to skip PDF initialization
+        run: docker compose exec backend sh -c "mkdir -p /app/chroma && touch /app/chroma/chroma.sqlite3"
+
+      - name: Wait for backend
+        run: |
+          for i in {1..20}; do
+            if curl -f http://localhost:8000/; then
+              echo "Backend ready"
+              break
+            fi
+            sleep 3
+          done
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..20}; do
+            if curl -f http://localhost:8080/; then
+              echo "Frontend ready"
+              break
+            fi
+            sleep 3
+          done
+
+      - name: Smoke test backend
+        run: curl -f http://localhost:8000/ || exit 1
+
+      - name: Smoke test frontend
+        run: curl -f http://localhost:8080/ || exit 1
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker compose ps
+          echo "Backend logs:"
+          docker compose logs backend
+          echo "Frontend logs:"
+          docker compose logs frontend
+
+      - name: Tear down Docker compose
+        if: always()
+        run: docker compose down --volumes --remove-orphans

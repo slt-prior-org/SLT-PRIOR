@@ -58,7 +58,7 @@ const openPatientForm = () => emit("open-patient-form");
 const handleLoginLogout = async () => {
   if (loggedIn.value) {
     try {
-      await axios.post('http://localhost:8000/users/logout');
+      await axios.post('http://localhost:8000/api/users/logout');
       localStorage.removeItem('user');
       localStorage.setItem('isLoggedIn', 'false');
       loggedIn.value = false;

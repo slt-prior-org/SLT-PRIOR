@@ -4,7 +4,7 @@ const API_URL = "http://127.0.0.1:8000";  // FastAPI backend URL
 
 export const createUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/users/`, userData);
+    const response = await axios.post(`${API_URL}/api/users/`, userData);
     console.log("✅ User created:", response.data);
     return response.data.user_id;  // Return user ID to the frontend
   } catch (error) {

@@ -12,39 +12,45 @@ API_URL = "http://localhost:8000/users/"
 # Test users
 test_users = [
     {
-        "weight": 60,
-        "height": 165,
-        "conditions": ["asthma"],
-        "avg_blood_pressure": "110/70",
-        "risk_factors": [],
-        "alcohol_use": "none",
-        "allergies": ["dust"],
-        "activity": "high",
-        "medications": ["inhalers"],
-        "heart_procedures": ["none"]
+        "email": "patient1@example.com",
+        "password": "hashed_pw_1",
+        "role": "patient",
+        "patient_info": {
+            "weight": 60,
+            "height": 165,
+            "age": 45,
+            "conditions": ["asthma"],
+            "avg_blood_pressure": {"systolic": 110, "diastolic": 70},
+            "risk_factors": [],
+            "alcohol_use": "none",
+            "allergies": ["dust"],
+            "activity": "moderate",
+            "medications": ["inhalers"],
+            "heart_procedures": []
+        }
     },
     {
-        "weight": 85,
-        "height": 180,
-        "conditions": ["hypertension", "diabetes"],
-        "avg_blood_pressure": "130/85",
-        "risk_factors": ["obesity", "smoking"],
-        "alcohol_use": "low",
-        "allergies": ["pollen"],
-        "activity": "moderate",
-        "medications": ["metformin", "beta-blockers"],
-        "heart_procedures": ["angioplasty"]
+        "email": "patient2@example.com",
+        "password": "hashed_pw_2",
+        "role": "patient",
+        "patient_info": {
+            "weight": 85,
+            "height": 180,
+            "age": 62,
+            "conditions": ["hypertension", "diabetes"],
+            "avg_blood_pressure": {"systolic": 130, "diastolic": 85},
+            "risk_factors": ["obesity", "smoking"],
+            "alcohol_use": "weekly",
+            "allergies": ["pollen"],
+            "activity": "light",
+            "medications": ["metformin", "beta-blockers"],
+            "heart_procedures": ["angioplasty"]
+        }
     },
     {
-        "weight": 70,
-        "height": 175,
-        "conditions": [],
-        "avg_blood_pressure": "120/80",
-        "risk_factors": [],
-        "alcohol_use": "moderate",
-        "allergies": [],
-        "activity": "active",
-        "medications": []
+        "email": "professional1@example.com",
+        "password": "hashed_pw_3",
+        "role": "professional"
     }
 ]
 

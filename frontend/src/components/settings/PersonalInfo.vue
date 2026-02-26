@@ -102,7 +102,7 @@ export default {
   methods: {
     async checkLoginStatus() {
       try {
-        const response = await axios.get('http://localhost:8000/users/check-session');
+        const response = await axios.get('http://localhost:8000/api/users/check-session');
         this.isLoggedIn = response.data?.isLoggedIn || false;
       } catch (error) {
         console.error('Session check failed:', error);
@@ -111,7 +111,7 @@ export default {
     },
     async fetchUserData() {
       try {
-        const response = await axios.get('http://localhost:8000/users/current-user');
+        const response = await axios.get('http://localhost:8000/api/users/current-user');
         if (response.data.status === 'success') {
           this.userData = response.data.user;
         }

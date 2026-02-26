@@ -35,7 +35,7 @@ const handleLogin = async () => {
   try {
     loginMessage.value = '';
     const response = await axios.post(
-      'http://localhost:8000/users/login',
+      'http://localhost:8000/api/users/login',
       { user_id: userID.value },
       {
         headers: {

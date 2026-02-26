@@ -160,7 +160,7 @@ const userId = ref(null);
 
 const checkLoginStatus = async () => {
   try {
-    const response = await axios.get('http://localhost:8000/users/check-session');
+    const response = await axios.get('http://localhost:8000/api/users/check-session');
     isLoggedIn.value = response.data?.isLoggedIn || false;
     if (isLoggedIn.value) {
       userId.value = JSON.parse(localStorage.getItem('user'))?._id;
@@ -215,7 +215,7 @@ const handleSubmit = async () => {
 
   try {
     const response = await axios.put(
-      `http://localhost:8000/users/id/${userId.value}`,
+      `http://localhost:8000/api/users/id/${userId.value}`,
       payload,
       {
         headers: {

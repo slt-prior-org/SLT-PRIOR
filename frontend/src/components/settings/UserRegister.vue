@@ -2,28 +2,14 @@
   <div class="settings-section">
     <div v-if="step === 1">
       <h2>{{ $t("register.title") }}</h2>
-
-      <div class="name-fields">
+      <div class="email-field">
         <input
           type="text"
-          v-model="register.firstName"
-          :placeholder="$t('register.firstName')"
-          required
-        >
-        <input
-          type="text"
-          v-model="register.lastName"
-          :placeholder="$t('register.lastName')"
+          v-model="register.email"
+          :placeholder="$t('register.email')"
           required
         >
       </div>
-
-      <input
-        type="text"
-        v-model="register.email"
-        :placeholder="$t('register.email')"
-        required
-      >
 
       <div class="password-field">
         <input
@@ -68,7 +54,26 @@
         >
 
         <label>{{ $t("patientForm.alcoholUse") }}:</label>
-        <input v-model="patient.alcohol_use">
+        <select v-model="patient.alcohol_use">
+          <option disabled value="">
+            {{ $t("patientForm.alcoholUse") }}
+          </option>
+          <option value="none">
+            {{ $t("patientForm.alcoholNone") }}
+          </option>
+          <option value="rare">
+            {{ $t("patientForm.alcoholRare") }}
+          </option>
+          <option value="monthly">
+            {{ $t("patientForm.alcoholMonthly") }}
+          </option>
+          <option value="weekly">
+            {{ $t("patientForm.alcoholWeekly") }}
+          </option>
+          <option value="daily">
+            {{ $t("patientForm.alcoholDaily") }}
+          </option>
+        </select>
 
         <label>{{ $t("patientForm.allergies") }}:</label>
         <input
@@ -77,7 +82,26 @@
         >
 
         <label>{{ $t("patientForm.activity") }}:</label>
-        <input v-model="patient.activity">
+        <select v-model="patient.activity">
+          <option disabled value="">
+            {{ $t("patientForm.activity") }}
+          </option>
+          <option value="none">
+            {{ $t("patientForm.activityNone") }}
+          </option>
+          <option value="light">
+            {{ $t("patientForm.activityLight") }}
+          </option>
+          <option value="moderate">
+            {{ $t("patientForm.activityModerate") }}
+          </option>
+          <option value="active">
+            {{ $t("patientForm.activityActive") }}
+          </option>
+          <option value="very_active">
+            {{ $t("patientForm.activityVeryActive") }}
+          </option>
+        </select>
 
         <label>{{ $t("patientForm.medications") }}:</label>
         <input
@@ -124,8 +148,6 @@ export default {
 
       // Page 1 data
       register: {
-        firstName: "",
-        lastName: "",
         email: "",
         password: "",
         role: ""
@@ -150,12 +172,10 @@ export default {
     goToStep2() {
       this.error = null;
 
-      const firstName = this.register.firstName?.trim();
-      const lastName = this.register.lastName?.trim();
       const email = this.register.email?.trim();
       const password = this.register.password;
 
-      if (!firstName || !lastName || !email || !password) {
+      if (!email || !password) {
         this.error = "Please fill all required fields.";
         return;
       }
@@ -179,8 +199,6 @@ export default {
         // Build ONE final payload that includes BOTH pages
         const formattedData = {
           // registration (page 1)
-          firstName: this.register.firstName.trim(),
-          lastName: this.register.lastName.trim(),
           email: this.register.email.trim(),
           password: this.register.password,
           role : "patient",
@@ -227,13 +245,11 @@ export default {
 
 <style scoped>
 /* keep your existing styles or import */
-.name-fields {
+.email-field {
   display: flex;
-  gap: 10px;
   margin-bottom: 12px;
   margin-top: 12px;
 }
-.name-fields input { flex: 1; }
 
 .password-field {
   margin-top: 12px;

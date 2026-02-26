@@ -6,6 +6,7 @@ from database.models import UserModel, RegisterModel
 from bson import ObjectId
 from flask import jsonify
 from fastapi import Request
+from passlib.context import CryptContext
 
 app = FastAPI()
 router = APIRouter()
@@ -76,12 +77,13 @@ async def logout(request: Request):
 
     logging.info("User logged out successfully.")
     return {"status": "success", "message": "logout_success"}
-    
+
 # Create new user to MongoDB, returns unique dataId
 @router.post("/", response_model=dict)
 async def create_user(user: UserModel, request: Request):
     try:
         user_dict = user.model_dump() 
+
         result = await users_collection.insert_one(user_dict)
         if not result.inserted_id:
             raise HTTPException(status_code=500, detail="Failed to insert user.")
@@ -102,10 +104,28 @@ async def create_user(user: UserModel, request: Request):
         logging.exception("❌ Unexpected error occurred while creating user")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
 
+pwd_context = CryptContext(
+    schemes=["argon2"],
+    deprecated="auto",
+    # Force Argon2id (important)
+    argon2__type="ID",
+    # Sensible starting parameters (tune as needed)
+    argon2__time_cost=2,
+    argon2__memory_cost=102400,   # KiB (≈ 100 MB)
+    argon2__parallelism=8,
+)
+
+
 @router.post("/register", response_model=dict)
 async def register_user(user: RegisterModel, request: Request):
 
     user_dict = user.model_dump() 
+
+    # Hashing password
+    plaintextPw = user_dict["password"]
+    hashedPw = pwd_context.hash(plaintextPw)
+    user_dict["password"] = hashedPw
+
     result = await users_collection.insert_one(user_dict)
     if not result.inserted_id:
         raise HTTPException(status_code=500, detail="Failed to insert user.")

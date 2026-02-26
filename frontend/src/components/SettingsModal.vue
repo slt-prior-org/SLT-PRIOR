@@ -24,7 +24,9 @@
           <PersonalInfo v-if="activeSection === 'personalInfo'" />
           <ModifyPersonalInfo v-if="activeSection === 'modifyPersonalInfo'" />
           <UserLogin v-if="activeSection === 'login'" />
-          <UserRegister v-if="activeSection === 'register'" />
+          <UserRegister v-if="activeSection === 'register'"
+            @close="closeModal"
+          />
           <AccessibilitySettings v-if="activeSection === 'accessibility'" />
           <AnalyticsInsights v-if="activeSection === 'analytics'" />
         </div>

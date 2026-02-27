@@ -49,8 +49,8 @@
 
         <label>{{ $t("patientForm.avgBloodPressure") }}:</label>
         <div class="bp-row">
-          <input v-model.number="patient.avg_bp_systolic" type="number" placeholder="Systolic" min="50" max="300">
-          <input v-model.number="patient.avg_bp_diastolic" type="number" placeholder="Diastolic" min="30" max="200">
+          <input v-model.number="patient.avg_bp_systolic" type="number" placeholder="Systolic" >
+          <input v-model.number="patient.avg_bp_diastolic" type="number" placeholder="Diastolic">
         </div>
 
         <label>{{ $t("patientForm.riskFactors") }}:</label>
@@ -162,12 +162,12 @@ export default {
         height: "",
         age: "",
         conditions: "",
-        avg_bp_systolic: "",
-        avg_bp_diastolic: "",
+        avg_bp_systolic: "50",
+        avg_bp_diastolic: "30",
         risk_factors: "",
-        alcohol_use: "",
+        alcohol_use: "none",
         allergies: "",
-        activity: "",
+        activity: "sedentary",
         medications: "",
         heart_procedures: "",
       },

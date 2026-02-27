@@ -25,7 +25,7 @@ pwd_context = CryptContext(
     argon2__parallelism=8,
 )
 
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET = 'PoWDwtRxACdZUJRWMER5cHFr6ysBWzubFKNYn22tHJH'
 JWT_ALG = os.getenv("JWT_ALG", "HS256")
 JWT_EXPIRES_MIN = int(os.getenv("JWT_EXPIRES_MIN", "60"))
 if not JWT_SECRET:

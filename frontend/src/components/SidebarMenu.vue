@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, onMounted } from "vue";
+import { defineProps, defineEmits, ref, onMounted, computed } from "vue";
 import SettingsModal from "./SettingsModal.vue";
 import { useAuthStore } from "@/stores/authStore";
 

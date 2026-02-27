@@ -144,3 +144,7 @@ class ChatDetailResponse(BaseModel):
 class MessageCreatedResponse(BaseModel):
     status: str
     message: dict
+
+class AuthResponse(BaseModel):
+    token: str
+    user: dict

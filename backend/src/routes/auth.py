@@ -11,7 +11,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from database.db import users_collection
-from database.models import StatusWithUserResponse, UserModel, LoginRequest
+from database.models import AuthResponse, StatusWithUserResponse, UserModel, LoginRequest
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
@@ -67,7 +67,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     return user
 
 
-@router.post("/register", response_model=dict)
+@router.post("/register", response_model=AuthResponse)
 async def register_user(user: UserModel, request: Request):
 
     user_dict = user.model_dump() 
@@ -92,7 +92,7 @@ async def register_user(user: UserModel, request: Request):
     logging.info(f"User registered: {user_id}")
     return {"token": token, "user": _public_user(created)}       
 
-@router.post("/login", response_model=StatusWithUserResponse)
+@router.post("/login", response_model=AuthResponse)
 async def login(body: LoginRequest, request: Request):
 
     user = await users_collection.find_one({"email": body.email})

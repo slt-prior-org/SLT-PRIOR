@@ -1,13 +1,12 @@
 <template>
   <div class="modern-settings">
     <div class="settings-header">
-      <h2>{{ $t('modifyPersonalInfo.title') }}</h2>
-      <p class="settings-subtitle">{{ $t('modifyPersonalInfo.healthInfo') }}</p>
+      <h2>{{ $t("modifyPersonalInfo.title") }}</h2>
+      <p class="settings-subtitle">{{ $t("modifyPersonalInfo.healthInfo") }}</p>
     </div>
 
-    <!-- Kirjautumisviesti (pelkkä teksti) -->
-    <div v-if="!isLoggedIn" class="login-prompt">
-      <p>{{ $t('personalInfo.loginPrompt') }}</p>
+    <div v-if="!auth.isAuthenticated" class="login-prompt">
+      <p>{{ $t("personalInfo.loginPrompt") }}</p>
     </div>
 
     <template v-else>
@@ -15,23 +14,24 @@
         <div class="form-grid">
           <!-- Basic Info -->
           <div class="form-card">
-            <h3 class="form-card-title">{{ $t('modifyPersonalInfo.basicInfo') }}</h3>
+            <h3 class="form-card-title">{{ $t("modifyPersonalInfo.basicInfo") }}</h3>
+
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.weight') }}:</span>
+                <span>{{ $t("personalInfo.weight") }}:</span>
                 <div class="input-wrapper">
                   <input v-model="formData.weight" type="number" step="0.1" class="modern-input" />
-                  <span class="input-unit">{{ $t('units.kg') }}</span>
+                  <span class="input-unit">{{ $t("units.kg") }}</span>
                 </div>
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.height') }}:</span>
+                <span>{{ $t("personalInfo.height") }}:</span>
                 <div class="input-wrapper">
                   <input v-model="formData.height" type="number" step="0.1" class="modern-input" />
-                  <span class="input-unit">{{ $t('units.cm') }}</span>
+                  <span class="input-unit">{{ $t("units.cm") }}</span>
                 </div>
               </label>
             </div>
@@ -39,35 +39,41 @@
 
           <!-- Health Info -->
           <div class="form-card">
-            <h3 class="form-card-title">{{ $t('modifyPersonalInfo.healthInfo') }}</h3>
+            <h3 class="form-card-title">{{ $t("modifyPersonalInfo.healthInfo") }}</h3>
+
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.avgBloodPressure') }}:</span>
-                <input v-model="formData.avg_blood_pressure" type="text" class="modern-input" placeholder="120/80" />
+                <span>{{ $t("personalInfo.avgBloodPressure") }}:</span>
+                <input
+                  v-model="formData.avg_blood_pressure_text"
+                  type="text"
+                  class="modern-input"
+                  placeholder="120/80"
+                />
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.alcoholUse') }}:</span>
+                <span>{{ $t("personalInfo.alcoholUse") }}:</span>
                 <select v-model="formData.alcohol_use" class="modern-input">
-                  <option value="">{{ $t('options.none') }}</option>
-                  <option value="occasional">{{ $t('options.occasional') }}</option>
-                  <option value="moderate">{{ $t('options.moderate') }}</option>
-                  <option value="heavy">{{ $t('options.heavy') }}</option>
+                  <option value="">{{ $t("options.none") }}</option>
+                  <option value="occasional">{{ $t("options.occasional") }}</option>
+                  <option value="moderate">{{ $t("options.moderate") }}</option>
+                  <option value="heavy">{{ $t("options.heavy") }}</option>
                 </select>
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.activity') }}:</span>
+                <span>{{ $t("personalInfo.activity") }}:</span>
                 <select v-model="formData.activity" class="modern-input">
-                  <option value="">{{ $t('options.none') }}</option>
-                  <option value="sedentary">{{ $t('options.sedentary') }}</option>
-                  <option value="light">{{ $t('options.light') }}</option>
-                  <option value="active">{{ $t('options.active') }}</option>
-                  <option value="very_active">{{ $t('options.very_active') }}</option>
+                  <option value="">{{ $t("options.none") }}</option>
+                  <option value="sedentary">{{ $t("options.sedentary") }}</option>
+                  <option value="light">{{ $t("options.light") }}</option>
+                  <option value="active">{{ $t("options.active") }}</option>
+                  <option value="very_active">{{ $t("options.very_active") }}</option>
                 </select>
               </label>
             </div>
@@ -75,53 +81,74 @@
 
           <!-- Medical Info -->
           <div class="form-card">
-            <h3 class="form-card-title">{{ $t('modifyPersonalInfo.medicalInfo') }}</h3>
+            <h3 class="form-card-title">{{ $t("modifyPersonalInfo.medicalInfo") }}</h3>
+
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.conditions') }}:</span>
-                <input v-model="formData.conditions" type="text" class="modern-input" 
-                      :placeholder="$t('patientForm.conditionsPlaceholder')" />
+                <span>{{ $t("personalInfo.conditions") }}:</span>
+                <input
+                  v-model="formData.conditions"
+                  type="text"
+                  class="modern-input"
+                  :placeholder="$t('patientForm.conditionsPlaceholder')"
+                />
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.riskFactors') }}:</span>
-                <input v-model="formData.risk_factors" type="text" class="modern-input" 
-                      :placeholder="$t('patientForm.riskFactorsPlaceholder')" />
+                <span>{{ $t("personalInfo.riskFactors") }}:</span>
+                <input
+                  v-model="formData.risk_factors"
+                  type="text"
+                  class="modern-input"
+                  :placeholder="$t('patientForm.riskFactorsPlaceholder')"
+                />
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.allergies') }}:</span>
-                <input v-model="formData.allergies" type="text" class="modern-input" 
-                      :placeholder="$t('patientForm.allergiesPlaceholder')" />
+                <span>{{ $t("personalInfo.allergies") }}:</span>
+                <input
+                  v-model="formData.allergies"
+                  type="text"
+                  class="modern-input"
+                  :placeholder="$t('patientForm.allergiesPlaceholder')"
+                />
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.medications') }}:</span>
-                <input v-model="formData.medications" type="text" class="modern-input" 
-                      :placeholder="$t('patientForm.medicationsPlaceholder')" />
+                <span>{{ $t("personalInfo.medications") }}:</span>
+                <input
+                  v-model="formData.medications"
+                  type="text"
+                  class="modern-input"
+                  :placeholder="$t('patientForm.medicationsPlaceholder')"
+                />
               </label>
             </div>
 
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t('personalInfo.heartProcedures') }}:</span>
-                <input v-model="formData.heart_procedures" type="text" class="modern-input" 
-                      :placeholder="$t('patientForm.heartProceduresPlaceholder')" />
+                <span>{{ $t("personalInfo.heartProcedures") }}:</span>
+                <input
+                  v-model="formData.heart_procedures"
+                  type="text"
+                  class="modern-input"
+                  :placeholder="$t('patientForm.heartProceduresPlaceholder')"
+                />
               </label>
             </div>
           </div>
         </div>
 
         <button type="submit" class="modern-submit-btn">
-          {{ $t('modifyPersonalInfo.save') }}
+          {{ $t("modifyPersonalInfo.save") }}
           <svg class="submit-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12L10 17L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 12L10 17L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
 
@@ -134,114 +161,109 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useI18n } from 'vue-i18n';
-import axios from 'axios';
+import { reactive, ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import { useAuthStore } from "@/stores/authStore";
 
 const { t } = useI18n();
+const auth = useAuthStore();
 
-const isLoggedIn = ref(false);
-const message = ref('');
-const messageType = ref('');
-const formData = ref({
-  weight: '',
-  height: '',
-  avg_blood_pressure: '',
-  alcohol_use: '',
-  activity: '',
-  conditions: '',
-  risk_factors: '',
-  allergies: '',
-  medications: '',
-  heart_procedures: ''
+const message = ref("");
+const messageType = ref("");
+
+const formData = reactive({
+  weight: "",
+  height: "",
+  avg_blood_pressure_text: "",
+  alcohol_use: "",
+  activity: "",
+  conditions: "",
+  risk_factors: "",
+  allergies: "",
+  medications: "",
+  heart_procedures: "",
 });
 
-const userId = ref(null);
-
-const checkLoginStatus = async () => {
-  try {
-    const response = await axios.get('http://localhost:8000/api/users/check-session');
-    isLoggedIn.value = response.data?.isLoggedIn || false;
-    if (isLoggedIn.value) {
-      userId.value = JSON.parse(localStorage.getItem('user'))?._id;
-      loadUserData();
-    }
-  } catch (error) {
-    console.error('Session check failed:', error);
-    isLoggedIn.value = localStorage.getItem('isLoggedIn') === 'true';
-    if (isLoggedIn.value) {
-      userId.value = JSON.parse(localStorage.getItem('user'))?._id;
-      loadUserData();
-    }
-  }
+const splitToArray = (v) => {
+  const s = (v ?? "").trim();
+  return s ? s.split(",").map((x) => x.trim()).filter(Boolean) : [];
 };
 
-const loadUserData = () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-
-  if (user) {
-    formData.value.weight = user.weight || '';
-    formData.value.height = user.height || '';
-    formData.value.avg_blood_pressure = user.avg_blood_pressure || '';
-    formData.value.alcohol_use = user.alcohol_use || '';
-    formData.value.activity = user.activity || '';
-
-    formData.value.conditions = (user.conditions || []).join(', ');
-    formData.value.risk_factors = (user.risk_factors || []).join(', ');
-    formData.value.allergies = (user.allergies || []).join(', ');
-    formData.value.medications = (user.medications || []).join(', ');
-    formData.value.heart_procedures = (user.heart_procedures || []).join(', ');
-  }
+const parseBpText = (text) => {
+  const s = (text ?? "").trim();
+  if (!s) return { systolic: null, diastolic: null };
+  const parts = s.split("/").map((x) => x.trim());
+  const sys = Number(parts[0]);
+  const dia = Number(parts[1]);
+  return {
+    systolic: Number.isFinite(sys) ? sys : null,
+    diastolic: Number.isFinite(dia) ? dia : null,
+  };
 };
 
-onMounted(() => {
-  checkLoginStatus();
+const loadFromStore = () => {
+  const p = auth.user?.patient_info;
+  if (!p) return;
+
+  formData.value.weight = p.weight ?? "";
+  formData.value.height = p.height ?? "";
+
+  const bp = p.avg_blood_pressure;
+  formData.value.avg_blood_pressure_text =
+    bp?.systolic != null && bp?.diastolic != null ? `${bp.systolic}/${bp.diastolic}` : "";
+
+  formData.value.alcohol_use = p.alcohol_use ?? "";
+  formData.value.activity = p.activity ?? "";
+
+  formData.value.conditions = (p.conditions ?? []).join(", ");
+  formData.value.risk_factors = (p.risk_factors ?? []).join(", ");
+  formData.value.allergies = (p.allergies ?? []).join(", ");
+  formData.value.medications = (p.medications ?? []).join(", ");
+  formData.value.heart_procedures = (p.heart_procedures ?? []).join(", ");
+};
+
+onMounted(async () => {
+  await auth.fetchUser();
+  loadFromStore();
 });
 
 const handleSubmit = async () => {
-  if (!isLoggedIn.value) return;
-  
-  message.value = '';
-  messageType.value = '';
+  if (!auth.isAuthenticated) return;
+
+  message.value = "";
+  messageType.value = "";
+
+  const bp = parseBpText(formData.value.avg_blood_pressure_text);
 
   const payload = {
-    ...formData.value,
-    conditions: formData.value.conditions.split(',').map(s => s.trim()).filter(Boolean),
-    risk_factors: formData.value.risk_factors.split(',').map(s => s.trim()).filter(Boolean),
-    allergies: formData.value.allergies.split(',').map(s => s.trim()).filter(Boolean),
-    medications: formData.value.medications.split(',').map(s => s.trim()).filter(Boolean),
-    heart_procedures: formData.value.heart_procedures.split(',').map(s => s.trim()).filter(Boolean),
+    patient_info: {
+      weight: formData.value.weight === "" ? null : Number(formData.value.weight),
+      height: formData.value.height === "" ? null : Number(formData.value.height),
+
+      avg_blood_pressure: bp,
+      alcohol_use: formData.value.alcohol_use || null,
+      activity: formData.value.activity || null,
+
+      conditions: splitToArray(formData.value.conditions),
+      risk_factors: splitToArray(formData.value.risk_factors),
+      allergies: splitToArray(formData.value.allergies),
+      medications: splitToArray(formData.value.medications),
+      heart_procedures: splitToArray(formData.value.heart_procedures),
+    },
   };
 
   try {
-    const response = await axios.put(
-      `http://localhost:8000/api/users/id/${userId.value}`,
-      payload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        }
-      }
-    );
+    await auth.updateProfile(payload);
+    message.value = t("modifyPersonalInfo.saveSuccess");
+    messageType.value = "success";
 
-    if (response.data.status === 'success') {
-      message.value = t('modifyPersonalInfo.saveSuccess');
-      messageType.value = 'success';
-
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-
-      window.dispatchEvent(new CustomEvent('userDataUpdated', {
-        detail: response.data.user
-      }));
-    } else {
-      message.value = t(`modifyPersonalInfo.${response.data.message}`);
-      messageType.value = 'error';
-    }
+    // Refresh form with saved values
+    await auth.fetchUser();
+    loadFromStore();
   } catch (error) {
-    const key = error.response?.data?.message || 'saveError';
-    message.value = t(`modifyPersonalInfo.${key}`);
-    messageType.value = 'error';
+    console.error(error);
+    message.value = t("modifyPersonalInfo.saveError");
+    messageType.value = "error";
   }
 };
 </script>

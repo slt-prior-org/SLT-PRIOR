@@ -97,6 +97,10 @@ class ProfessionalMessageRequest(BaseModel):
     content: str
     professional_id: str
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
 
 """
 Response models

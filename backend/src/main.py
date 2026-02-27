@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.users import router as user_router, current_user_id, logged_in
 from routes.professional import router as professional_router
 from routes.chat import router as chat_router
+from routes.auth import router as auth_router
 
 app = FastAPI()
 
@@ -43,4 +44,10 @@ app.include_router(
     chat_router,
     prefix="/api/chat",
     tags=["chat"]
+)
+
+app.include_router(
+    auth_router,
+    prefix="/api/auth",
+    tags=["auth"]
 )

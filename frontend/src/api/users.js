@@ -2,20 +2,19 @@ import axios from "axios";
 
 const API_URL = "http://127.0.0.1:8000";  // FastAPI backend URL
 
-export const createUser = async (userData) => {
+export const loginUser = async (email, password) => {
   try {
-    const response = await axios.post(`${API_URL}/api/users/`, userData);
-    console.log("✅ User created:", response.data);
-    return response.data.user_id;  // Return user ID to the frontend
+    const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+    return response.data; // { status, message, user? }
   } catch (error) {
-    console.error("❌ Error creating user:", error.response?.data || error.message);
-    return null;
+    console.error("❌ Login error:", error.response?.data || error.message);
+    throw error;
   }
 };
 
 export const registerUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/users/register`, userData);
+    const response = await axios.post(`${API_URL}/api/auth/register`, userData);
     console.log("✅ User created:", response.data);
     return response.data.user_id;  // Return user ID to the frontend
   } catch (error) {

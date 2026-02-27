@@ -1,8 +1,8 @@
 import logging
 from ai_model import rag_cloud
-from fastapi import APIRouter, HTTPException, Request, jsonify
+from fastapi import APIRouter, HTTPException, Request
 from database.db import users_collection
-from database.models import UserModel, RegisterModel
+from database.models import UserModel
 from bson import ObjectId
 from passlib.context import CryptContext
 from database.models import UserModel, StatusResponse, StatusWithUserResponse, CreateUserResponse, CheckSessionResponse
@@ -110,32 +110,6 @@ pwd_context = CryptContext(
     argon2__memory_cost=102400,   # KiB (≈ 100 MB)
     argon2__parallelism=8,
 )
-
-
-@router.post("/register", response_model=dict)
-async def register_user(user: RegisterModel, request: Request):
-
-    user_dict = user.model_dump() 
-
-    # Hashing password
-    plaintextPw = user_dict["password"]
-    hashedPw = pwd_context.hash(plaintextPw)
-    user_dict["password"] = hashedPw
-
-    result = await users_collection.insert_one(user_dict)
-    if not result.inserted_id:
-        raise HTTPException(status_code=500, detail="Failed to insert user.")
-    
-    object_id = str(result.inserted_id) 
-
-    logged_in = False
-    current_user_id = None
-
-    request.app.state.logged_in = True
-    request.app.state.current_user_id = str(result.inserted_id)
-
-    logging.info(f"✅ User saved with ObjectId: {object_id}")
-    return {"user_id": object_id, "message": "User created successfully"}       
 
 # Get user by userId
 """"

@@ -85,6 +85,8 @@
   "login": {
     "title": "Login",
     "username": "Enter user ID",
+    "email": "Enter email",
+    "password": "Enter password",
     "logIn": "Log In",
     "Logout": "Logout"
   },

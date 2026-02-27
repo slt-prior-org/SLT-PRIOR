@@ -26,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
 
         localStorage.setItem("token", data.token)
       } catch (error) {
-        console.log("Registerarion failed: ", error)
+        console.log("Registration failed: ", error)
         throw error
       } finally {
         this.loading = false

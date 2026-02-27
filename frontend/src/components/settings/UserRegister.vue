@@ -38,6 +38,9 @@
         <label>{{ $t("patientForm.height") }} (cm):</label>
         <input v-model="patient.height" type="number">
 
+        <label>{{ $t("patientForm.age") }}:</label>
+        <input v-model.number="patient.age" type="number" min="0">
+
         <label>{{ $t("patientForm.conditions") }}:</label>
         <input
           v-model="patient.conditions"
@@ -45,7 +48,10 @@
         >
 
         <label>{{ $t("patientForm.avgBloodPressure") }}:</label>
-        <input v-model="patient.avg_blood_pressure">
+        <div class="bp-row">
+          <input v-model.number="patient.avg_bp_systolic" type="number" placeholder="Systolic" min="50" max="300">
+          <input v-model.number="patient.avg_bp_diastolic" type="number" placeholder="Diastolic" min="30" max="200">
+        </div>
 
         <label>{{ $t("patientForm.riskFactors") }}:</label>
         <input
@@ -86,7 +92,7 @@
           <option disabled value="">
             {{ $t("patientForm.activity") }}
           </option>
-          <option value="none">
+          <option value="sedentary">
             {{ $t("patientForm.activityNone") }}
           </option>
           <option value="light">
@@ -95,11 +101,8 @@
           <option value="moderate">
             {{ $t("patientForm.activityModerate") }}
           </option>
-          <option value="active">
+          <option value="vigorous">
             {{ $t("patientForm.activityActive") }}
-          </option>
-          <option value="very_active">
-            {{ $t("patientForm.activityVeryActive") }}
           </option>
         </select>
 
@@ -133,7 +136,7 @@
 </template>
 
 <script>
-import { registerUser } from '@/api/users';
+import { useAuthStore } from "@/stores/authStore";
 
 export default {
   props: ["show"],
@@ -157,8 +160,10 @@ export default {
       patient: {
         weight: "",
         height: "",
+        age: "",
         conditions: "",
-        avg_blood_pressure: "",
+        avg_bp_systolic: "",
+        avg_bp_diastolic: "",
         risk_factors: "",
         alcohol_use: "",
         allergies: "",
@@ -167,6 +172,9 @@ export default {
         heart_procedures: "",
       },
     };
+  },
+  created() {
+    this.auth = useAuthStore();
   },
   methods: {
     goToStep2() {
@@ -207,8 +215,12 @@ export default {
           patient_info: {
             weight: Number(this.patient.weight),
             height: Number(this.patient.height),
+            age: Number(this.patient.age),
             conditions: this.splitToArray(this.patient.conditions),
-            avg_blood_pressure: this.patient.avg_blood_pressure,
+            avg_blood_pressure: {
+              systolic: Number(this.patient.avg_bp_systolic),
+              diastolic: Number(this.patient.avg_bp_diastolic)
+            },
             risk_factors: this.splitToArray(this.patient.risk_factors),
             alcohol_use: this.patient.alcohol_use,
             allergies: this.splitToArray(this.patient.allergies),
@@ -218,19 +230,10 @@ export default {
           }
         };
 
-        const response = await registerUser(formattedData);
-        console.log("Response from MongoDB:", response);
-
-        this.userId = response;
-
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("user", JSON.stringify({ userId: this.userId }));
-        window.dispatchEvent(new CustomEvent("authChange"));
-        this.closeForm();
-
+        await this.auth.register(formattedData); // stores token + user
+        this.$emit("close");
       } catch (err) {
-        console.error(err);
-        this.error = err?.message ?? "Submit failed.";
+        this.error = err?.response?.data?.detail || err?.message || "Register failed.";
       } finally {
         this.loading = false;
       }

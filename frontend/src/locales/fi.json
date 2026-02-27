@@ -85,6 +85,8 @@
   "login": {
     "title": "Kirjaudu sisään",
     "username": "Syötä käyttäjä ID",
+    "email": "sähköposti",
+    "password": "Salasana",
     "logIn": "Kirjaudu sisään",
     "Logout": "Kirjaudu ulos"
   },

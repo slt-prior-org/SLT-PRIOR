@@ -9,10 +9,15 @@
         >{{ $t("settings.title") }}</a>
       </li>
       <li>
-        <a href="#" @click.prevent="handleLoginLogout">
-          <p>{{ loggedIn ? $t("logout") : $t("settings.login") }}</p>
-        </a>
-      </li>
+  <a href="#" @click.prevent="handleLoginLogout">
+    <p>{{ loggedIn ? $t("logout") : $t("settings.login") }}</p>
+  </a>
+  </li>
+  <li v-if="!loggedIn">
+    <a href="#" @click.prevent="openRegisterForm">
+      <p>{{ $t("settings.register") }}</p>
+    </a>
+  </li>
       <li v-if="!loggedIn">
         <a href="#" @click.prevent="openPatientForm">
           <p>{{ $t("preliminaryForm") }}</p>
@@ -30,14 +35,14 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, onMounted } from "vue";
+import { defineProps, defineEmits, ref, onMounted, computed } from "vue";
 import SettingsModal from "./SettingsModal.vue";
-import axios from "axios";
+import { useAuthStore } from "@/stores/authStore";
 
 defineProps({ isOpen: Boolean });
 const emit = defineEmits(["open-patient-form"]);
-
-const loggedIn = ref(localStorage.getItem('isLoggedIn') === 'true');
+const auth = useAuthStore();
+const loggedIn = computed(() => auth.isAuthenticated);
 const settingsOpen = ref(false);
 const initialSettingsSection = ref("personalInfo");
 
@@ -53,10 +58,7 @@ const openPatientForm = () => emit("open-patient-form");
 const handleLoginLogout = async () => {
   if (loggedIn.value) {
     try {
-      await axios.post('http://localhost:8000/users/logout');
-      localStorage.removeItem('user');
-      localStorage.setItem('isLoggedIn', 'false');
-      loggedIn.value = false;
+      await auth.logout();
       window.dispatchEvent(new CustomEvent('authChange'));
       console.log("Uloskirjautuminen onnistui");
     } catch (error) {
@@ -67,6 +69,13 @@ const handleLoginLogout = async () => {
     initialSettingsSection.value = "login";
   }
 };
+
+const openRegisterForm = () => {
+  settingsOpen.value = true;
+  initialSettingsSection.value = "register";
+};
+
+
 </script>
 
 

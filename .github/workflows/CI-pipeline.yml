@@ -77,6 +77,9 @@ jobs:
           echo "GEMINI_API=${{ secrets.GEMINI_API }}" >> backend/.env
           echo "GOOGLE_APPLICATION_CREDENTIALS=/app/cloud_storage_key.json" >> backend/.env
           echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> backend/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
+          echo "JWT_ALG=${{ secrets.JWT_ALG }}" >> backend/.env
+          echo "JWT_EXPIRES_MIN=${{ secrets.JWT_EXPIRES_MIN }}" >> backend/.env
 
       - name: Run Docker compose
         run: |

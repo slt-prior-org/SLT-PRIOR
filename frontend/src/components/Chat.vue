@@ -94,7 +94,7 @@ export default {
     },
     async fetchMapping() {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/data");
+        const response = await axios.get("http://127.0.0.1:8000/api/data"); // Ei löydy backendistä
         this.mapping = response.data.data;
       } catch (error) {
         console.error(this.$t("data-error"), error);
@@ -107,7 +107,7 @@ export default {
       this.messages.push({ text: this.newMessage, from: "self" });
 
       try {
-        const response = await axios.post("http://127.0.0.1:8000/api/send", {
+        const response = await axios.post("http://127.0.0.1:8000/api/chat/send", {
           message: this.newMessage,
         });
 

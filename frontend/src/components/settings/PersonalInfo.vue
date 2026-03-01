@@ -3,8 +3,8 @@
     <h2>{{ $t("personalInfo.title") }}</h2>
 
     <!-- Kirjautumisviesti (pelkkä teksti) -->
-    <div v-if="!isLoggedIn" class="login-prompt">
-      <p>{{ $t('personalInfo.loginPrompt') }}</p>
+    <div v-if="!auth.isAuthenticated" class="login-prompt">
+      <p>{{ $t("personalInfo.loginPrompt") }}</p>
     </div>
 
     <!-- Käyttäjätiedot -->
@@ -21,8 +21,10 @@
           <span class="value">{{ userData?.height || $t('personalInfo.notProvided') }} {{ $t('units.cm') }}</span>
         </div>
         <div class="info-row">
-          <span class="label">{{ $t('personalInfo.avgBloodPressure') }}: </span>
-          <span class="value">{{ userData?.avg_blood_pressure || $t('personalInfo.notProvided') }}</span>
+          <span class="label">{{ $t("personalInfo.avgBloodPressure") }}: </span>
+          <span class="value">
+            {{ avgBpText }}
+          </span>
         </div>
       </div>
 
@@ -82,10 +84,30 @@
   </div>
 </template>
 
-<script>
-import axios from 'axios';
+<script setup>
+import { onMounted, computed } from "vue";
+import { useAuthStore } from "@/stores/authStore";
 
-export default {
+const auth = useAuthStore();
+
+onMounted(() => {
+  // ensures we have fresh user data when opening settings
+  auth.fetchUser();
+});
+
+const patient = computed(() => auth.user?.patient_info ?? {});
+
+const avgBpText = computed(() => {
+  const bp = patient.value?.avg_blood_pressure;
+  if (!bp || (bp.systolic == null && bp.diastolic == null)) {
+    return "—";
+  }
+  if (bp.systolic != null && bp.diastolic != null) return `${bp.systolic}/${bp.diastolic}`;
+  if (bp.systolic != null) return `${bp.systolic}/—`;
+  return `—/${bp.diastolic}`;
+});
+
+/* export default {
   name: 'PersonalInfo',
   data() {
     return {
@@ -102,7 +124,7 @@ export default {
   methods: {
     async checkLoginStatus() {
       try {
-        const response = await axios.get('http://localhost:8000/users/check-session');
+        const response = await axios.get('http://localhost:8000/api/users/check-session');
         this.isLoggedIn = response.data?.isLoggedIn || false;
       } catch (error) {
         console.error('Session check failed:', error);
@@ -111,7 +133,7 @@ export default {
     },
     async fetchUserData() {
       try {
-        const response = await axios.get('http://localhost:8000/users/current-user');
+        const response = await axios.get('http://localhost:8000/api/users/current-user');
         if (response.data.status === 'success') {
           this.userData = response.data.user;
         }
@@ -120,7 +142,7 @@ export default {
       }
     }
   }
-}
+} */
 </script>
 
 <style scoped>

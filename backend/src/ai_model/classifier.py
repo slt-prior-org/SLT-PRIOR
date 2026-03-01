@@ -8,16 +8,12 @@ Luokittelee käyttäjän kysymykset kahteen kategoriaan:
 EU AI Act -yhteensopivuus: epäselvissä tapauksissa aina NEEDS_REVIEW (fail-safe).
 """
 
-import os
 import json
 import logging
 from enum import Enum
 from dataclasses import dataclass
 from langchain_google_genai import ChatGoogleGenerativeAI
-from dotenv import load_dotenv
-
-load_dotenv()
-google_api_key = os.getenv('GEMINI_API')
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -40,48 +36,32 @@ classifier_llm = ChatGoogleGenerativeAI(
     model='gemini-2.0-flash-001',
     temperature=0.0,
     max_tokens=300,
-    google_api_key=google_api_key
+    google_api_key=settings.GOOGLE_API_KEY
 )
 
-CLASSIFICATION_PROMPT = """You are a medical question safety classifier for a healthcare chatbot focused on heart health and coronary artery disease. Your job is to determine whether a user's question can be safely answered with general health information, or whether it requires professional medical review.
+CLASSIFICATION_PROMPT = """You are a safety classifier for a heart health chatbot focused on coronary artery disease.
 
-CLASSIFICATION RULES:
+CORE DECISION RULE:
+Could a knowledgeable health educator answer this from public health guidelines \
+(Käypä hoito, ESC) WITHOUT needing to know anything specific about this particular person?
+- YES → SAFE (general health education, AI can respond directly)
+- NO, the answer would require acting as this person's doctor → NEEDS_REVIEW
 
-SAFE - The question asks for general, educational health information that can be answered from approved medical guidelines (Käypä hoito, ESC guidelines). Examples:
-- Factual questions about what a condition is ("What is coronary artery disease?", "Mikä on sepelvaltimotauti?")
-- General risk factors for heart disease ("Mitkä ovat sydänsairauksien riskitekijät?")
-- General lifestyle advice (diet, exercise) ("Millainen ruokavalio on hyväksi sydämelle?")
-- Explaining medical terms or concepts
-- How diagnostic procedures work in general
-- General information about how medications work (NOT whether someone should take them)
-- Understanding their own condition in general terms ("Help me understand my illness", "Voitko auttaa minua ymmärtämään sairauttani?", "What does my diagnosis mean in general?")
-- General questions about living with a condition ("How do people manage coronary artery disease?", "Miten sepelvaltimotaudin kanssa eletään?")
-- Asking what a diagnosis or condition generally involves
-- Vague, non-urgent symptom mentions that can be addressed with general health information and follow-up questions ("My legs swell in the evenings", "Jalkojani turvottaa iltaisin", "I've been tired lately", "Olen ollut väsynyt", "I sometimes feel dizzy", "Välillä huimaa")
+Simply mentioning a symptom (e.g. "I have chest pain", "Minulla on rintakipua") is SAFE — \
+the chatbot can explain general causes from public guidelines without any personal assessment.
 
-NEEDS_REVIEW - The question involves ANY of the following:
-- Personal symptoms or complaints ("I have chest pain", "Minulla on rintakipua")
-- Specific health values or measurements ("My blood pressure is 180/100", "Verenpaineeni on 180/100")
-- Medication decisions ("Should I stop/start/change my medication?", "Pitäisikö lopettaa lääkitykseni?")
-- Personal risk assessment ("Am I at risk?", "Olenko riskissä?")
-- Treatment recommendations ("What treatment should I get?", "Mitä hoitoa tarvitsen?")
-- Diagnosis requests ("Do I have heart disease?", "Onko minulla sydänsairaus?")
-- Emergency or urgent situations ("I'm having a heart attack", "Saan sydänkohtauksen")
-- Questions requesting interpretation or assessment of the user's own specific health data, test results, or symptoms
-- Any request for personalized medical advice
-- Questions about specific medication dosing or schedules
-- Interpreting personal test results or measurements
-- Questions asking whether something is dangerous or harmful ("Is this dangerous?", "Onko tämä vaarallista?", "Should I be worried?", "Pitäisikö minun olla huolissaan?")
+Classify as NEEDS_REVIEW when the message involves ANY of the following:
+- Request for personal diagnosis (e.g. "Do I have heart disease?", "Onko minulla sydänsairaus?")
+- Request for personal risk assessment (e.g. "Am I at risk?", "Olenko riskissä sairastua?")
+- Request for personal treatment or medication decision (e.g. "Should I take aspirin?", "Pitäisikö minun ottaa statiineja?")
+- Sharing personal health measurements or lab results (e.g. "My blood pressure is 180/100", "Verenpaineeni on 160/95", "Sykeeni on levossa 110", "LDL-kolesterolini on 4.8")
+- Asking whether their own symptom or situation is dangerous (e.g. "Is this dangerous?", "Onko se vaarallista?", "Should I be worried?", "Pitäisikö minun olla huolissaan?")
+- Asking for interpretation of their own symptoms or test results (e.g. "What does this mean?", "Mitä tämä tarkoittaa?", "Is it too high?", "Onko se liikaa?", "Onko se huono?")
 
-IMPORTANT DISTINCTION: A question is SAFE if the user is seeking general understanding or education about a condition, even if they refer to "my illness" or "my condition". It becomes NEEDS_REVIEW only when they ask for personalized assessment, interpretation of specific values, or treatment decisions.
-
-IMPORTANT: Vague, non-urgent symptom mentions WITHOUT specific values, emergency indicators, or requests for personal diagnosis are SAFE. The chatbot will provide general information and ask clarifying follow-up questions naturally. Only classify as NEEDS_REVIEW when there are specific values, urgency, or explicit requests for personal medical assessment.
-
-CRITICAL: When genuinely uncertain whether a question seeks personal medical advice or general education, classify as NEEDS_REVIEW. However, do not classify educational questions as NEEDS_REVIEW simply because the user mentions their own condition.
+EU AI Act compliance: When genuinely uncertain → NEEDS_REVIEW (fail-safe default).
 
 USER CONTEXT: {user_context}
-
-USER QUESTION: {question}
+{conversation_history_section}USER QUESTION: {question}
 
 Respond in this exact JSON format and nothing else:
 {{"classification": "SAFE" or "NEEDS_REVIEW", "reasoning": "brief explanation", "confidence": "HIGH" or "MEDIUM" or "LOW"}}"""
@@ -90,7 +70,8 @@ Respond in this exact JSON format and nothing else:
 async def classify_question(
     question: str,
     user_data: dict | None = None,
-    is_logged_in: bool = False
+    is_logged_in: bool = False,
+    conversation_history: list[dict] | None = None,
 ) -> ClassificationResult:
     """
     Luokittelee käyttäjän kysymyksen SAFE tai NEEDS_REVIEW -kategoriaan.
@@ -108,9 +89,27 @@ async def classify_question(
         else:
             user_context = "User is not logged in. No personal health data available."
 
+        if conversation_history:
+            lines = []
+            for msg in conversation_history[-10:]:
+                role = "User" if msg["sender"] == "user" else "Assistant"
+                lines.append(f"{role}: {msg['content']}")
+            history_text = "\n".join(lines)
+            conversation_history_section = (
+                f"CONVERSATION HISTORY (oldest first):\n{history_text}\n"
+                f"If the history reveals an accumulating pattern of cardiac symptoms, "
+                f"classify as NEEDS_REVIEW even if the current message alone would be SAFE.\n"
+                f"If the current message appears to be answering a follow-up question from the assistant "
+                f"(e.g. a duration, severity, or yes/no reply), use the full conversation context "
+                f"to determine the classification — do not evaluate the reply in isolation.\n\n"
+            )
+        else:
+            conversation_history_section = ""
+
         prompt = CLASSIFICATION_PROMPT.format(
             question=question,
-            user_context=user_context
+            user_context=user_context,
+            conversation_history_section=conversation_history_section
         )
 
         response = await classifier_llm.ainvoke(prompt)

@@ -4,8 +4,6 @@ summarizer.py
 Generoi tiivistelmän keskustelusta, kun luokittelija on todennut
 käyttäjän viestin vaativan ammattilaisen tarkistusta (NEEDS_REVIEW).
 
-Tiivistelmä tallennetaan MongoDB:hen ja voidaan myöhemmin hakea
-ammattilaiselle välitettäväksi.
 """
 
 from config import settings

@@ -1,16 +1,25 @@
 <template>
   <div class="settings-section">
     <h2>{{ $t("login.title") }}</h2>
+
     <input
-      type="text"
-      v-model="userID"
-      :placeholder="t('login.username')"
+      type="email"
+      v-model="email"
+      :placeholder="t('login.email')"
       @keyup.enter="handleLogin"
     >
+
+    <input
+      type="password"
+      v-model="password"
+      :placeholder="t('login.password')"
+      @keyup.enter="handleLogin"
+    >
+
     <button @click="handleLogin">{{ $t("login.logIn") }}</button>
-    
-    <!-- Yhdistetty viestialue -->
-    <div 
+
+    <div
+      v-if="loginMessage"
       :class="[
         'login-message',
         messageType === 'error' ? 'error-message' : 'success-message'
@@ -22,51 +31,35 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import axios from 'axios';
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { useAuthStore } from "@/stores/authStore";
 
 const { t } = useI18n();
-const userID = ref('');
-const loginMessage = ref('');
-const messageType = ref('');
+const auth = useAuthStore();
+
+
+const email = ref('')
+const password = ref('')
+const loginMessage = ref('')
+const messageType = ref('')
 
 const handleLogin = async () => {
   try {
-    loginMessage.value = '';
-    const response = await axios.post(
-      'http://localhost:8000/users/login',
-      { user_id: userID.value },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      }
-    );
+    loginMessage.value = "";
+    await auth.login(email.value, password.value);
 
-    if (response.data.status === 'success') {
-      // Lisätyt rivit kirjautumistilan hallintaan
-      localStorage.setItem('isLoggedIn', 'true');
-      window.dispatchEvent(new CustomEvent('authChange'));
-      
-      messageType.value = 'success';
-      loginMessage.value = t('loginStatus.success');
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      window.location.href = '/#';
-    } else {
-      messageType.value = 'error';
-      loginMessage.value = t(`loginStatus.${response.data.message}`);
-    }
+    messageType.value = "success";
+    loginMessage.value = t("loginStatus.success");
 
+    // Optional redirect:
+    window.location.href = "/#";
   } catch (error) {
-    messageType.value = 'error';
-    const errorKey = error.response?.data?.message || 'server_error';
-    loginMessage.value = t(`loginStatus.${errorKey}`);
+    messageType.value = "error";
+    const detail = error?.response?.data?.detail || "server_error";
+    loginMessage.value = typeof detail === "string" ? detail : t("loginStatus.failed");
   } finally {
-    setTimeout(() => {
-      loginMessage.value = '';
-    }, 5000);
+    setTimeout(() => (loginMessage.value = ""), 5000);
   }
 };
 </script>

@@ -324,3 +324,86 @@ class TestResponseStructure:
         # emergency_message_en contains both FI and EN (combined)
         assert "hätänumeroon" in result.emergency_message_en
         assert "emergency number" in result.emergency_message_en
+
+
+# ---------- False positive -vähennys ----------
+
+class TestFalsePositiveReduction:
+    # Kasvatukselliset kysymykset (FI) → None
+    def test_fi_edu_elvytetaan(self):
+        result = detect_emergency("Kuinka elvytetään?")
+        assert result is None
+
+    def test_fi_edu_aivohalvaus_yleisesti(self):
+        result = detect_emergency("Aivohalvauksen oireet yleisesti?")
+        assert result is None
+
+    def test_fi_edu_sydankohtaus_tunnistetaan(self):
+        result = detect_emergency("Miten sydänkohtaus tunnistetaan?")
+        assert result is None
+
+    def test_fi_edu_kerro_elvytyksesta(self):
+        result = detect_emergency("Kerro elvytyksestä")
+        assert result is None
+
+    # Kielikuvat (FI) → None
+    def test_fi_fig_kuolen_nalkaan(self):
+        result = detect_emergency("Kuolen nälkään")
+        assert result is None
+
+    def test_fi_fig_kuolen_nauruun(self):
+        result = detect_emergency("Kuolen nauruun")
+        assert result is None
+
+    # Menneisyys (FI) → None
+    def test_fi_past_sai_sydankohtauksen(self):
+        result = detect_emergency("Isäni sai sydänkohtauksen viime vuonna")
+        assert result is None
+
+    def test_fi_past_koki_aivohalvauksen(self):
+        result = detect_emergency("Äitini koki aivohalvauksen kauan sitten")
+        assert result is None
+
+    # Kasvatukselliset kysymykset (EN) → None
+    def test_en_edu_what_is_heart_attack(self):
+        result = detect_emergency("What is a heart attack?")
+        assert result is None
+
+    def test_en_edu_how_do_stroke_symptoms(self):
+        result = detect_emergency("How do stroke symptoms appear?")
+        assert result is None
+
+    def test_en_edu_tell_me_about_cardiac_arrest(self):
+        result = detect_emergency("Tell me about cardiac arrest")
+        assert result is None
+
+    # Kielikuvat (EN) → None
+    def test_en_fig_dying_of_laughter(self):
+        result = detect_emergency("I am dying of laughter")
+        assert result is None
+
+    def test_en_fig_dying_of_boredom(self):
+        result = detect_emergency("I'm dying of boredom")
+        assert result is None
+
+    # Menneisyys (EN) → None
+    def test_en_past_grandfather_heart_attack(self):
+        result = detect_emergency("My grandfather had a heart attack in 1998")
+        assert result is None
+
+    def test_en_past_dad_stroke_last_year(self):
+        result = detect_emergency("My dad suffered a stroke last year")
+        assert result is None
+
+    # Kiireellisyyssignaalit estävät poisjätön → not None
+    def test_urgency_cpr_right_now(self):
+        result = detect_emergency("How do I perform CPR right now?")
+        assert result is not None
+
+    def test_urgency_fi_heti(self):
+        result = detect_emergency("Kuinka elvytetään heti?")
+        assert result is not None
+
+    def test_urgency_en_help_me(self):
+        result = detect_emergency("I am dying, please help me")
+        assert result is not None

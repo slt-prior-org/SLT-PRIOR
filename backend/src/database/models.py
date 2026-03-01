@@ -143,6 +143,11 @@ class ChatDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     messages: List[MessageDetailResponse]
+    # Summarizer fields — only populated in GET /chats/{id}, None in queue view
+    patient_context: Optional[str] = None
+    chat_summary: Optional[str] = None
+    draft_response: Optional[str] = None
+    requires_approval: Optional[bool] = None
 
 class ChatQueueResponse(BaseModel):
     in_progress: List[ChatDetailResponse]

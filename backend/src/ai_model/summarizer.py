@@ -31,7 +31,8 @@ def _format_history(messages) -> str:
             role = "Patient" if msg.type == "human" else "Chatbot"
             formatted.append(f"{role}: {msg.content}")
         elif isinstance(msg, dict):
-            role = "Patient" if msg.get("type") == "human" else "Chatbot"
+            sender = msg.get("sender") or msg.get("type", "")
+            role = "Patient" if sender in ("user", "human") else "Chatbot"
             formatted.append(f"{role}: {msg.get('content', '')}")
     return "\n".join(formatted) if formatted else "No conversation history available."
 
@@ -99,9 +100,9 @@ async def generate_summary_for_professional(
     except Exception as e:
         logger.error(f"Professional summary generation failed, using fallback: {e}")
         chat_summary = (
-            f"[Automatic summary - LLM unavailable]\n\n"
-            f"Conversation length: {len(messages)} messages\n"
-            f"Patient data available: {'Yes' if user_data else 'No'}"
+            f"[Automaattinen tiivistelmä – LLM ei saatavilla / Automatic summary – LLM unavailable]\n\n"
+            f"Viestien määrä / Conversation length: {len(messages)}\n"
+            f"Potilasdata saatavilla / Patient data available: {'Kyllä / Yes' if user_data else 'Ei / No'}"
         )
 
     # Haetaan viimeinen potilaan viesti ja generoidaan draft RAG-vastauksella
@@ -114,9 +115,17 @@ async def generate_summary_for_professional(
             break
 
     if last_human_msg:
+        if chat_summary:
+            draft_prompt = (
+                f"[Conversation summary: {chat_summary}]\n\n"
+                f"[Patient info: {patient_context}]\n\n"
+                f"Patient's latest message: {last_human_msg}"
+            )
+        else:
+            draft_prompt = last_human_msg
         try:
             from ai_model import rag_cloud, utils
-            raw_draft = await rag_cloud.generate_draft_response(last_human_msg)
+            raw_draft = await rag_cloud.generate_draft_response(draft_prompt)
             draft_response = utils.formatGeminiResponse(raw_draft)
         except Exception as e:
             logger.error(f"Draft response generation failed: {e}")

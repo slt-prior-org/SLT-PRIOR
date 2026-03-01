@@ -98,10 +98,12 @@ class TestGenerateSummaryForProfessional:
         mock_response = MagicMock()
         mock_response.content = "Patient asked about blood pressure medication."
 
+        mock_llm = MagicMock()
+        mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
         with patch(
-            "ai_model.summarizer.summarizer_llm.ainvoke",
-            new_callable=AsyncMock,
-            return_value=mock_response,
+            "ai_model.summarizer.summarizer_llm",
+            mock_llm,
         ), patch(
             "ai_model.rag_cloud.generate_draft_response",
             new_callable=AsyncMock,
@@ -133,10 +135,12 @@ class TestGenerateSummaryForProfessional:
 
         mock_draft = AsyncMock(return_value="Draft from last message")
 
+        mock_llm = MagicMock()
+        mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
         with patch(
-            "ai_model.summarizer.summarizer_llm.ainvoke",
-            new_callable=AsyncMock,
-            return_value=mock_response,
+            "ai_model.summarizer.summarizer_llm",
+            mock_llm,
         ), patch(
             "ai_model.rag_cloud.generate_draft_response",
             mock_draft,
@@ -153,17 +157,22 @@ class TestGenerateSummaryForProfessional:
                 messages=messages,
             )
 
-        # Varmistetaan että RAG-kutsua kutsuttiin viimeisellä potilaan viestillä
-        mock_draft.assert_called_once_with("Toinen viesti")
+        # Varmistetaan että RAG-kutsua kutsuttiin yhdistetyllä promptilla
+        mock_draft.assert_called_once()
+        call_arg = mock_draft.call_args[0][0]
+        assert "Toinen viesti" in call_arg
+        assert "Summary." in call_arg  # chat_summary on mukana promptissa
         assert result["draft_response"] == "Formatted draft"
 
     @pytest.mark.asyncio
     async def test_fallback_on_llm_failure(self):
         """Testaa fallback-mekanismia, kun LLM epäonnistuu."""
+        mock_llm = MagicMock()
+        mock_llm.ainvoke = AsyncMock(side_effect=Exception("API error"))
+
         with patch(
-            "ai_model.summarizer.summarizer_llm.ainvoke",
-            new_callable=AsyncMock,
-            side_effect=Exception("API error"),
+            "ai_model.summarizer.summarizer_llm",
+            mock_llm,
         ), patch(
             "ai_model.rag_cloud.generate_draft_response",
             new_callable=AsyncMock,
@@ -178,7 +187,8 @@ class TestGenerateSummaryForProfessional:
                 user_data=None,
             )
 
-        assert "[Automatic summary - LLM unavailable]" in result["chat_summary"]
+        assert "Automatic summary" in result["chat_summary"]
+        assert "LLM unavailable" in result["chat_summary"]
         assert result["requires_approval"] is True
         assert "No patient data" in result["patient_context"]
 
@@ -188,10 +198,12 @@ class TestGenerateSummaryForProfessional:
         mock_response = MagicMock()
         mock_response.content = "Summary."
 
+        mock_llm = MagicMock()
+        mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
         with patch(
-            "ai_model.summarizer.summarizer_llm.ainvoke",
-            new_callable=AsyncMock,
-            return_value=mock_response,
+            "ai_model.summarizer.summarizer_llm",
+            mock_llm,
         ), patch(
             "ai_model.rag_cloud.generate_draft_response",
             new_callable=AsyncMock,
@@ -210,10 +222,12 @@ class TestGenerateSummaryForProfessional:
         mock_response = MagicMock()
         mock_response.content = "Summary text."
 
+        mock_llm = MagicMock()
+        mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
         with patch(
-            "ai_model.summarizer.summarizer_llm.ainvoke",
-            new_callable=AsyncMock,
-            return_value=mock_response,
+            "ai_model.summarizer.summarizer_llm",
+            mock_llm,
         ), patch(
             "ai_model.rag_cloud.generate_draft_response",
             new_callable=AsyncMock,
@@ -238,10 +252,12 @@ class TestGenerateSummaryForProfessional:
         mock_response = MagicMock()
         mock_response.content = "Summary."
 
+        mock_llm = MagicMock()
+        mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
         with patch(
-            "ai_model.summarizer.summarizer_llm.ainvoke",
-            new_callable=AsyncMock,
-            return_value=mock_response,
+            "ai_model.summarizer.summarizer_llm",
+            mock_llm,
         ), patch(
             "ai_model.rag_cloud.generate_draft_response",
             new_callable=AsyncMock,

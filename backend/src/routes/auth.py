@@ -1,17 +1,16 @@
 import logging
-import os
 from typing import Dict, Any
 from datetime import datetime, timedelta, timezone
-from ai_model import rag_cloud
+from config import settings
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from database.db import users_collection
-from database.models import AuthResponse, StatusWithUserResponse, UserModel, LoginRequest
+from database.models import AuthResponse, UserModel, LoginRequest, UserDetailResponse
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
@@ -25,22 +24,16 @@ pwd_context = CryptContext(
     argon2__parallelism=8,
 )
 
-JWT_SECRET = 'PoWDwtRxACdZUJRWMER5cHFr6ysBWzubFKNYn22tHJH'
-JWT_ALG = os.getenv("JWT_ALG", "HS256")
-JWT_EXPIRES_MIN = int(os.getenv("JWT_EXPIRES_MIN", "60"))
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET is not set")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/swagger_login")
 
 def create_access_token(user_id: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": user_id,
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=JWT_EXPIRES_MIN)).timestamp()),
+        "exp": int((now + timedelta(minutes=settings.JWT_EXPIRES_MIN)).timestamp()),
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
 
 def _public_user(doc: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -52,7 +45,7 @@ def _public_user(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
         user_id = payload.get("sub")
         if not user_id or not ObjectId.is_valid(user_id):
             raise HTTPException(status_code=401, detail="Invalid token.")
@@ -106,12 +99,33 @@ async def login(body: LoginRequest, request: Request):
     token = create_access_token(str(user["_id"]))
     return {"token": token, "user": _public_user(user)}
 
-@router.get("/me")
+# This endpoint is needed only to enable Swagger UI OAuth2 login.
+# It returns a JWT in the correct format so Swagger can automatically
+# add it to the Authorization header (Bearer <token>) for subsequent requests.
+
+@router.post("/swagger_login")
+async def oauth2_login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Swagger login (OAuth2PasswordBearer)
+    - username = user's email
+    - password = user's password
+    """
+    email = form_data.username
+    password = form_data.password
+
+    user = await users_collection.find_one({"email": email})
+    if not user or not pwd_context.verify(password, user.get("password", "")):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_access_token(str(user["_id"]))
+    return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/me", response_model=UserDetailResponse)
 async def me(current_user: Dict[str, Any] = Depends(get_current_user)):
     """Return the current user based on the Bearer token."""
-    return {"user": _public_user(current_user)}
+    return _public_user(current_user)
 
-@router.put("/me")
+@router.put("/me", response_model=UserDetailResponse)
 async def update_me(
     updates: Dict[str, Any],
     current_user: Dict[str, Any] = Depends(get_current_user),

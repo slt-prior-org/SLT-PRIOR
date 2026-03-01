@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { registerUser, fetchUser, loginUser, logoutUser, updateUserProfile } from '@/services/authService'
+import { registerUser, fetchUser, loginUser, updateUserProfile } from '@/services/authService'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -50,14 +50,9 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async logout() {
-      try {
-        await logoutUser()
-        this.user = null
-        this.token = null
-        localStorage.removeItem("token")
-      } catch (error) {
-        console.log("Logout failed on backend:", error)
-      }
+      this.user = null
+      this.token = null
+      localStorage.removeItem("token")
     },
     async fetchUser() {
       if (!this.token) return

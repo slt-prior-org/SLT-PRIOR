@@ -90,12 +90,8 @@ Request models
 class SendMessageRequest(BaseModel):
     message: str
 
-class ClaimChatRequest(BaseModel):
-    professional_id: str
-
 class ProfessionalMessageRequest(BaseModel):
-    content: str
-    professional_id: str
+    message: str
 
 class LoginRequest(BaseModel):
     email: str
@@ -130,21 +126,35 @@ class ChatReplyResponse(BaseModel):
     reply: str
 
 # Professional
-class ChatQueueResponse(BaseModel):
-    in_progress: List[dict]
-    waiting: List[dict]
-    closed: List[dict]
+class MessageDetailResponse(BaseModel):
+    id: str
+    sender: SenderType
+    content: str
+    classification: Classification
+    flagged_for_human: bool
+    created_at: datetime
+    updated_at: datetime
 
 class ChatDetailResponse(BaseModel):
-    chat_id: str
+    id: str
+    user_id: str
     status: str
-    patient: Optional[dict] = None
-    messages: List[dict]
+    assigned_professional_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    messages: List[MessageDetailResponse]
 
-class MessageCreatedResponse(BaseModel):
-    status: str
-    message: dict
+class ChatQueueResponse(BaseModel):
+    in_progress: List[ChatDetailResponse]
+    waiting: List[ChatDetailResponse]
+    closed: List[ChatDetailResponse]
+
+class UserDetailResponse(BaseModel):
+    id: str
+    email: str
+    role: UserRole
+    patient_info: Optional[PatientInfo] = None
 
 class AuthResponse(BaseModel):
     token: str
-    user: dict
+    user: UserDetailResponse

@@ -1,13 +1,13 @@
 import logging
 from ai_model import rag_cloud
-from fastapi import APIRouter, HTTPException, FastAPI
+from fastapi import APIRouter, HTTPException, Request
 from database.db import users_collection
 from database.models import UserModel
 from bson import ObjectId
-from flask import jsonify
-from fastapi import Request
+from passlib.context import CryptContext
+from database.models import UserModel, StatusResponse, StatusWithUserResponse, CreateUserResponse, CheckSessionResponse
+from bson import ObjectId
 
-app = FastAPI()
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 
@@ -17,7 +17,7 @@ current_user_id = None
 current_user_data = None
 
 
-@router.post("/login")
+@router.post("/login", response_model=StatusWithUserResponse)
 async def check_user_id(user_data: dict, request: Request):  # Lisätty Request-parametri
     """
     Kirjautuu sisään käyttäjänä, joka on jo olemassa MongoDB:ssä.
@@ -58,7 +58,7 @@ async def check_user_id(user_data: dict, request: Request):  # Lisätty Request-
         return {"status": "error", "message": "server_error"}
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=StatusResponse)
 async def logout(request: Request):
     """
     Kirjaa käyttäjän ulos ja nollaa globaalit muuttujat.
@@ -76,21 +76,19 @@ async def logout(request: Request):
 
     logging.info("User logged out successfully.")
     return {"status": "success", "message": "logout_success"}
-    
+
 # Create new user to MongoDB, returns unique dataId
-@router.post("/", response_model=dict)
+@router.post("/", response_model=CreateUserResponse)
 async def create_user(user: UserModel, request: Request):
     try:
         user_dict = user.model_dump() 
+
         result = await users_collection.insert_one(user_dict)
         if not result.inserted_id:
             raise HTTPException(status_code=500, detail="Failed to insert user.")
 
         # Convert ObjectId to string
         object_id = str(result.inserted_id)
-
-        logged_in = False
-        current_user_id = None
 
         request.app.state.logged_in = True
         request.app.state.current_user_id = str(result.inserted_id)
@@ -101,6 +99,17 @@ async def create_user(user: UserModel, request: Request):
     except Exception as e:
         logging.exception("❌ Unexpected error occurred while creating user")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+
+pwd_context = CryptContext(
+    schemes=["argon2"],
+    deprecated="auto",
+    # Force Argon2id (important)
+    argon2__type="ID",
+    # Sensible starting parameters (tune as needed)
+    argon2__time_cost=2,
+    argon2__memory_cost=102400,   # KiB (≈ 100 MB)
+    argon2__parallelism=8,
+)
 
 # Get user by userId
 """"
@@ -136,29 +145,24 @@ async def delete_user(user_id: str):
     return {"message": "User deleted successfully"}
 """
 
-@router.get("/id/{user_id}")
+@router.get("/id/{user_id}", response_model=dict)
 async def get_user_by_object_id(user_id: str):
     """
     Hakee user-dokumentin MongoDB:stä _id-kentän perusteella.
     Palauttaa kaiken dokumentista JSON-muodossa.
     """
-    try:
-        # Tarkistetaan onko user_id validi ObjectId
-        if not ObjectId.is_valid(user_id):
-            raise HTTPException(status_code=400, detail="Invalid user_id format.")
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user_id format.")
 
-        user = await users_collection.find_one({"_id": ObjectId(user_id)})
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        user["_id"] = str(user["_id"])
-        return user
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    user["_id"] = str(user["_id"])
+    return user
     
 # User tietojen näyttäminen endpoint
-@router.get("/current-user")
+@router.get("/current-user", response_model=StatusWithUserResponse)
 async def get_current_user(request: Request):
     """Palauttaa kirjautuneen käyttäjän tiedot"""
     if not request.app.state.logged_in:
@@ -172,7 +176,7 @@ async def get_current_user(request: Request):
         "user": request.app.state.current_user_data
     }
 # Kirjautumistilan tarkistus tietojen tuomista varten
-@router.get("/check-session")
+@router.get("/check-session", response_model=CheckSessionResponse)
 async def check_session(request: Request):
     """Tarkistaa kirjautumistilan"""
     return {
@@ -180,22 +184,23 @@ async def check_session(request: Request):
         "userId": request.app.state.current_user_id
     }
 # endpoint tietojen tallentamista varten
-@router.put("/id/{user_id}")
+@router.put("/id/{user_id}", response_model=StatusWithUserResponse)
 async def update_user(user_id: str, user_data: dict, request: Request):
     try:
         if not ObjectId.is_valid(user_id):
             return {"status": "error", "message": "invalid_id"}
 
         # Kenttien validointi
-        if not all(key in user_data for key in ["weight", "height"]):
-            return {"status": "error", "message": "missing_required_fields"}
-
-        # Numeerien konvertointi
-        try:
-            user_data["weight"] = float(user_data["weight"])
-            user_data["height"] = float(user_data["height"])
-        except (ValueError, TypeError):
-            return {"status": "error", "message": "invalid_numeric_values"}
+        if "patient_info" in user_data and user_data["patient_info"]:
+            pi = user_data["patient_info"]
+            if not all(key in pi for key in ["weight", "height", "age"]):
+                return {"status": "error", "message": "missing_required_fields"}
+            try:
+                pi["weight"] = float(pi["weight"])
+                pi["height"] = float(pi["height"])
+                pi["age"] = int(pi["age"])
+            except (ValueError, TypeError):
+                return {"status": "error", "message": "invalid_numeric_values"}
 
         # tarkistetaan käyttäjän olemassaolo
         existing_user = await users_collection.find_one({"_id": ObjectId(user_id)})

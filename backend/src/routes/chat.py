@@ -1,15 +1,30 @@
-from fastapi import HTTPException, APIRouter, Request
+from fastapi import HTTPException, APIRouter, Request, Depends
+from typing import List, Dict, Any
 from ai_model import rag_cloud
 from ai_model import utils
 from ai_model.classifier import classify_question, Classification
 from ai_model.emergency import detect_emergency
 from bson import ObjectId
-from database.db import users_collection
-from database.models import SendMessageRequest
+from database.db import users_collection, chats_collection
+from database.models import ChatStatus, SendMessageRequest, ChatReplyResponse, ChatDetailResponse, ChatSummaryItem
+from routes.auth import get_current_user
+from utils.chat_utils import get_chat_summaries
+from datetime import datetime
+
 
 router = APIRouter()
 
-@router.post("/send")
+@router.get("/", response_model=List[ChatSummaryItem])
+async def get_chats(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Returns all chat sessions belonging to the authenticated user.
+    The user is identified from the JWT token via the get_current_user dependency.
+    """
+    user_id = current_user["_id"]
+    return await get_chat_summaries({"user_id": ObjectId(user_id)})
+
+
+@router.post("/send", response_model=ChatReplyResponse)
 async def send_message(body: SendMessageRequest, request: Request):
     """
     1) Hätätilanteen tunnistus (detect_emergency) – palautetaan välittömästi.
@@ -97,3 +112,30 @@ async def send_message(body: SendMessageRequest, request: Request):
         "reply": formatted_text,
         "classification": Classification.SAFE,
     }
+
+@router.post("/chat", response_model=ChatDetailResponse)
+async def create_chat(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Create a new chat document in the database.
+    Use the authenticated users info.
+    Return the created chat object with an empty messages list.
+    """
+
+    new_chat = {
+        "user_id": ObjectId(current_user["_id"]),
+        "status": ChatStatus.OPEN,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+        }
+
+    res = await chats_collection.insert_one(new_chat)
+
+    return ChatDetailResponse(
+        id=str(res.inserted_id),
+        user_id=current_user["_id"],
+        status=ChatStatus.OPEN,
+        assigned_professional_id=None,
+        created_at=new_chat["created_at"],
+        updated_at=new_chat["updated_at"],
+        messages=[]
+    )

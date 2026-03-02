@@ -125,6 +125,12 @@ class CheckSessionResponse(BaseModel):
 class ChatReplyResponse(BaseModel):
     reply: str
 
+class ChatSummaryItem(BaseModel):
+    id: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
 # Professional
 class MessageDetailResponse(BaseModel):
     id: str

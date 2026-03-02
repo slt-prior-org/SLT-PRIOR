@@ -4,30 +4,23 @@ from ai_model import rag_cloud
 from ai_model import utils
 from bson import ObjectId
 from database.db import users_collection, chats_collection
-from database.models import ChatStatus, SendMessageRequest, ChatReplyResponse, ChatDetailResponse, ChatModel, ChatSummaryItem
+from database.models import ChatStatus, SendMessageRequest, ChatReplyResponse, ChatDetailResponse
 from routes.auth import get_current_user
+from utils.chat_utils import get_chats_with_messages
 from datetime import datetime
 
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ChatSummaryItem])
+@router.get("/", response_model=List[ChatDetailResponse])
 async def get_chats(current_user: Dict[str, Any] = Depends(get_current_user)):
     """
-    Returns all chat sessions belonging to the authenticated user.
-    The user is identified from the JWT token via the get_current_user dependency.
+    Returns all chat sessions belonging to the authenticated user,
+    including full message history for each chat.
     """
     user_id = current_user["_id"]
-    chats = await chats_collection.find({"user_id": user_id}).to_list(None)
-    return [
-        {
-            "id": str(chat["_id"]),
-            "status": chat["status"],
-            "created_at": chat["created_at"],
-            "updated_at": chat["updated_at"],
-        }
-        for chat in chats
-    ]
+    chats = await get_chats_with_messages({"user_id": ObjectId(user_id)})
+    return [ChatDetailResponse(**chat) for chat in chats]
 
 
 @router.post("/send", response_model=ChatReplyResponse)
@@ -71,27 +64,29 @@ async def send_message(body: SendMessageRequest, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@router.post("/chat", response_model=ChatSummaryItem)
+@router.post("/chat", response_model=ChatDetailResponse)
 async def create_chat(current_user: Dict[str, Any] = Depends(get_current_user)):
     """
     Create a new chat document in the database.
     Use the authenticated users info.
-    Return the created chat object.
+    Return the created chat object with an empty messages list.
     """
-    
+
     new_chat = {
-        "user_id": str(current_user["_id"]),
+        "user_id": ObjectId(current_user["_id"]),
         "status": ChatStatus.OPEN,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
         }
-    
-    res = await chats_collection.insert_one(new_chat)
-    new_chat["_id"] = str(res.inserted_id)
 
-    return {
-            "id": str(new_chat["_id"]),
-            "status": new_chat["status"],
-            "created_at": new_chat["created_at"],
-            "updated_at": new_chat["updated_at"],
-        }
+    res = await chats_collection.insert_one(new_chat)
+
+    return ChatDetailResponse(
+        id=str(res.inserted_id),
+        user_id=current_user["_id"],
+        status=ChatStatus.OPEN,
+        assigned_professional_id=None,
+        created_at=new_chat["created_at"],
+        updated_at=new_chat["updated_at"],
+        messages=[]
+    )

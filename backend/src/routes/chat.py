@@ -4,23 +4,22 @@ from ai_model import rag_cloud
 from ai_model import utils
 from bson import ObjectId
 from database.db import users_collection, chats_collection
-from database.models import ChatStatus, SendMessageRequest, ChatReplyResponse, ChatDetailResponse
+from database.models import ChatStatus, SendMessageRequest, ChatReplyResponse, ChatDetailResponse, ChatSummaryItem
 from routes.auth import get_current_user
-from utils.chat_utils import get_chats_with_messages
+from utils.chat_utils import get_chat_summaries
 from datetime import datetime
 
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ChatDetailResponse])
+@router.get("/", response_model=List[ChatSummaryItem])
 async def get_chats(current_user: Dict[str, Any] = Depends(get_current_user)):
     """
-    Returns all chat sessions belonging to the authenticated user,
-    including full message history for each chat.
+    Returns all chat sessions belonging to the authenticated user.
+    The user is identified from the JWT token via the get_current_user dependency.
     """
     user_id = current_user["_id"]
-    chats = await get_chats_with_messages({"user_id": ObjectId(user_id)})
-    return [ChatDetailResponse(**chat) for chat in chats]
+    return await get_chat_summaries({"user_id": ObjectId(user_id)})
 
 
 @router.post("/send", response_model=ChatReplyResponse)

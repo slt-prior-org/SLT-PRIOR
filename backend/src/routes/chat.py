@@ -45,6 +45,7 @@ async def send_message(body: SendMessageRequest, request: Request):
             user_data = user_doc
 
     # 3) Kerätään conversation history RAG-muistista
+    # Huom: Tämä muokataan hakemaan mongoDB:stä, mutta toistaiseksi käytetään RAG-muistin viestejä?
     conversation_history = [
         {"sender": "user" if msg.type == "human" else "bot", "content": msg.content}
         for msg in rag_cloud.memory.messages
@@ -61,10 +62,13 @@ async def send_message(body: SendMessageRequest, request: Request):
     # 5) NEEDS_REVIEW – palataan heti, ei RAG-kutsua
     if classification_result.classification == Classification.NEEDS_REVIEW:
         safe_message = (
-            "Kysymyksesi saattaa vaatia ammattilaisen arviointia. "
-            "Vastauksesi on tallennettu ja lähetetään tarkistettavaksi.<br><br>"
-            "Your question may require professional review. "
-            "Your response has been saved and will be sent for review."
+            "Tämä aihe liittyy henkilökohtaiseen "
+            "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
+            "on välitetty ammattilaiselle arvioitavaksi."
+            "<br><br>"
+            "This topic relates to a personal "
+            "health assessment that I cannot answer. Your conversation has been "
+            "forwarded to a professional for review."
         )
         return {
             "reply": safe_message,

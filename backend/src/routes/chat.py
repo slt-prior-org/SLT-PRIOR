@@ -74,9 +74,9 @@ async def send_message(body: SendMessageRequest, request: Request):
 @router.post("/chat", response_model=ChatSummaryItem)
 async def create_chat(current_user: Dict[str, Any] = Depends(get_current_user)):
     """
-    Create a new chat document in the database
-    Use the authenticated users info
-    Return the created chat object
+    Create a new chat document in the database.
+    Use the authenticated users info.
+    Return the created chat object.
     """
     
     new_chat = {

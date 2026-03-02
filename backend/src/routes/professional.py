@@ -21,7 +21,8 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 from datetime import datetime
-from database.db import chats_collection, messages_collection
+from database.db import chats_collection, messages_collection, users_collection
+from ai_model.summarizer import generate_summary_for_professional
 from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse
 from .auth import get_current_user
 from utils.chat_utils import get_chats_with_messages
@@ -83,7 +84,23 @@ async def get_chat(id: str):
     if not chats:
         raise HTTPException(404, "Chat not found")
 
-    return ChatDetailResponse(**chats[0])
+    chat = chats[0]
+
+    # Fetch patient data for the summarizer
+    user_data = None
+    user_id = chat.get("user_id")
+    if user_id and ObjectId.is_valid(user_id):
+        user_data = await users_collection.find_one({"_id": ObjectId(user_id)})
+
+    # Generate summary only for chats awaiting or in professional review
+    summary_data = {}
+    if chat.get("status") in (ChatStatus.WAITING, ChatStatus.IN_PROGRESS):
+        summary_data = await generate_summary_for_professional(
+            messages=chat.get("messages", []),
+            user_data=user_data,
+        )
+
+    return ChatDetailResponse(**chat, **summary_data)
 
 
 # -----------------------------

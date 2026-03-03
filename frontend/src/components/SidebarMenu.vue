@@ -80,7 +80,7 @@ const handleLoginLogout = async () => {
   position: fixed;
   left: -260px;
   width: 260px;
-  top: 90px;         
+  top: 48px;         
   bottom: 0;         
   background: #0f172a;
   color: #fff;

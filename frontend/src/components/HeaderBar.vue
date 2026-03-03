@@ -45,23 +45,48 @@ const changeLanguage = (event) => {
 
 <style scoped>
 .header {
-  position: relative;
-  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  /* lukitus ettei enää kutistu */
+  height: 64px;
+  min-height: 64px;
+  flex: 0 0 64px;
+  box-sizing: border-box;
+
+  /* layout */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
 
-  height: 90px;
   padding: 0 25px;
-
   background-color: #ffffff;
   border-bottom: 1px solid #dbeafe;
 }
 
-.header-left,
-.header-right {
+.header-left {
+  justify-self: start;
   display: flex;
   align-items: center;
-  z-index: 2; 
+}
+
+.header-center {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* tärkeää: ei absolute-keskitystä */
+  position: static;
+  transform: none;
+  pointer-events: none;
+}
+
+.header-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-toggle {
@@ -70,43 +95,32 @@ const changeLanguage = (event) => {
   color: #0f172a;
   font-size: 24px;
   cursor: pointer;
-  padding: 15px;
+
+  /* pidä nappi keskellä headeria */
+  padding: 10px;
   border-radius: 12px;
-}
-.sidebar-toggle:hover {
-  background: #f1f5f9;
-}
-
-.header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-
-  display: flex;
+  line-height: 1;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  pointer-events: none; 
 }
+
 .logo {
-  height: 64px;
+  height: 50px;
   width: auto;
-  pointer-events: auto;
+  display: block;       
+  pointer-events: auto; 
 }
 
 .language-selector select {
-  padding: 8px 10px;
+  height: 36px;         /* tekee siitä tasakorkuisen */
+  padding: 0 10px;
   font-size: 14px;
   background: #f8fafc;
   color: #0f172a;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   cursor: pointer;
-}
-.language-selector select:focus {
-  border-color: #1d4ed8;
-  outline: none;
 }
 
 /* Responsive */

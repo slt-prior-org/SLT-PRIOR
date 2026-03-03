@@ -50,9 +50,5 @@ watch(isSidebarOpen, (open) => {
 main {
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  padding: 20px;
 }
 </style>

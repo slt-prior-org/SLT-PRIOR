@@ -12,7 +12,7 @@
     </div>
 
     <div class="header-center" aria-label="HeartWise logo">
-      <img src="@/assets/logo.png" alt="HeartWise Logo" class="logo">
+      <img src="@/assets/logo.png" alt="HeartWise Logo" class="logo" />
     </div>
 
     <div class="header-right">
@@ -49,18 +49,16 @@ const changeLanguage = (event) => {
   top: 0;
   z-index: 50;
 
-  /* lukitus ettei enää kutistu */
-  height: 64px;
-  min-height: 64px;
-  flex: 0 0 64px;
+  height: 100px;
+  min-height: 100px;
+  flex: 0 0 100px;
   box-sizing: border-box;
 
-  /* layout */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
 
-  padding: 0 25px;
+  padding: 0 32px;
   background-color: #ffffff;
   border-bottom: 1px solid #dbeafe;
 }
@@ -77,7 +75,6 @@ const changeLanguage = (event) => {
   align-items: center;
   justify-content: center;
 
-  /* tärkeää: ei absolute-keskitystä */
   position: static;
   transform: none;
   pointer-events: none;
@@ -93,58 +90,76 @@ const changeLanguage = (event) => {
   background: none;
   border: none;
   color: #0f172a;
-  font-size: 24px;
+  font-size: 30px;
   cursor: pointer;
 
-  /* pidä nappi keskellä headeria */
-  padding: 10px;
-  border-radius: 12px;
+  padding: 14px; 
+  border-radius: 14px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
+/* bigger logo */
 .logo {
-  height: 50px;
+  height: 64px;
   width: auto;
-  display: block;       
-  pointer-events: auto; 
+  display: block;
+  pointer-events: auto;
 }
 
+/* bigger language selector */
 .language-selector select {
-  height: 36px;         /* tekee siitä tasakorkuisen */
-  padding: 0 10px;
-  font-size: 14px;
+  height: 44px;       
+  padding: 0 14px;  
+  font-size: 16px;    
   background: #f8fafc;
   color: #0f172a;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 12px; 
   cursor: pointer;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .header {
-    height: 80px;
-    padding: 0 16px;
+    height: 92px;
+    min-height: 92px;
+    flex: 0 0 92px;
+    padding: 0 18px;
   }
   .logo {
-    height: 56px;
+    height: 68px;
+  }
+  .sidebar-toggle {
+    font-size: 32px;
+    padding: 14px;
+  }
+  .language-selector select {
+    height: 46px;
+    font-size: 16px;
   }
 }
 
 @media (max-width: 480px) {
   .header {
-    height: 70px;
-    padding: 0 12px;
+    height: 84px;
+    min-height: 84px;
+    flex: 0 0 84px;
+    padding: 0 14px;
   }
   .logo {
-    height: 50px;
+    height: 60px;
+  }
+  .sidebar-toggle {
+    font-size: 30px;
+    padding: 12px;
   }
   .language-selector select {
-    font-size: 12px;
-    padding: 7px 8px;
+    height: 44px;
+    font-size: 15px;
+    padding: 0 12px;
   }
 }
 </style>

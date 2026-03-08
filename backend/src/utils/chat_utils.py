@@ -7,7 +7,7 @@ async def get_chat_summaries(filter_query: dict):
     ObjectIds are converted to strings directly in the database query,
     so no manual iteration is needed after fetching.
     """
-    return await chats_collection.aggregate([
+    cursor = await chats_collection.aggregate([
         {"$match": filter_query},
         {
             "$project": {
@@ -18,7 +18,9 @@ async def get_chat_summaries(filter_query: dict):
                 "_id": 0,
             }
         }
-    ]).to_list(None)
+    ])
+
+    return await cursor.to_list(None)
 
 
 async def get_chats_with_messages(filter_query: dict):
@@ -67,4 +69,6 @@ async def get_chats_with_messages(filter_query: dict):
         {"$sort": {"updated_at": -1}}
     ]
 
-    return await chats_collection.aggregate(pipeline).to_list(None)
+    cursor = await chats_collection.aggregate(pipeline)
+
+    return await cursor.to_list(None)

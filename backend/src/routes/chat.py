@@ -8,7 +8,7 @@ from bson import ObjectId
 from database.db import users_collection, chats_collection
 from database.models import ChatStatus, SendMessageRequest, ChatReplyResponse, ChatDetailResponse, ChatSummaryItem
 from routes.auth import get_current_user
-from utils.chat_utils import get_chat_summaries
+from utils.chat_utils import get_chat_summaries, get_chats_with_messages
 from datetime import datetime
 
 
@@ -139,3 +139,33 @@ async def create_chat(current_user: Dict[str, Any] = Depends(get_current_user)):
         updated_at=new_chat["updated_at"],
         messages=[]
     )
+
+
+
+@router.get("/{chatId}", response_model=ChatDetailResponse)
+async def get_chat_id(chatId: str ,current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Get a chat details by {chatId}.
+    Depends on get_current_user.
+    Return the chat with all of the messages included.
+    """
+
+    # Reject invalid ObjectId format before reaching for database
+    if not ObjectId.is_valid(chatId):
+        raise HTTPException(400, "Invalid chat_id")
+
+    chats = await get_chats_with_messages({"_id": ObjectId(chatId)})
+
+    # Check if chat exists
+    if not chats:
+        raise HTTPException(404, "Chat not found")
+
+    chat_owner = chats[0]["user_id"]
+    logged_in_user = current_user["_id"]
+    
+    # Check if chat belongs to someone else
+    if chat_owner != logged_in_user:
+        raise HTTPException(403, "Forbidden")
+
+    # Unpack chat document into ChatDetailResponse
+    return ChatDetailResponse(**chats[0])

@@ -25,9 +25,9 @@ from bson import ObjectId
 from datetime import datetime
 from database.db import chats_collection, messages_collection, users_collection
 from ai_model.summarizer import generate_summary_for_professional
-from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse
+from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse, SmallChatResponse
 from .auth import get_current_user
-from utils.chat_utils import get_chats_with_messages
+from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message
 
 router = APIRouter()
 
@@ -52,19 +52,19 @@ async def get_chat_queue():
     today = datetime.now().date()
 
     # Fetch chats by status
-    in_progress = await get_chats_with_messages({"status": ChatStatus.IN_PROGRESS})
-    waiting = await get_chats_with_messages({"status": ChatStatus.WAITING})
+    in_progress = await get_chats_with_last_message({"status": ChatStatus.IN_PROGRESS})
+    waiting = await get_chats_with_last_message({"status": ChatStatus.WAITING})
 
     # Only show chats closed today to avoid cluttering the dashboard
-    closed = await get_chats_with_messages({
+    closed = await get_chats_with_last_message({
         "status": ChatStatus.CLOSED,
         "$expr": {"$eq": [{"$dateToString": {"format": "%Y-%m-%d", "date": "$updated_at"}}, str(today)]}
     })
 
     return {
-        "in_progress": [ChatDetailResponse(**c) for c in in_progress],
-        "waiting": [ChatDetailResponse(**c) for c in waiting],
-        "closed": [ChatDetailResponse(**c) for c in closed]
+        "in_progress": [SmallChatResponse(**c) for c in in_progress],
+        "waiting": [SmallChatResponse(**c) for c in waiting],
+        "closed": [SmallChatResponse(**c) for c in closed]
     }
 
 
@@ -102,6 +102,7 @@ async def get_chat(id: str):
             user_data=user_data,
         )
 
+    summary_data["patient_context"] = user_data["patient_info"] if user_data and "patient_info" in user_data else "No patient data available."
     return ChatDetailResponse(**chat, **summary_data)
 
 

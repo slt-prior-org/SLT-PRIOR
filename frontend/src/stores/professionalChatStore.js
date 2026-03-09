@@ -1,5 +1,5 @@
 import { defineStore } from "pinia"
-import { addProfessionalMessage, close, claim, fetchQueues } from "@/services/professionalChatService"
+import { addProfessionalMessage, close, claim, fetchQueues, unclaim } from "@/services/professionalChatService"
 import { useAuthStore } from "@/stores/authStore"
 
 export const useProfessionalChatStore = defineStore("professionalChat", {
@@ -53,7 +53,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         return
       }
 
-      if (chat.status !== "waiting") {
+      if (chat.status !== "waiting_for_professional") {
         console.log("Chat is not in waiting state")
         return
       }
@@ -68,6 +68,33 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
 
       } catch(error) {
         console.error("Failed to claim the chat:", error)
+      }
+    },
+    async unclaimChat() {
+      const chat = this.getActiveChat
+      if (!chat) return
+
+      const authStore = useAuthStore()
+
+      if (chat.status !== "in_progress") {
+        console.log("Chat is not in progress")
+        return
+      }
+
+      if (chat.assigned_professional_id !== authStore.getCurrentUserID) {
+        console.log("You are not assigned to this chat")
+        return
+      }
+
+      try {
+        await unclaim(chat.id)
+
+        chat.status = "waiting_for_professional"
+        chat.assigned_professional_id = null
+
+        this.moveChatBetweenQueues(chat, "in_progress", "waiting")
+      } catch (error) {
+        console.error("Failed to unclaim the chat:", error)
       }
     },
     async closeChat() {

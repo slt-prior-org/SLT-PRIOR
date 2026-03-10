@@ -19,10 +19,12 @@
       </div>
 
       <div class="date-chip">
-        {{ today }}
+        {{ formattedToday }}
       </div>
 
     </div>
+
+    <div class="divider"></div>
 
     <!-- Chat-jonot -->
     <div class="main-card">
@@ -37,98 +39,91 @@
 
       <div class="sections-scroll">
 
-        <!-- Käsittelyssä olevat chatit -->
         <div class="section">
+
           <div class="section-header">
-            <span>KÄSITTELYSSÄ</span>
-            <div class="section-count">{{ inProgress.length }}</div>
+            <span>AKTIIVISET</span>
+            <div class="section-count">{{ activeChats.length }}</div>
           </div>
 
-          <div v-if="!inProgress.length" class="empty">
+          <div v-if="!activeChats.length" class="empty">
             Ei tapauksia tässä osiossa
           </div>
 
           <div v-else class="chat-grid">
+
             <div
-              v-for="chat in inProgress"
+              v-for="chat in activeChats"
               :key="chat._id"
               class="chat-card"
-              @click="router.push(`/professional/chat/${chat._id}`)"
+              :class="chat.status"
+              @click="chat.status === 'waiting_for_professional' ? openPreview(chat) : router.push(`/professional/chat/${chat._id}`)"
             >
-              <div class="avatar"></div>
 
               <div class="chat-body">
-                <strong>Potilas #{{ chat._id }}</strong>
+                <b>Potilas #{{ chat._id }}</b>
                 <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
               </div>
 
-              <div class="time">
-                {{ formatTime(chat.updated_at) }}
+              <div class="chat-meta">
+
+                <div class="time">
+                  {{ formatTime(chat.updated_at) }}
+                </div>
+
+                <div
+                  v-if="chat.status === 'in_progress'"
+                  class="chat-status"
+                >
+                  Käsittelyssä
+                </div>
+
               </div>
+
             </div>
+
           </div>
+        </div>                
+      </div>
+
+      <div class="history-toggle">
+
+        <AppButton
+          variant="neutral"
+          @click="showClosed = !showClosed"
+        >
+          {{ showClosed ? "Piilota käsitellyt" : `Näytä käsitellyt (${closedToday.length})` }}
+        </AppButton>
+
+      </div>
+
+      <div v-if="showClosed" class="section">
+
+        <div class="section-header">
+          <span>KÄSITELTY TÄNÄÄN</span>
         </div>
 
-        <!-- Odottavat chatit -->
-        <div class="section">
-          <div class="section-header">
-            <span>ODOTTAA</span>
-            <div class="section-count">{{ waiting.length }}</div>
-          </div>
+        <div class="chat-grid">
 
-          <div class="chat-grid">
-            <div
-              v-for="chat in waiting"
-              :key="chat._id"
-              class="chat-card"
-              @click="openPreview(chat)"
-            >
-              <div class="avatar"></div>
-
-              <div class="chat-body">
-                <strong>Potilas #{{ chat._id }}</strong>
-                <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
-              </div>
-
-              <div class="time">
-                {{ formatTime(chat.updated_at) }}
-              </div>
+          <div
+            v-for="chat in closedToday"
+            :key="chat._id"
+            class="chat-card closed"
+            @click="router.push(`/professional/chat/${chat._id}`)"
+          >
+            <div class="chat-body">
+              <b>Potilas #{{ chat._id }}</b>
+              <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
             </div>
+
+            <div class="time">
+              {{ formatTime(chat.updated_at) }}
+            </div>
+
           </div>
+
         </div>
 
-        <!-- Käsitellyt chatit -->
-        <div class="section">
-          <div class="section-header">
-            <span>KÄSITELTY TÄNÄÄN</span>
-            <div class="section-count">{{ closedToday.length }}</div>
-          </div>
-
-          <div v-if="!closedToday.length" class="empty">
-            Ei tapauksia tässä osiossa
-          </div>
-
-          <div v-else class="chat-grid">
-            <div
-              v-for="chat in closedToday"
-              :key="chat._id"
-              class="chat-card closed"
-              @click="router.push(`/professional/chat/${chat._id}`)"
-            >
-              <div class="avatar"></div>
-
-              <div class="chat-body">
-                <strong>Potilas #{{ chat._id }}</strong>
-                <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
-              </div>
-
-              <div class="time">
-                {{ formatTime(chat.updated_at) }}
-              </div>
-            </div>
-          </div>
-        </div>
-                
       </div>
 
     </div>
@@ -138,7 +133,24 @@
       <div class="modal">
 
         <h3>Chatin esikatselu</h3>
-        <p><strong>ID:</strong> {{ selectedChat?._id }}</p>
+
+        <div class="preview-card">
+
+          <div class="preview-header">
+            <div class="preview-patient">
+              Potilas {{ selectedChat?.patient_id || selectedChat?._id }}
+            </div>
+
+            <div class="preview-time">
+              {{ selectedChat?.created_at || "" }}
+            </div>
+          </div>
+
+          <div class="preview-message">
+            {{ selectedChat?.preview || "Ei vielä viestejä" }}
+          </div>
+
+        </div>
 
         <div class="modal-actions">
           <AppButton variant="primary" @click="claimChat">
@@ -152,7 +164,13 @@
 
       </div>
     </div>
+
+    <div class="dashboard-footer">
+      <img src="@/assets/newlogo.png" alt="Logo" class="footer-logo">
+    </div>
+
   </div>
+
 </template>
 
 <script setup>
@@ -176,6 +194,13 @@ const mockUser = {
 // headerbar käyttää backend-käyttäjää tai mockia
 const currentUser = computed(() => authStore.user ?? mockUser)
 
+const activeChats = computed(() => [
+  ...(inProgress.value || []),
+  ...(waiting.value || [])
+])
+
+const showClosed = ref(false)
+
 const router = useRouter()
 
 // chat-jonojen tila
@@ -194,15 +219,24 @@ const closedToday = computed(() => chats.value?.closed || [])
 
 // päivämäärä headeriin
 const today = new Date().toLocaleDateString("fi-FI", {
+  weekday: "long",
   day: "numeric",
   month: "numeric",
   year: "numeric"
 })
 
+const formattedToday = today.charAt(0).toUpperCase() + today.slice(1)
 
 // mock-jonot UI-kehitystä varten
 const mockQueues = {
   in_progress: [
+    {
+      _id: "mock15",
+      isMock: true,
+      patient_name: "Potilas #4721",
+      last_message: "Henkeä ahdistaa portaissa",
+      status: "in_progress"
+    },
     {
       _id: "mock1",
       isMock: true,
@@ -225,15 +259,106 @@ const mockQueues = {
       patient_name: "Potilas #5614",
       last_message: "Verenpaineeni on ollut koholla",
       status: "waiting_for_professional"
+    },
+    {
+      _id: "mock2",
+      isMock: true,
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock2",
+      isMock: true,
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock2",
+      isMock: true,
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
     }
   ],
   closed: [
     {
-      _id: "mock4",
+      _id: "mock2",
       isMock: true,
-      patient_name: "Potilas #2873",
-      last_message: "Lääkkeen sivuvaikutukset",
-      status: "closed"
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock2",
+      isMock: true,
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock2",
+      isMock: true,
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock2",
+      isMock: true,
+      patient_name: "Potilas #3892",
+      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
+      status: "waiting_for_professional"
+    },
+    {
+      _id: "mock3",
+      isMock: true,
+      patient_name: "Potilas #5614",
+      last_message: "Verenpaineeni on ollut koholla",
+      status: "waiting_for_professional"
     }
   ]
 }
@@ -320,50 +445,59 @@ function formatTime(date) {
 <style scoped>
 
 .dashboard-container{
-  background:#f5f7fb;
-  height:calc(100vh - 72px);
+  background:#e3f2fd;
+  min-height:calc(100vh - 72px);
   padding:32px 20px;
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
 .workspace-header{
-  max-width:1100px;
+  max-width:900px;
   width:100%;
-  margin:0 auto 18px auto;
+  margin:0 auto 10px auto;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
 
 .workspace-label{
-  font-size:12px;
+  font-size:14px;
   letter-spacing:.08em;
-  color:#7a869a;
+  color:#666666;
   font-weight:600;
 }
 
 .date-chip{
   background:white;
   padding:10px 16px;
-  border-radius:20px;
+  border-radius:10px;
   font-size:13px;
+  color:#404040;
   box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
+
+.divider{
+  max-width:900px;
+  width:100%;
+  margin:12px auto 24px auto;
+  border-top:1px solid #b3b3b3;
 }
 
 /* chat-lista korttina */
 .main-card{
-  max-width:1100px;
-  margin:auto;
+  max-width:900px;
+  max-height:1500px;
+  width:100%;
+  margin:35px auto;
   background:white;
   border-radius:32px;
   padding:28px 32px;
   box-shadow:0 12px 40px rgba(0,0,0,0.05);
   display:flex;
   flex-direction:column;
-  flex:1;
-  min-height:0;
 }
 
 .main-card-header{
@@ -375,11 +509,6 @@ function formatTime(date) {
 }
 
 /* scrollattava jonolista */
-.sections-scroll{
-  flex:1;
-  overflow-y:auto;
-  padding-right:8px;
-}
 
 .sections-scroll::-webkit-scrollbar{
   width:8px;
@@ -419,33 +548,37 @@ function formatTime(date) {
 }
 
 .chat-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+
+  max-height:400px;
+  overflow-y:auto;
 }
 
 /* chat-kortit */
 .chat-card{
   display:flex;
-  align-items:center;
+  align-items:stretch;
+  width:100%;
   gap:14px;
-  background:#f9fbff;
+  background:white;
   padding:14px 16px;
   border-radius:18px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.04);
+  border:1px solid #e5e7eb;
+  box-shadow:none;
   cursor:pointer;
   transition:.2s;
+  position:relative;
 }
 
 .chat-card:hover{
   transform:translateY(-3px);
 }
 
-.avatar{
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  background:#e8eefc;
+.chat-card.in_progress{
+  background:#f0f9ff;
+  border-color:#93c5fd;
 }
 
 .chat-body{
@@ -454,8 +587,34 @@ function formatTime(date) {
 
 .chat-body p{
   font-size:13px;
-  color:#6b7a90;
+  color:#404040;
   margin-top:2px;
+}
+
+.chat-body b{
+  font-size:13px;
+  color:#262626;
+  margin-top:2px;
+}
+
+.chat-status{
+  font-size:11px;
+  font-weight:600;
+  color:#2563eb;
+  background:#eff6ff;
+  padding:2px 6px;
+  border-radius:6px;
+  position:absolute;
+  right:12px;
+  bottom:12px;
+}
+
+.chat-meta{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-end;
+  height:100%;
 }
 
 .time{
@@ -492,10 +651,15 @@ function formatTime(date) {
   gap: 12px;
 }
 
-/* footer */
-.logo-space{
-  height:80px;
-  flex-shrink:0;
+.dashboard-footer{
+  display:flex;
+  justify-content:center;
+  margin-top:5px;
+}
+
+.footer-logo{
+  height:200px;
+  opacity:0.8;
 }
 
 /* responsive */

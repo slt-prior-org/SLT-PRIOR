@@ -25,16 +25,35 @@
           <div v-if="!isClosed" class="divider"></div>
 
           <!-- Vastausosio -->
-          <div v-if="!isClosed" class="reply-header">
-            <div class="reply-label">AI:n vastausehdotus</div>
+          <div class="reply-header">
+
+            <div class="reply-label">
+              AI:N VASTAUSEHDOTUS
+            </div>
 
             <AppButton
               variant="neutral"
               size="sm"
-              @click="showSources = true"
+              @click="showSources = !showSources"
             >
-              Näytä lähteet
+              {{ showSources ? "Piilota lähteet" : "Näytä lähteet" }}
             </AppButton>
+
+          </div>
+
+          <!-- Lähteet -->
+          <div v-if="showSources" class="sources-panel">
+
+            <div class="sources-title">
+              VIITTAUKSET
+            </div>
+
+            <ul class="sources-list">
+              <li v-for="(s, i) in chat.sources" :key="i">
+                {{ s }}
+              </li>
+            </ul>
+
           </div>
 
           <ChatInputBar
@@ -104,19 +123,6 @@
           </AppButton>
         </div>
 
-      </div>
-    </div>
-
-    <!-- Lähteiden modaali -->
-    <div v-if="showSources" class="modal">
-      <div class="modal-content">
-        <h4>Lähteet</h4>
-        <ul>
-          <li v-for="(s, i) in chat.sources" :key="i">{{ s }}</li>
-        </ul>
-        <AppButton variant="neutral" size="sm" @click="showSources = false">
-          Sulje
-        </AppButton>
       </div>
     </div>
 
@@ -300,13 +306,14 @@ function goBack() {
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
 /* chat-näkymän pääcontainer */
 .chat-container{
   flex:1;
   min-height:0;
-  background:#f8fafc;
+  background:#e3f2fd;
   padding:32px;
   display:flex;
   flex-direction:column;
@@ -412,21 +419,32 @@ function goBack() {
   gap:12px;
 }
 
-/* modal */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.35);
-  display:flex;
-  justify-content:center;
-  align-items:center;
+/* SOURCES */
+.sources-panel{
+  background:#f8fafc;
+  border:1px solid #dbeafe;
+  border-radius:16px;
+
+  padding:16px 20px;
+  margin:12px 28px 16px 28px;
 }
 
-.modal-content{
-  background:white;
-  padding:24px;
-  border-radius:20px;
-  width:420px;
+.sources-title{
+  font-size:13px;
+  font-weight:600;
+  color:#64748b;
+  margin-bottom:8px;
+}
+
+.sources-list{
+  margin:0;
+  padding-left:18px;
+  font-size:14px;
+  color:#334155;
+}
+
+.sources-list li{
+  margin-bottom:6px;
 }
 
 @media (max-width:1100px){

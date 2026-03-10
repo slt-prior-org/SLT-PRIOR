@@ -23,7 +23,13 @@
         <div class="settings-content">
           <PersonalInfo v-if="activeSection === 'personalInfo'" />
           <ModifyPersonalInfo v-if="activeSection === 'modifyPersonalInfo'" />
-          <UserLogin v-if="activeSection === 'login'" />
+
+
+          <UserLogin v-if="!auth.isAuthenticated && activeSection === 'login'" />
+          <UserRegister
+            v-if="!auth.isAuthenticated && activeSection === 'register'"
+            @close="closeModal"
+          />
           <AccessibilitySettings v-if="activeSection === 'accessibility'" />
           <AnalyticsInsights v-if="activeSection === 'analytics'" />
         </div>
@@ -33,11 +39,15 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import { useAuthStore } from "@/stores/authStore";
+
 import PersonalInfo from "./settings/PersonalInfo.vue";
 import ModifyPersonalInfo from "./settings/ModifyPersonalInfo.vue";
 import UserLogin from "./settings/UserLogin.vue";
+import UserRegister from "./settings/UserRegister.vue";
 
+const auth = useAuthStore();
 const activeSection = ref("personalInfo");
 
 // Props: määritä aloitusosio
@@ -56,20 +66,30 @@ const closeModal = () => {
   emit("close");
 };
 
+const sections = computed(() => {
+  const base = [{ key: "personalInfo" }, { key: "modifyPersonalInfo" }];
+
+  if (!auth.isAuthenticated) {
+    base.push({ key: "login" }, { key: "register" });
+  }
+
+  return base;
+});
+
+
 // Asetetaan aloitusosio, kun komponentti avataan
 watch(
   () => props.initialSection,
   (newVal) => {
-    activeSection.value = newVal;
+    if (auth.isAuthenticated && (newVal === "login" || newVal === "register")) {
+      activeSection.value = "personalInfo";
+    } else {
+      activeSection.value = newVal;
+    }
   },
   { immediate: true }
 );
 
-const sections = [
-  { key: "personalInfo" },
-  { key: "modifyPersonalInfo" },
-  { key: "login" },
-];
 </script>
 
 <style scoped>

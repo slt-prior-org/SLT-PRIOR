@@ -125,6 +125,12 @@ class CheckSessionResponse(BaseModel):
 class ChatReplyResponse(BaseModel):
     reply: str
 
+class ChatSummaryItem(BaseModel):
+    id: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
 # Professional
 class MessageDetailResponse(BaseModel):
     id: str
@@ -138,16 +144,30 @@ class MessageDetailResponse(BaseModel):
 class ChatDetailResponse(BaseModel):
     id: str
     user_id: str
-    status: str
+    status: ChatStatus
     assigned_professional_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     messages: List[MessageDetailResponse]
+    # Summarizer fields — only populated in GET /chats/{id}, None in queue view
+    patient_context: Optional[PatientInfo] = None
+    chat_summary: Optional[str] = None
+    draft_response: Optional[str] = None
+    requires_approval: Optional[bool] = None
+
+class SmallChatResponse(BaseModel):
+    id: str
+    user_id: str
+    status: ChatStatus
+    assigned_professional_id: Optional[str] = None
+    last_message: str
+    created_at: datetime
+    updated_at: datetime
 
 class ChatQueueResponse(BaseModel):
-    in_progress: List[ChatDetailResponse]
-    waiting: List[ChatDetailResponse]
-    closed: List[ChatDetailResponse]
+    in_progress: List[SmallChatResponse]
+    waiting: List[SmallChatResponse]
+    closed: List[SmallChatResponse]
 
 class UserDetailResponse(BaseModel):
     id: str

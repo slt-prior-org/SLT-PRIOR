@@ -7,12 +7,14 @@ These endpoints allow professionals to manage patient chat sessions:
 - Claim a waiting chat to begin handling it
 - Send messages to patients
 - Close resolved chats
+- Unclaim assigned chats
 
 Endpoints:
     GET  /professional/chats/queue
     GET  /professional/chats/{chat_id}
     POST /professional/chats/{chat_id}/close
     POST /professional/chats/{chat_id}/claim
+    POST /professional/chats/{chat_id}/unclaim
     POST /professional/chats/{chat_id}/messages
 """
 
@@ -21,9 +23,11 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 from datetime import datetime
-from database.db import chats_collection, messages_collection
-from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse
+from database.db import chats_collection, messages_collection, users_collection
+from ai_model.summarizer import generate_summary_for_professional
+from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse, SmallChatResponse
 from .auth import get_current_user
+from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message
 
 router = APIRouter()
 
@@ -33,54 +37,6 @@ def normalize_message(message: dict) -> dict:
     if "chat_id" in message:
         message["chat_id"] = str(message["chat_id"])
     return message
-
-async def get_chats_with_messages(filter_query: dict):
-    pipeline = [
-    {"$match": filter_query},
-    # Join with messages collection to get all messages for each chat
-    {
-        "$lookup": {
-            "from": "messages",
-            "localField": "_id",
-            "foreignField": "chat_id",
-            "as": "messages",
-        }
-    },
-    # Convert chat ObjectIds to strings
-    {
-        "$addFields": {
-            "id": {"$toString": "$_id"},
-            "assigned_professional_id": {
-                "$cond": [
-                    {"$ifNull": ["$assigned_professional_id", False]},
-                    {"$toString": "$assigned_professional_id"},
-                    None
-                ]
-            },
-            "user_id": {"$toString": "$user_id"}
-        }
-    },
-    # Convert each message _id to string
-    {
-        "$set": {
-            "messages": {
-                "$map": {
-                    "input": "$messages",
-                    "as": "msg",
-                    "in": {
-                        "$mergeObjects": [
-                        "$$msg",
-                        {"id": {"$toString": "$$msg._id"}, "_id": "$$REMOVE"}
-                    ]
-                    }
-                }
-            }
-        }
-    },
-    {"$sort": {"updated_at": -1}}
-]
-
-    return await chats_collection.aggregate(pipeline).to_list(None)
 
 # -----------------------------
 # 1. GET /chats/queue
@@ -96,19 +52,19 @@ async def get_chat_queue():
     today = datetime.now().date()
 
     # Fetch chats by status
-    in_progress = await get_chats_with_messages({"status": ChatStatus.IN_PROGRESS})
-    waiting = await get_chats_with_messages({"status": ChatStatus.WAITING})
+    in_progress = await get_chats_with_last_message({"status": ChatStatus.IN_PROGRESS})
+    waiting = await get_chats_with_last_message({"status": ChatStatus.WAITING})
 
     # Only show chats closed today to avoid cluttering the dashboard
-    closed = await get_chats_with_messages({
+    closed = await get_chats_with_last_message({
         "status": ChatStatus.CLOSED,
         "$expr": {"$eq": [{"$dateToString": {"format": "%Y-%m-%d", "date": "$updated_at"}}, str(today)]}
     })
 
     return {
-        "in_progress": [ChatDetailResponse(**c) for c in in_progress],
-        "waiting": [ChatDetailResponse(**c) for c in waiting],
-        "closed": [ChatDetailResponse(**c) for c in closed]
+        "in_progress": [SmallChatResponse(**c) for c in in_progress],
+        "waiting": [SmallChatResponse(**c) for c in waiting],
+        "closed": [SmallChatResponse(**c) for c in closed]
     }
 
 
@@ -130,7 +86,24 @@ async def get_chat(id: str):
     if not chats:
         raise HTTPException(404, "Chat not found")
 
-    return ChatDetailResponse(**chats[0])
+    chat = chats[0]
+
+    # Fetch patient data for the summarizer
+    user_data = None
+    user_id = chat.get("user_id")
+    if user_id and ObjectId.is_valid(user_id):
+        user_data = await users_collection.find_one({"_id": ObjectId(user_id)})
+
+    # Generate summary only for chats awaiting or in professional review
+    summary_data = {}
+    if chat.get("status") in (ChatStatus.WAITING, ChatStatus.IN_PROGRESS):
+        summary_data = await generate_summary_for_professional(
+            messages=chat.get("messages", []),
+            user_data=user_data,
+        )
+
+    summary_data["patient_context"] = user_data["patient_info"] if user_data and "patient_info" in user_data else "No patient data available."
+    return ChatDetailResponse(**chat, **summary_data)
 
 
 # -----------------------------
@@ -198,7 +171,55 @@ async def claim_chat(id: str, current_user: Dict[str, Any] = Depends(get_current
 
 
 # -----------------------------
-# 5. POST /chats/{id}/messages
+# 5. POST /chats/{id}/unclaim
+# -----------------------------
+@router.post("/chats/{id}/unclaim", response_model=StatusResponse)
+async def unclaim_chat(id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    A professional releases a claimed chat, making it available for others.
+    Transitions chat status from IN_PROGRESS to WAITING and unassigns the professional.
+
+    Only users with the "professional" role can unclaim chats.
+    """
+    if current_user.get("role") != "professional":
+        raise HTTPException(status_code=403, detail="Only professionals can unclaim chats")
+
+    professional_id = current_user["_id"]  
+
+    # Validate both IDs before querying the database
+    if not ObjectId.is_valid(id) or not ObjectId.is_valid(professional_id):
+        raise HTTPException(400, "Invalid ObjectId format")
+
+    # Fetch chat to check ownership
+
+    chat = await chats_collection.find_one({"_id": ObjectId(id)})
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+
+    if chat.get("assigned_professional_id") != ObjectId(professional_id):
+        raise HTTPException(403, "You can only unclaim chats assigned to you")
+
+    if chat.get("status") != ChatStatus.IN_PROGRESS:
+        raise HTTPException(400, "Only chats in progress can be unclaimed")
+
+    # Update chat status to WAITING and remove assignment
+    result = await chats_collection.update_one(
+        {"_id": ObjectId(id)},
+        {"$set": {
+            "status": ChatStatus.WAITING,
+            "assigned_professional_id": None,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(404, "Chat not found")
+
+    return {"status": "success", "message": "Chat unclaimed successfully"}
+
+
+# -----------------------------
+# 6. POST /chats/{id}/messages
 # -----------------------------
 @router.post("/chats/{id}/messages", response_model=MessageDetailResponse)
 async def send_professional_message(id: str, body: ProfessionalMessageRequest, current_user: Dict[str, Any] = Depends(get_current_user)):

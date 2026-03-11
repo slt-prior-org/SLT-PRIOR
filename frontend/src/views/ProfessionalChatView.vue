@@ -62,7 +62,7 @@
             :disabled="!isEditing"
             :showEdit="true"
             :isEditing="isEditing"
-            placeholder="AI:n ehdottama vastaus..."
+            placeholder="Kirjoita viesti"
             @send="sendReply"
             @toggle-edit="toggleEdit"
           />
@@ -102,21 +102,18 @@
         </div>
 
         <!-- Potilaan tiedot -->
-        <div class="sidebar" v-if="chat?.patient">
+        <div class="sidebar" v-if="chat?.patient_context">
           <h3>Potilaan tiedot</h3>
 
-          <p><strong>ID:</strong> {{ chat.patient.id }}</p>
-          <p><strong>Ikä:</strong> {{ chat.patient.age }}</p>
-          <p><strong>Sukupuoli:</strong> {{ chat.patient.gender }}</p>
+          <p><strong>Ikä:</strong> {{ chat.patient_context.age }}</p>
+          <p><strong>Pituus:</strong> {{ chat.patient_context.height }}</p>
+          <p><strong>Paino:</strong> {{ chat.patient_context.weight }}</p>
 
           <h4>Perussairaudet</h4>
-          <p>{{ chat.patient.conditions }}</p>
-
-          <h4>Lääkitys</h4>
-          <p>{{ chat.patient.medication }}</p>
+          <p>{{ chat.patient_context.conditions?.join(", ") }}</p>
 
           <h4>AI-kooste</h4>
-          <p>{{ chat.summary }}</p>
+          <div v-html="formattedSummary"></div>
 
           <AppButton variant="neutral">
             Avaa potilastiedot
@@ -139,6 +136,7 @@ import ChatInputBar from "@/components/NewChatInputBar.vue"
 import AppButton from "@/components/NewAppButton.vue"
 import ChatMessageList from "@/components/NewChatMessageList.vue"
 import { useAuthStore } from "@/stores/authStore"
+import { unclaim } from "@/services/professionalChatService"
 
 import {
   fetchChat,
@@ -154,6 +152,14 @@ const router = useRouter()
 const chatId = route.params.id
 
 const authStore = useAuthStore()
+
+const formattedSummary = computed(() => {
+  if (!chat.value?.chat_summary) return ""
+
+  return chat.value.chat_summary
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>")
+})
 
 // mock-käyttäjä fallbackiksi jos backend ei vielä palauta käyttäjää
 const mockUser = {
@@ -185,43 +191,18 @@ function toggleEdit() {
   isEditing.value = !isEditing.value
 }
 
-// mock-chat kehitystä varten
-const mockChat = {
-  chat_id: "mock1",
-  isMock: true,
-  status: "in_progress",
-  ai_suggested_reply: "Suosittelen hakeutumaan lääkärin arvioon.",
-  patient: {
-    id: "mockPatient",
-    age: 58,
-    gender: "Mies",
-    conditions: "Kohonnut verenpaine",
-    medication: "Metoprololi"
-  },
-  summary: "Rintakipua rasituksessa, riskitekijöitä",
-  sources: ["ESC guideline", "Käypä hoito"],
-  messages: [
-    { sender: "user", content: "Minulla on rintakipua rasituksessa" },
-    { sender: "bot", content: "Rintakipu rasituksessa voi liittyä sydämen hapenpuutteeseen." }
-  ]
-}
-
-// hakee chatin ja jonot backendista (mukana mock-toteutus)
+// hakee chatin ja jonot backendista
 onMounted(async () => {
   try {
-    if (chatId.startsWith("mock")) {
-      chat.value = mockChat
-      editedReply.value = mockChat.ai_suggested_reply
-      return
-    }
 
     const data = await fetchChat(chatId)
 
-    chat.value = data ?? mockChat
-    editedReply.value = chat.value.ai_suggested_reply || ""
+    console.log("CHAT DATA:", data)
+
+    chat.value = data
+    editedReply.value = chat.value.draft_response || ""
   } catch (e) {
-    chat.value = mockChat
-    editedReply.value = mockChat.ai_suggested_reply
+    console.error(e)
   }
 
   try {
@@ -235,58 +216,48 @@ onMounted(async () => {
 async function sendReply() {
   if (!editedReply.value.trim()) return
 
-  // mock, ei kutsuta backendia
-  if (chat.value.isMock) {
-    if (!chat.value.messages) chat.value.messages = []
-
-    chat.value.messages.push({
-      sender: "professional",
-      content: editedReply.value
-    })
-
-    editedReply.value = ""
-    return
-  }
-
-  // backend mukana
   try {
-    await addProfessionalMessage(chat.value._id, {
-      content: editedReply.value,
-      professional_id: currentUser.value.id
-    })
+  const chatId = chat.value.id || chat.value._id
 
-    if (!chat.value.messages) chat.value.messages = []
+  await addProfessionalMessage(chatId, {
+    message: editedReply.value,
+    professional_id: currentUser.value.id
+  })
 
-    chat.value.messages.push({
-      sender: "professional",
-      content: editedReply.value
-    })
+  if (!chat.value.messages) chat.value.messages = []
 
-    editedReply.value = ""
+  chat.value.messages.push({
+    sender: "professional",
+    content: editedReply.value
+  })
+
+  editedReply.value = ""
+} catch (e) {
+  console.error(e)
+}
+}
+
+// palauttaa chatin jonoon
+async function returnToQueue() {
+  if (!chat.value) return
+
+  const chatId = chat.value.id || chat.value._id
+
+  try {
+    await unclaim(chatId)
+
+    router.push("/professional")
   } catch (e) {
     console.error(e)
   }
 }
 
-// palauttaa chatin jonoon (backend vielä puuttuu)
-async function returnToQueue() {
-  // await returnChatToQueue(chat.value.chat_id)
-  console.log("Return to queue clicked (backend not implemented)")
-  router.push("/professional")
-}
-
 // sulkee keskustelun
 async function closeChat() {
-  // mock -> ohitetaan backend
-  if (chat.value.isMock) {
-    chat.value.status = "closed"
-    router.push("/professional")
-    return
-  }
 
-  // backend mukana
   try {
-    await closeChatApi(chat.value._id)
+    const chatId = chat.value.id || chat.value._id
+    await closeChatApi(chatId)
     router.push("/professional")
   } catch (e) {
     console.error(e)

@@ -54,14 +54,14 @@
 
             <div
               v-for="chat in activeChats"
-              :key="chat._id"
+              :key="chat.id"
               class="chat-card"
               :class="chat.status"
-              @click="chat.status === 'waiting_for_professional' ? openPreview(chat) : router.push(`/professional/chat/${chat._id}`)"
+              @click="chat.status === 'waiting_for_professional' ? openPreview(chat) : router.push(`/professional/chat/${chat.id}`)"
             >
 
               <div class="chat-body">
-                <b>Potilas #{{ chat._id }}</b>
+                <b>Potilas #{{ chat.id }}</b>
                 <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
               </div>
 
@@ -107,12 +107,12 @@
 
           <div
             v-for="chat in closedToday"
-            :key="chat._id"
+            :key="chat.id"
             class="chat-card closed"
-            @click="router.push(`/professional/chat/${chat._id}`)"
+            @click="router.push(`/professional/chat/${chat.id}`)"
           >
             <div class="chat-body">
-              <b>Potilas #{{ chat._id }}</b>
+              <b>Potilas #{{ chat.id }}</b>
               <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
             </div>
 
@@ -137,17 +137,19 @@
         <div class="preview-card">
 
           <div class="preview-header">
+
             <div class="preview-patient">
-              Potilas {{ selectedChat?.patient_id || selectedChat?._id }}
+              Potilas #{{ selectedChat?.id }}
             </div>
 
             <div class="preview-time">
-              {{ selectedChat?.created_at || "" }}
+              {{ formatTime(selectedChat?.updated_at) }}
             </div>
+
           </div>
 
           <div class="preview-message">
-            {{ selectedChat?.preview || "Ei vielä viestejä" }}
+            {{ selectedChat?.last_message || "Ei vielä viestejä" }}
           </div>
 
         </div>
@@ -174,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue"
+import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRouter } from "vue-router"
 import { fetchQueues, claim } from "@/services/professionalChatService"
 import NewHeaderBar from "@/components/NewHeaderBar.vue"
@@ -186,8 +188,8 @@ const authStore = useAuthStore()
 
 // mock-käyttäjä
 const mockUser = {
-  id: "mockProfessional1",
-  name: "Aku Ankka",
+  id: "nouser",
+  name: "no_user",
   role: "professional"
 }
 
@@ -227,173 +229,38 @@ const today = new Date().toLocaleDateString("fi-FI", {
 
 const formattedToday = today.charAt(0).toUpperCase() + today.slice(1)
 
-// mock-jonot UI-kehitystä varten
-const mockQueues = {
-  in_progress: [
-    {
-      _id: "mock15",
-      isMock: true,
-      patient_name: "Potilas #4721",
-      last_message: "Henkeä ahdistaa portaissa",
-      status: "in_progress"
-    },
-    {
-      _id: "mock1",
-      isMock: true,
-      patient_name: "Potilas #4721",
-      last_message: "Minulla on ollut rintakipua rasituksessa",
-      status: "in_progress"
-    }
-  ],
-  waiting: [
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    }
-  ],
-  closed: [
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock2",
-      isMock: true,
-      patient_name: "Potilas #3892",
-      last_message: "Sykemittari näyttää epäsäännöllistä sykettä",
-      status: "waiting_for_professional"
-    },
-    {
-      _id: "mock3",
-      isMock: true,
-      patient_name: "Potilas #5614",
-      last_message: "Verenpaineeni on ollut koholla",
-      status: "waiting_for_professional"
-    }
-  ]
-}
+let refreshInterval
 
 // hakee käyttäjän session ja chat-jonot
-// tällä hetkellä käyttää mock-dataa, jos backend ei vastaa tai jonot tyhjät
 onMounted(async () => {
   try {
     if (!authStore.user) {
       await authStore.fetchUser()
     }
 
-    const data = await fetchQueues()
+    await loadQueues()
 
-    if (
-      !data ||
-      (!data.in_progress?.length &&
-       !data.waiting?.length &&
-       !data.closed?.length)
-    ) {
-      chats.value = mockQueues
-      return
-    }
-
-    chats.value = data
+    refreshInterval = setInterval(loadQueues, 60000)
 
   } catch (e) {
-    console.log("Backend not available -> mock queues")
-    chats.value = mockQueues
+    console.error("Failed to fetch queues", e)
   }
 })
+
+onUnmounted(() => {
+  clearInterval(refreshInterval)
+})
+
+async function loadQueues() {
+  const data = await fetchQueues()
+  chats.value = data
+}
 
 // avaa chatin esikatselu
 function openPreview(chat) {
   selectedChat.value = chat
+  console.log("CHAT:", selectedChat.value)
+  console.log("MESSAGES:", selectedChat.value.messages)
   showModal.value = true
 }
 
@@ -402,21 +269,16 @@ function closeModal() {
 }
 
 // varaa chatin ja navigoi siihen
-// mock ohittaa backendin
 async function claimChat() {
   if (!selectedChat.value) return
 
-  if (selectedChat.value.isMock) {
-    showModal.value = false
-    router.push(`/professional/chat/${selectedChat.value._id}`)
-    return
-  }
+  const chatId = selectedChat.value.id || selectedChat.value._id
 
   try {
-    await claim(selectedChat.value._id, currentUser.value.id)
+    await claim(chatId)
 
     showModal.value = false
-    router.push(`/professional/chat/${selectedChat.value._id}`)
+    router.push(`/professional/chat/${chatId}`)
 
   } catch (e) {
     console.error(e)
@@ -430,9 +292,9 @@ function openNext() {
   }
 }
 
-// muotoilee ajan backendista, fallback mock
+// muotoilee ajan backendista
 function formatTime(date) {
-  if (!date) return "11:45" // mock fallback
+  if (!date) return ""
 
   return new Date(date).toLocaleTimeString("fi-FI", {
     hour: "2-digit",

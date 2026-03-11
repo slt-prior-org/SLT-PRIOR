@@ -1,5 +1,59 @@
 from database.db import chats_collection
 
+async def get_chats_with_last_message(filter_query: dict):
+    """
+    Returns chats with only the last message from messages collection.
+    """
+    pipeline = [
+        {"$match": filter_query},
+
+        # Join messages collection
+        {
+            "$lookup": {
+                "from": "messages",
+                "let": {"chatId": "$_id"},
+                "pipeline": [
+                    {"$match": {
+                        "$expr": {"$and": [
+                            {"$eq": ["$chat_id", "$$chatId"]},
+                            {"$eq": ["$sender", "user"]}   # <-- vain käyttäjän viestit
+                        ]}
+                    }},
+                    {"$sort": {"created_at": -1}},  # newest first
+                    {"$limit": 1},                  # only last message
+                    {"$project": {"_id": 0, "content": 1}}  # only message field
+                ],
+                "as": "last_message_doc"
+            }
+        },
+
+        # Convert ObjectIds to strings and add last_message
+        {
+            "$addFields": {
+                "id": {"$toString": "$_id"},
+                "assigned_professional_id": {
+                    "$cond": [
+                        {"$ifNull": ["$assigned_professional_id", False]},
+                        {"$toString": "$assigned_professional_id"},
+                        None
+                    ]
+                },
+                "user_id": {"$toString": "$user_id"},
+                "last_message": {
+                    "$ifNull": [{"$arrayElemAt": ["$last_message_doc.content", 0]}, ""]
+                }
+            }
+        },
+
+        # Remove internal fields
+        {"$project": {"_id": 0, "last_message_doc": 0}},
+
+        # Sort chats by updated_at descending
+        {"$sort": {"updated_at": -1}}
+    ]
+
+    cursor = await chats_collection.aggregate(pipeline)
+    return await cursor.to_list(None)
 
 async def get_chat_summaries(filter_query: dict):
     """
@@ -7,7 +61,7 @@ async def get_chat_summaries(filter_query: dict):
     ObjectIds are converted to strings directly in the database query,
     so no manual iteration is needed after fetching.
     """
-    return await chats_collection.aggregate([
+    cursor = await chats_collection.aggregate([
         {"$match": filter_query},
         {
             "$project": {
@@ -18,7 +72,9 @@ async def get_chat_summaries(filter_query: dict):
                 "_id": 0,
             }
         }
-    ]).to_list(None)
+    ])
+
+    return await cursor.to_list(None)
 
 
 async def get_chats_with_messages(filter_query: dict):
@@ -67,4 +123,6 @@ async def get_chats_with_messages(filter_query: dict):
         {"$sort": {"updated_at": -1}}
     ]
 
-    return await chats_collection.aggregate(pipeline).to_list(None)
+    cursor = await chats_collection.aggregate(pipeline)
+
+    return await cursor.to_list(None)

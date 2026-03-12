@@ -5,6 +5,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
       - chroma_data:/app/chroma
     depends_on:
       - chroma

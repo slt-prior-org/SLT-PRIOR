@@ -11,6 +11,8 @@ import pytest
 import sys
 import os
 
+pytestmark = pytest.mark.integration
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from ai_model.classifier import classify_question, Classification

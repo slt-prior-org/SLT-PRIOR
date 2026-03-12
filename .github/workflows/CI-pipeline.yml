@@ -35,7 +35,7 @@ jobs:
       - name: Run tests
         run: |
           pip install pytest
-          pytest -v --maxfail=1 tests/example_test.py
+          pytest -v --maxfail=1 --disable-warnings tests/
 
   frontend:
     name: Test frontend

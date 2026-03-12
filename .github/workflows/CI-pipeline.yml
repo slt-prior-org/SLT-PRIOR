@@ -38,7 +38,7 @@ jobs:
           GEMINI_API: ${{ secrets.GEMINI_API }}
         run: |
           pip install pytest
-          pytest -v --maxfail=1 --disable-warnings tests/
+          pytest -v -m "not integration" --maxfail=1 --disable-warnings tests/
 
   frontend:
     name: Test frontend

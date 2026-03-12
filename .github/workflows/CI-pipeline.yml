@@ -37,7 +37,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GEMINI_API: ${{ secrets.GEMINI_API }}
         run: |
-          pip install pytest
+          pip install pytest pytest-asyncio
           pytest -v -m "not integration" --maxfail=1 --disable-warnings tests/
 
   frontend:

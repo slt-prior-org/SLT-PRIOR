@@ -35,6 +35,7 @@ jobs:
       - name: Run tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GEMINI_API: ${{ secrets.GEMINI_API }}
         run: |
           pip install pytest
           pytest -v --maxfail=1 --disable-warnings tests/

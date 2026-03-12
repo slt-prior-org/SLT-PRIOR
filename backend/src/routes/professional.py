@@ -103,15 +103,23 @@ async def get_chat(id: str):
         has_professional = bool(chat.get("assigned_professional_id"))
 
         if has_professional:
-            # IN_PROGRESS: permanent cache — never regenerate
-            if cached:
+            # IN_PROGRESS: check message_count once, then freeze permanently
+            cached_count = cached.get("message_count") if cached else None
+            if cached and (cached_count is None or cached_count == current_msg_count):
+                # Frozen cache OR fresh WAITING-cache → use as-is
+                if cached_count is not None:
+                    # Still has message_count → freeze it now
+                    await chats_collection.update_one(
+                        {"_id": ObjectId(id)},
+                        {"$unset": {"summary_cache.message_count": ""}}
+                    )
                 summary_data = {
                     "chat_summary": cached.get("chat_summary"),
                     "draft_response": cached.get("draft_response"),
                     "requires_approval": True,
                 }
             else:
-                # Edge case: claimed but no cache (e.g. legacy data)
+                # No cache or stale cache → regenerate and freeze (no message_count)
                 summary_data = await generate_summary_for_professional(
                     messages=messages,
                     user_data=user_data,

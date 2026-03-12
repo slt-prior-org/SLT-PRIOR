@@ -15,12 +15,20 @@ export const logoutUser = async () => {
   return response.data
 }
 
-export const updateUserProfile = async (data) => {
-  const response = await api.put("/api/auth/me", data)
-  return response.data
+export const updateUserProfile = async (data, token) => {
+  const response = await api.put("/api/auth/me", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
 }
 
-export const fetchUser = async () => {
-  const response = await api.get("/api/auth/me")
+export const fetchUser = async (token) => {
+  const response = await api.get("/api/auth/me", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return response.data
 }

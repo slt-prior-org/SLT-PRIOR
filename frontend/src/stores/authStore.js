@@ -72,7 +72,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
 
       try {
-        const updatedUser = await updateUserProfile(formData)
+        const updatedUser = await updateUserProfile(formData, this.token);
         this.user = updatedUser
       } catch (error) {
         console.error("Profile update failed:", error)

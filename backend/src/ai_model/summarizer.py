@@ -109,9 +109,9 @@ async def generate_summary_for_professional(
     draft_response = ""
     last_human_msg = ""
     for msg in reversed(messages):
-        msg_type = getattr(msg, "type", None) or msg.get("type")
-        if msg_type == "human":
-            last_human_msg = getattr(msg, "content", None) or msg.get("content", "")
+        sender = msg.get("sender") or msg.get("type", "")
+        if sender in ("user", "human"):
+            last_human_msg = msg.get("content", "")
             break
 
     if last_human_msg:

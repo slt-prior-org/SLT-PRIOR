@@ -97,10 +97,60 @@ async def get_chat(id: str):
     # Generate summary only for chats awaiting or in professional review
     summary_data = {}
     if chat.get("status") in (ChatStatus.WAITING, ChatStatus.IN_PROGRESS):
-        summary_data = await generate_summary_for_professional(
-            messages=chat.get("messages", []),
-            user_data=user_data,
-        )
+        messages = chat.get("messages", [])
+        current_msg_count = len(messages)
+        cached = chat.get("summary_cache")
+        has_professional = bool(chat.get("assigned_professional_id"))
+
+        if has_professional:
+            # IN_PROGRESS: permanent cache — never regenerate
+            if cached:
+                summary_data = {
+                    "chat_summary": cached.get("chat_summary"),
+                    "draft_response": cached.get("draft_response"),
+                    "requires_approval": True,
+                }
+            else:
+                # Edge case: claimed but no cache (e.g. legacy data)
+                summary_data = await generate_summary_for_professional(
+                    messages=messages,
+                    user_data=user_data,
+                )
+                await chats_collection.update_one(
+                    {"_id": ObjectId(id)},
+                    {"$set": {
+                        "summary_cache": {
+                            "chat_summary": summary_data["chat_summary"],
+                            "draft_response": summary_data["draft_response"],
+                            "cached_at": datetime.utcnow(),
+                        }
+                    }}
+                )
+        else:
+            # WAITING: message_count-based cache
+            if (cached and current_msg_count > 0
+                    and cached.get("message_count") == current_msg_count):
+                summary_data = {
+                    "chat_summary": cached.get("chat_summary"),
+                    "draft_response": cached.get("draft_response"),
+                    "requires_approval": True,
+                }
+            else:
+                summary_data = await generate_summary_for_professional(
+                    messages=messages,
+                    user_data=user_data,
+                )
+                await chats_collection.update_one(
+                    {"_id": ObjectId(id)},
+                    {"$set": {
+                        "summary_cache": {
+                            "chat_summary": summary_data["chat_summary"],
+                            "draft_response": summary_data["draft_response"],
+                            "message_count": current_msg_count,
+                            "cached_at": datetime.utcnow(),
+                        }
+                    }}
+                )
 
     summary_data["patient_context"] = user_data["patient_info"] if user_data and "patient_info" in user_data else "No patient data available."
     return ChatDetailResponse(**chat, **summary_data)
@@ -202,14 +252,17 @@ async def unclaim_chat(id: str, current_user: Dict[str, Any] = Depends(get_curre
     if chat.get("status") != ChatStatus.IN_PROGRESS:
         raise HTTPException(400, "Only chats in progress can be unclaimed")
 
-    # Update chat status to WAITING and remove assignment
+    # Update chat status to WAITING, remove assignment, and clear cache
     result = await chats_collection.update_one(
         {"_id": ObjectId(id)},
-        {"$set": {
-            "status": ChatStatus.WAITING,
-            "assigned_professional_id": None,
-            "updated_at": datetime.utcnow()
-        }}
+        {
+            "$set": {
+                "status": ChatStatus.WAITING,
+                "assigned_professional_id": None,
+                "updated_at": datetime.utcnow()
+            },
+            "$unset": {"summary_cache": ""}
+        }
     )
 
     if result.matched_count == 0:

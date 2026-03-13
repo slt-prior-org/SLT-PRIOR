@@ -33,9 +33,12 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
 
       - name: Run tests
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GEMINI_API: ${{ secrets.GEMINI_API }}
         run: |
-          pip install pytest
-          pytest -v --maxfail=1 tests/example_test.py
+          pip install pytest pytest-asyncio
+          pytest -v -m "not integration" --maxfail=1 --disable-warnings tests/
 
   frontend:
     name: Test frontend

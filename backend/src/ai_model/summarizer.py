@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # LLM tiivistämiseen (matala temperature tarkkuuden vuoksi)
 summarizer_llm = ChatGoogleGenerativeAI(
     model='gemini-2.0-flash-001',
-    temperature=0.3,
+    temperature=0,
     max_tokens=800,
     google_api_key=settings.GOOGLE_API_KEY
 )
@@ -109,9 +109,9 @@ async def generate_summary_for_professional(
     draft_response = ""
     last_human_msg = ""
     for msg in reversed(messages):
-        msg_type = getattr(msg, "type", None) or msg.get("type")
-        if msg_type == "human":
-            last_human_msg = getattr(msg, "content", None) or msg.get("content", "")
+        sender = msg.get("sender") or msg.get("type", "")
+        if sender in ("user", "human"):
+            last_human_msg = msg.get("content", "")
             break
 
     if last_human_msg:

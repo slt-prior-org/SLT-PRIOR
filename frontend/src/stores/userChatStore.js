@@ -12,6 +12,12 @@ export const useUserChatStore = defineStore("userChat", {
   getters: {
     getUserChats: (state) => state.userChats,
 
+    getWritableChat(state) {
+      return state.userChats.find(
+        (chat) => !["waiting_for_professional", "in_progress"].includes(chat.status)
+      ) || null
+    },
+
     getActiveChat(state) {
       if (!state.activeChatId) return null
       return state.userChats.find(chat => chat.id === state.activeChatId) || null
@@ -49,8 +55,10 @@ export const useUserChatStore = defineStore("userChat", {
           messages: chat.messages || []
         }))
 
+        // Valitaan ensisijaisesti kirjoitettavissa oleva chat
         if (!this.activeChatId && this.userChats.length > 0) {
-          this.activeChatId = this.userChats[0].id
+          const writableChat = this.getWritableChat
+          this.activeChatId = writableChat ? writableChat.id : this.userChats[0].id
           await this.loadActiveChat()
         }
 

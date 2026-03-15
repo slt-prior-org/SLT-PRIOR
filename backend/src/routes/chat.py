@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 from ai_model import rag_cloud, utils
 from ai_model.classifier import classify_question, Classification as AiClassification
@@ -10,7 +10,6 @@ from ai_model.emergency import detect_emergency
 from database.db import chats_collection, users_collection
 from database.models import (
     ChatDetailResponse,
-    ChatReplyResponse,
     ChatStatus,
     ChatSummaryItem,
     Classification as DbClassification,
@@ -55,89 +54,6 @@ async def get_chats(current_user: Dict[str, Any] = Depends(get_current_user)):
     return await get_chat_summaries({"user_id": ObjectId(user_id)})
 
 
-@router.post("/send", response_model=ChatReplyResponse)
-async def send_message(body: SendMessageRequest, request: Request):
-    """
-    1) Hätätilanteen tunnistus (detect_emergency) – palautetaan välittömästi.
-    2) Haetaan käyttäjädata MongoDB:stä.
-    3) Kerätään conversation history RAG-muistista.
-    4) Luokitellaan kysymys (classify_question) ennen RAG-kutsua.
-    5) Rakennetaan prompt käyttäjädatan perusteella.
-    6) Kutsutaan RAG-mallia.
-    7) SAFE → palautetaan reply + classification.
-    8) NEEDS_REVIEW → palautetaan turvallinen viesti + draft_response + classification_reasoning.
-    """
-
-    logged_in = request.app.state.logged_in
-    user_message = body.message
-    user_id = request.app.state.current_user_id
-
-    emergency = detect_emergency(user_message)
-    if emergency:
-        return {
-            "reply": emergency.emergency_message_en,
-            "classification": AiClassification.EMERGENCY,
-        }
-
-    user_data = None
-    if user_id:
-        if not ObjectId.is_valid(user_id):
-            raise HTTPException(status_code=400, detail="Invalid user_id format.")
-        user_doc = await users_collection.find_one({"_id": ObjectId(user_id)})
-        if user_doc:
-            user_doc["_id"] = str(user_doc["_id"])
-            user_data = user_doc
-
-    conversation_history = [
-        {"sender": "user" if msg.type == "human" else "bot", "content": msg.content}
-        for msg in rag_cloud.memory.messages
-    ]
-
-    classification_result = await classify_question(
-        question=user_message,
-        user_data=user_data,
-        is_logged_in=logged_in,
-        conversation_history=conversation_history if conversation_history else None,
-    )
-
-    if classification_result.classification == AiClassification.NEEDS_REVIEW:
-        safe_message = (
-            "Tämä aihe liittyy henkilökohtaiseen "
-            "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
-            "on välitetty ammattilaiselle arvioitavaksi."
-            "<br><br>"
-            "This topic relates to a personal "
-            "health assessment that I cannot answer. Your conversation has been "
-            "forwarded to a professional for review."
-        )
-        return {
-            "reply": safe_message,
-            "requires_professional": True,
-            "classification": AiClassification.NEEDS_REVIEW,
-            "classification_reasoning": classification_result.reasoning,
-        }
-
-    if logged_in and user_data and user_data.get("patient_info"):
-        patient_info = user_data["patient_info"]
-        prompt = f"{user_message}\n\nPatient info:\n{patient_info}"
-    else:
-        prompt = user_message
-
-    try:
-        raw_response = await rag_cloud.get_rag_response(prompt)
-        formatted_text = utils.formatGeminiResponse(raw_response)
-    except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return {
-        "reply": formatted_text,
-        "classification": AiClassification.SAFE,
-    }
-
-
 @router.post("/chat", response_model=ChatDetailResponse)
 async def create_chat(current_user: Dict[str, Any] = Depends(get_current_user)):
     """
@@ -175,8 +91,7 @@ async def send_message_to_chat(
     """
     Chat-kohtainen viestinlähetysreitti tunnistautuneelle käyttäjälle.
     Tallentaa käyttäjän ja botin viestit MongoDB:hen ja varmistaa,
-    että chat kuuluu nykyiselle käyttäjälle. RAG- ja luokittelukäyttäytyminen
-    pidetään toistaiseksi yhteensopivana vanhan /send-reitin kanssa.
+    että chat kuuluu nykyiselle käyttäjälle.
     """
 
     chat = await _get_owned_chat_or_404(chatId, current_user)
@@ -266,7 +181,6 @@ async def send_message_to_chat(
     try:
         raw_response = await rag_cloud.get_rag_response(
             prompt,
-            save_to_memory=False,
             chat_history=conversation_history,
         )
         formatted_text = utils.formatGeminiResponse(raw_response)

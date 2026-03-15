@@ -3,7 +3,6 @@ from .vectorstore import initialize_vectorstore
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage
 
 # -----------------------------
@@ -29,9 +28,6 @@ llm = ChatGoogleGenerativeAI(
     top_p=0.9,
     google_api_key=settings.GOOGLE_API_KEY
 )
-
-# Alustetaan vanha keskustelumuisti yhteensopivuutta varten
-memory = InMemoryChatMessageHistory()
 
 system_prompt = (
     "You are an assistant for question-answering tasks. "
@@ -128,19 +124,13 @@ async def retrieve_with_fallback(
 # -----------------------------
 async def get_rag_response(
     user_input: str,
-    save_to_memory: bool = True,
     chat_history: list[dict] | None = None,
 ) -> str:
     """
     Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen tekstinä.
-    Draft_response-ominaisuus: save_to_memory=False hakee vastauksen ilman,
-    että keskustelumuistiin tallennetaan uusia viestejä.
+    Vastauksen muodostamiseen käytetään annettua chat-historiaa.
     """
-    use_explicit_history = chat_history is not None
-    history_messages = _normalize_chat_history(chat_history) if use_explicit_history else None
-
-    if save_to_memory and not use_explicit_history:
-        memory.add_user_message(user_input)
+    history_messages = _normalize_chat_history(chat_history)
 
     # Hae dokumentit threshold + fallback -logiikalla
     relevant_docs = await retrieve_with_fallback(user_input, vectorstore)
@@ -148,19 +138,14 @@ async def get_rag_response(
     if not relevant_docs:
         # Jos uusi chat-kohtainen historia on annettu ja sitä löytyy,
         # annetaan mallin vastata historian perusteella myös ilman haettuja dokumentteja.
-        if use_explicit_history and history_messages:
+        if history_messages:
             relevant_docs = []
         else:
             no_info_msg = (
                 "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
                 "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
             )
-            if save_to_memory and not use_explicit_history:
-                memory.add_ai_message(no_info_msg)
             return no_info_msg
-
-    if not use_explicit_history:
-        history_messages = memory.messages if save_to_memory else []
 
     # Vastauksen generointi
     response = await rag_chain.ainvoke({
@@ -169,10 +154,6 @@ async def get_rag_response(
         "input": user_input
     })
 
-    if save_to_memory and not use_explicit_history:
-        memory.add_ai_message(response.content)
-        print(f"Chat memory: {memory.messages}")
-
     return response.content
 
 
@@ -180,11 +161,5 @@ async def generate_draft_response(user_input: str, chat_history: list[dict] | No
     """Generoi RAG-luonnosvastauksen ilman muistiin tallennusta."""
     return await get_rag_response(
         user_input,
-        save_to_memory=False,
         chat_history=chat_history
     )
-
-
-def clear_conversation_memory():
-    # Tyhjentää vanhan keskustelumuistin
-    memory.clear()

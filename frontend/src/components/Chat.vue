@@ -145,7 +145,11 @@ export default {
       try {
         await this.chatStore.initializeChats(this.authStore.getCurrentUserID);
 
-        if (!this.chatStore.getActiveChat) {
+        // Luodaan uusi chat, jos kirjoitettavaa aktiivista chatia ei ole
+        if (
+          !this.chatStore.getActiveChat ||
+          ["waiting_for_professional", "in_progress"].includes(this.chatStore.getActiveChat.status)
+        ) {
           await this.chatStore.createChat();
         }
       } catch (error) {

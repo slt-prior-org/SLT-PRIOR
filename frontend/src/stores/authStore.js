@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useUserChatStore } from '@/stores/userChatStore'
 import { registerUser, fetchUser, loginUser, updateUserProfile } from '@/services/authService'
 
 export const useAuthStore = defineStore('auth', {
@@ -50,6 +51,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async logout() {
+      const userChatStore = useUserChatStore()
+
+      // Tyhjennetään vanhan käyttäjän näkyvä chat heti uloskirjautuessa
+      userChatStore.resetChatState()
       this.user = null
       this.token = null
       localStorage.removeItem("token")

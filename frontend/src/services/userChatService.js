@@ -1,7 +1,7 @@
 import { api } from "./api"
 
 export const fetchAllUserChats = async () => {
-  const response = await api.get("/api/chat")
+  const response = await api.get("/api/chat/")
   return response.data
 }
 
@@ -16,6 +16,6 @@ export const sendUserMessage = async (chatId, message) => {
 }
 
 export const addChat = async () => {
-  const response = await api.post("/api/chat")
+  const response = await api.post("/api/chat/chat")
   return response.data
 }

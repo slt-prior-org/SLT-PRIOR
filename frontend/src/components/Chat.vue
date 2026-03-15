@@ -26,7 +26,12 @@
       <div
         v-for="(message, index) in messages"
         :key="index"
-        :class="['message', message.from === 'self' ? 'self' : 'other', message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '', message.classification === 'EMERGENCY' ? 'emergency' : '']"
+        :class="[
+          'message',
+          message.from === 'self' ? 'self' : 'other',
+          message.from !== 'self' && message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '',
+          message.from !== 'self' && message.classification === 'EMERGENCY' ? 'emergency' : ''
+        ]"
       >
         <div
           class="message-content"
@@ -53,8 +58,10 @@
 </template>
 
 <script>
-import axios from "axios";
 import PatientForm from "./PatientForm.vue";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/authStore";
+import { useUserChatStore } from "@/stores/userChatStore";
 import { useI18n } from "vue-i18n"; // Lisätty kielituki
 
 export default {
@@ -67,21 +74,36 @@ export default {
   },
   setup() {
     const { t, locale } = useI18n(); // Hae kielituki
-    return { t, locale };
+    const authStore = useAuthStore();
+    const chatStore = useUserChatStore();
+    return { t, locale, authStore, chatStore };
   },
   data() {
     return {
       userId: "user123",
-      messages: [],
       newMessage: "",
       showForm: false,
-      welcomeMessageDisplayed: true, // Tervetuloviesti näytetään vain kerran
+      isInitializing: false,
     };
+  },
+  computed: {
+    activeChat() {
+      return this.chatStore.getActiveChat;
+    },
+    messages() {
+      return (this.activeChat?.messages || []).map(this.mapBackendMessage);
+    },
+    welcomeMessageDisplayed() {
+      return this.messages.length === 0;
+    },
   },
   watch: {
     externalShowForm(newVal) {
       this.showForm = newVal;
     },
+  },
+  async mounted() {
+    await this.initializeActiveChat();
   },
   methods: {
     openPatientForm() {
@@ -94,32 +116,60 @@ export default {
     },
     async fetchMapping() {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/data"); // Ei löydy backendistä
+        const response = await api.get("/api/data"); // Ei löydy backendistä
         this.mapping = response.data.data;
       } catch (error) {
         console.error(this.$t("data-error"), error);
       }
     },
-    async sendMessage() {
-      if (this.newMessage.trim() === "") return;
+    normalizeClassification(classification) {
+      if (!classification) return "SAFE";
+      return String(classification).toUpperCase();
+    },
+    mapBackendMessage(message) {
+      return {
+        text: message.content,
+        from: message.sender === "user" ? "self" : "other",
+        classification: this.normalizeClassification(message.classification),
+      };
+    },
+    async initializeActiveChat() {
+      // Käytetään kirjautuneen käyttäjän omaa aktiivista chatia
+      if (!localStorage.getItem("token")) {
+        this.chatStore.resetChatState();
+        return;
+      }
 
-      // Lisää käyttäjän viesti chattiin
-      this.messages.push({ text: this.newMessage, from: "self" });
+      this.isInitializing = true;
 
       try {
-        const response = await axios.post("http://127.0.0.1:8000/api/chat/send", {
-          message: this.newMessage,
-        });
+        await this.chatStore.initializeChats(this.authStore.getCurrentUserID);
 
-        // Lisää palvelimen vastaus chattiin luokittelutiedon kanssa
-        this.messages.push({
-          text: response.data.reply,
-          from: "other",
-          classification: response.data.classification || "SAFE"
-        });
+        if (!this.chatStore.getActiveChat) {
+          await this.chatStore.createChat();
+        }
+      } catch (error) {
+        console.error("Chatin alustus epäonnistui:", error);
+      } finally {
+        this.isInitializing = false;
+      }
+    },
+    async sendMessage() {
+      if (this.newMessage.trim() === "" || this.isInitializing) return;
+
+      // Varmistetaan, että aktiivinen chat on olemassa ennen lähetystä
+      if (!this.chatStore.getActiveChat) {
+        await this.initializeActiveChat();
+      }
+
+      if (!this.chatStore.getActiveChat) {
+        return;
+      }
+
+      try {
+        await this.chatStore.addUserMessage(this.newMessage);
       } catch (error) {
         console.error(this.$t("send-error"), error);
-        this.messages.push({ text: this.$t("connection-error"), from: "other" });
       }
 
       // Tyhjennä syötekenttä

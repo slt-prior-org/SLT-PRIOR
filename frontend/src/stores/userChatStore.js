@@ -1,11 +1,12 @@
 import { defineStore } from "pinia"
-import { addChat, fetchAllUserChats, sendUserMessage } from "@/services/userChatService"
+import { addChat, fetchAllUserChats, fetchChat, sendUserMessage } from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
     userChats: [],
     activeChatId: null,
-    isLoaded: false
+    isLoaded: false,
+    currentUserId: null
   }),
 
   getters: {
@@ -18,19 +19,64 @@ export const useUserChatStore = defineStore("userChat", {
   },
 
   actions: {
+    resetChatState() {
+      // Tyhjennetään chat-tila, kun käyttäjä vaihtuu
+      this.userChats = []
+      this.activeChatId = null
+      this.isLoaded = false
+      this.currentUserId = null
+    },
+
     setActiveChat(chatId) {
       this.activeChatId = chatId
     },
 
-    async initializeChats() {
+    async initializeChats(userId = null) {
+      // Nollataan vanhan käyttäjän chatit, jos tunnistautunut käyttäjä vaihtui
+      if (this.currentUserId && userId && this.currentUserId !== userId) {
+        this.resetChatState()
+      }
+
+      if (userId && !this.currentUserId) {
+        this.currentUserId = userId
+      }
+
       if (this.isLoaded) return
       try {
         const chats = await fetchAllUserChats()
-        this.userChats = chats
+        this.userChats = chats.map((chat) => ({
+          ...chat,
+          messages: chat.messages || []
+        }))
+
+        if (!this.activeChatId && this.userChats.length > 0) {
+          this.activeChatId = this.userChats[0].id
+          await this.loadActiveChat()
+        }
 
         this.isLoaded = true
       } catch (error) {
         console.error("Failed to initialize user chats:", error)
+      }
+    },
+
+    async loadActiveChat() {
+      if (!this.activeChatId) return null
+
+      try {
+        const chat = await fetchChat(this.activeChatId)
+        const existingIndex = this.userChats.findIndex((item) => item.id === chat.id)
+
+        if (existingIndex >= 0) {
+          this.userChats[existingIndex] = chat
+        } else {
+          this.userChats.push(chat)
+        }
+
+        return chat
+      } catch (error) {
+        console.error("Failed to load active chat:", error)
+        throw error
       }
     },
 
@@ -44,6 +90,7 @@ export const useUserChatStore = defineStore("userChat", {
         })
 
         this.activeChatId = newChat.id
+        await this.loadActiveChat()
 
         return newChat
       } catch (error) {

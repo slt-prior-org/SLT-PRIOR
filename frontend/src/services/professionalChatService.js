@@ -15,6 +15,11 @@ export const claim = async (chatId) => {
     return response.data
 }
 
+export const unclaim = async (chatId) => {
+  const response = await api.post(`/api/professional/chats/${chatId}/unclaim`)
+  return response.data
+}
+
 export const close = async (chatId) => {
     const response = await api.post(`/api/professional/chats/${chatId}/close`)
     return response.data

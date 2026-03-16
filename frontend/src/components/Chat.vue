@@ -6,7 +6,10 @@
       @close="closePatientForm"
     />
 
-    <div class="messages">
+    <div
+      class="messages"
+      :class="{ 'messages--welcome': welcomeMessageDisplayed }"
+    >
       <!-- Tervetuloa-näyttö -->
       <section
         v-if="welcomeMessageDisplayed"
@@ -285,6 +288,10 @@ export default {
   box-sizing: border-box;
 }
 
+.messages--welcome {
+  overflow-y: hidden;
+}
+
 .welcome,
 .welcome * {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
@@ -297,7 +304,7 @@ export default {
   margin: 0 auto;
   padding: 24px 0 12px;
   font-size: 18px;
-  line-height: 1.6;
+  line-height: 1;
 }
 
 .welcome-hero {
@@ -327,7 +334,7 @@ export default {
   line-height: 1.2;
   margin: 0 0 10px;
   color: #0f172a;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .welcome-subtitle {
@@ -342,7 +349,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 .welcome-card {
@@ -352,6 +359,7 @@ export default {
   padding: 18px;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
   min-height: 150px;
+  padding-bottom: 10px;
 }
 
 .card-icon {
@@ -375,7 +383,6 @@ export default {
   margin: 0 0 8px;
   font-size: 18px;
   color: #0f172a;
-  font-weight: 800;
 }
 
 .card-text {
@@ -404,12 +411,12 @@ export default {
   color: #92400e;
   display: grid;
   place-items: center;
-  font-weight: 900;
+  font-weight: 750;
   flex: 0 0 auto;
 }
 
 .alert-title {
-  font-weight: 900;
+  font-weight: 750;
   color: #7c2d12;
   font-size: 18px;
   margin-bottom: 8px;

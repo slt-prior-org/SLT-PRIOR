@@ -20,9 +20,9 @@
         >
       </div>
 
-      <button :disabled="loading" @click="goToStep2">
+      <AppButton variant="primary" :disabled="loading" @click="goToStep2">
         {{ $t("register.continue")}}
-      </button>
+      </AppButton>
 
       <p v-if="error" class="login-message">{{ error }}</p>
     </div>
@@ -120,13 +120,13 @@
 
         <div class="form-actions">
 
-          <button type="button" @click="step = 1">
+          <AppButton type="button" variant="neutral" size="sm" @click="step = 1">
             {{ $t("back")}}
-          </button>
+          </AppButton>
 
-          <button type="submit">
+          <AppButton type="submit" variant="primary" size="sm">
             {{ $t("register.register") }}
-          </button>
+          </AppButton>
         </div>
       </form>
 
@@ -137,8 +137,10 @@
 
 <script>
 import { useAuthStore } from "@/stores/authStore";
+import AppButton from "@/components/ui/AppButton.vue";
 
 export default {
+  components: { AppButton },
   props: ["show"],
   emits: ["close"],
   data() {

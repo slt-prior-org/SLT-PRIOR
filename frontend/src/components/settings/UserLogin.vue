@@ -16,7 +16,7 @@
       @keyup.enter="handleLogin"
     >
 
-    <button @click="handleLogin">{{ $t("login.logIn") }}</button>
+    <AppButton variant="primary" size="sm" @click="handleLogin">{{ $t("login.logIn") }}</AppButton>
 
     <div
       v-if="loginMessage"
@@ -34,6 +34,7 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/authStore";
+import AppButton from "@/components/ui/AppButton.vue";
 
 const { t } = useI18n();
 const auth = useAuthStore();

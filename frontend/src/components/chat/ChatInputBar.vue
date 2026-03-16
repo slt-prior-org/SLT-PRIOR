@@ -33,6 +33,7 @@ import AppButton from "../ui/AppButton.vue"
 
 const { t } = useI18n()
 
+// Komponentin vastaanottamat tiedot (propsit)
 const props = defineProps({
   modelValue: { type: String, default: "" },
   placeholder: { type: String, default: "" },
@@ -42,13 +43,17 @@ const props = defineProps({
   isEditing: Boolean
 })
 
+// Tapahtumat, joita komponentti lähettää ylöspäin
 const emit = defineEmits(["update:modelValue", "send", "toggle-edit"])
 
+// Paikallinen tila tekstille, jotta v-model toimii sujuvasti
 const localValue = ref(props.modelValue || "")
 
+// Synkronoidaan paikallinen muutos ja propseista tuleva data keskenään
 watch(localValue, (v) => emit("update:modelValue", v))
 watch(() => props.modelValue, (v) => (localValue.value = v || ""))
 
+// Funktio, joka tarkistaa viestin kelvollisuuden ennen lähetystä
 function trySend() {
   if (props.sendDisabled) return
   if (!localValue.value?.trim()) return
@@ -57,41 +62,46 @@ function trySend() {
 </script>
 
 <style scoped>
-.chat-input-bar{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+/* Asettelu: pystysuuntainen pino ja elementtien väli */
+.chat-input-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.input-row{
-  display:flex;
-  align-items:flex-end;
-  gap:12px;
+/* Tekstikentän ja napin rivitys */
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
 }
 
-.chat-input-bar textarea{
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-    flex: 1 1 auto;
-  width:100%;
-  border-radius:16px;
-  border:1px solid #e0e4ea;
-  padding:14px;
-  resize:none;
-  font-size:18px;
-  min-height:44px;
-  background:#f0f7fc;
-  box-sizing:border-box;
+/* Tekstikentän tyylit: joustava leveys ja moderni pyöristys */
+.chat-input-bar textarea {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  flex: 1 1 auto;
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid #e0e4ea;
+  padding: 14px;
+  resize: none;
+  font-size: 18px;
+  min-height: 44px;
+  background: #f0f7fc;
+  box-sizing: border-box;
 }
 
-.send-btn{
+/* Lähetysnapin kokoasetukset */
+.send-btn {
   flex: 0 0 auto;
-  height: 44px;
+  height: 50px;
   white-space: nowrap;
 }
 
-.actions{
-  display:flex;
-  gap:12px;
-  justify-content:flex-end;
+/* Toimintopainikkeiden sijoittelu oikeaan reunaan */
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 </style>

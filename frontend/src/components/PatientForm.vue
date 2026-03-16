@@ -7,9 +7,9 @@
           <h2 class="modal-title">{{ $t("patientForm.title") }}</h2>
         </div>
 
-        <button class="close-btn" type="button" @click="closeForm" aria-label="Close">
+        <AppButton class="close-btn" variant="neutral" type="button" @click="closeForm" aria-label="Close">
           ✖
-        </button>
+        </AppButton>
       </div>
 
       <form class="form" @submit.prevent="submitForm">
@@ -83,12 +83,12 @@
         </div>
 
         <div class="form-actions">
-          <button class="btn btn-primary" type="submit">
+          <AppButton class="btn btn-primary" variant="primary" type="submit">
             {{ $t("patientForm.save") }}
-          </button>
-          <button class="btn btn-ghost" type="button" @click="closeForm">
+          </AppButton>
+          <AppButton class="btn btn-ghost" variant="neutral" type="button" @click="closeForm">
             {{ $t("patientForm.skip") }}
-          </button>
+          </AppButton>
         </div>
       </form>
 
@@ -109,8 +109,10 @@
 
 <script>
 import { createUser } from "@/api/users";
+import AppButton from "@/components/ui/AppButton.vue";
 
 export default {
+  components: { AppButton },
   props: ["show"],
   emits: ["close"],
   data() {
@@ -225,7 +227,6 @@ export default {
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
 
   padding: 18px 18px 16px;
-  font-family: Arial, sans-serif;
   color: #0f172a;
 }
 

@@ -2,7 +2,7 @@
   <button
     :class="['app-btn', `variant-${variant}`, `size-${size}`]"
     :disabled="disabled"
-    type="button"
+    :type="type"
     @click="$emit('click', $event)"
   >
     <slot />
@@ -13,6 +13,7 @@
 defineProps({
   variant: { type: String, default: "primary" }, // primary | neutral | danger
   size: { type: String, default: "md" }, // sm | md | lg
+  type: { type: String, default: "button" },
   disabled: Boolean
 })
 

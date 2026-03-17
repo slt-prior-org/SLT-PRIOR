@@ -24,6 +24,10 @@
     --success-color: #23d189; /* Balanced Bright Green */
     --warning-color: #ffb400; /* Slightly Muted Yellow */
     --danger-color: #ff4d4d; /* Friendly but Noticeable Red */
+
+        /* Typography */
+        --font-family-base: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+            Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
 * {
@@ -36,4 +40,16 @@ body, html {
     width: 100%;
     height: 100%;
     background-color: var(--background-light); /* Ensure background covers */
+    font-family: var(--font-family-base);
+}
+
+#app {
+    font-family: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
 }

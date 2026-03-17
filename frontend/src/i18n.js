@@ -5,10 +5,10 @@ import en from "./locales/en.json";
 const savedLanguage = localStorage.getItem("selectedLanguage") || "fi";
 
 const i18n = createI18n({
-  legacy: false,  // Käytetään Composition API:ta
-  locale: savedLanguage,   // Oletuskieli tai käyttäjän valinta
-  fallbackLocale: "en",
-  messages: { fi, en }
+  legacy: false, // Composition API mode
+  locale: savedLanguage,
+  fallbackLocale: "fi",
+  messages: { fi, en },
 });
 
 export default i18n;

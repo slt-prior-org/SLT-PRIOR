@@ -12,7 +12,6 @@
     <template v-else>
       <form @submit.prevent="handleSubmit" class="modern-form">
         <div class="form-grid">
-          
           <div class="form-card">
             <h3 class="form-card-title">{{ $t("modifyPersonalInfo.basicInfo") }}</h3>
             <div class="form-group">
@@ -28,22 +27,76 @@
 
           <div class="form-card">
             <h3 class="form-card-title">{{ $t("modifyPersonalInfo.healthInfo") }}</h3>
+            <label class="input-label">
+              <span>{{ $t("personalInfo.bloodPressure") }}:</span>
+                <div class="bp-inputs">
+                  <span>{{ $t("personalInfo.systolic") }}:</span>
+                  <input
+                    v-model="formData.bp_systolic"
+                    type="number"
+                    min="50"
+                    max="300"
+                    class="modern-input"
+                    placeholder="120"
+                  />
+
+                  <span>{{ $t("personalInfo.diastolic") }}:</span>
+
+                  <input
+                    v-model="formData.bp_diastolic"
+                    type="number"
+                    min="30"
+                    max="200"
+                    class="modern-input"
+                    placeholder="80"
+                  />
+                </div>
+            </label>
+
             <div class="form-group">
               <label class="input-label">
-                <span>{{ $t("personalInfo.avgBloodPressure") }}:</span>
-                <input v-model="formData.avg_blood_pressure_text" type="text" class="modern-input" placeholder="120/80" />
+                <span>{{ $t("personalInfo.alcoholUse") }}:</span>
+                <select v-model="formData.alcohol_use" class="modern-input">
+                  <option value="none">{{ $t("patientForm.alcoholNone") }}</option>
+                  <option value="rare">{{ $t("patientForm.alcoholRare") }}</option>
+                  <option value="monthly">{{ $t("patientForm.alcoholMonthly") }}</option>
+                  <option value="weekly">{{ $t("patientForm.alcoholWeekly") }}</option>
+                  <option value="daily">{{ $t("patientForm.alcoholDaily") }}</option>
+                </select>
               </label>
             </div>
+
+            <div class="form-group">
+              <label class="input-label">
+                <span>{{ $t("personalInfo.activity") }}:</span>
+                <select v-model="formData.activity" class="modern-input">
+                  <option value="none">{{ $t("options.none") }}</option>
+                  <option value="sedentary">{{ $t("options.sedentary") }}</option>
+                  <option value="light">{{ $t("patientForm.activityLight") }}</option>
+                  <option value="moderate">{{ $t("patientForm.activityModerate") }}</option>
+                  <option value="vigorous">{{ $t("patientForm.activityActive") }}</option>
+                </select>
+              </label>
             </div>
+          </div>
 
           <div class="form-card">
             <h3 class="form-card-title">{{ $t("modifyPersonalInfo.medicalInfo") }}</h3>
             </div>
         </div>
 
-        <AppButton type="submit" variant="primary" class="modern-submit-btn">
+        <button type="submit" class="modern-submit-btn" :disabled="auth.loading">
           {{ $t("modifyPersonalInfo.save") }}
-        </AppButton>
+          <svg class="submit-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M5 12L10 17L20 7"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
 
         <div v-if="message" :class="['modern-message', messageType === 'success' ? 'success' : 'error']">
           {{ message }}
@@ -54,7 +107,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/authStore";
 import AppButton from "@/components/ui/AppButton.vue";
@@ -69,7 +122,9 @@ const messageType = ref("");
 const formData = reactive({
   weight: "",
   height: "",
-  avg_blood_pressure_text: "",
+  age: "",
+  bp_systolic: "",
+  bp_diastolic: "",
   alcohol_use: "",
   activity: "",
   conditions: "",
@@ -85,33 +140,26 @@ const splitToArray = (v) => {
   return s ? s.split(",").map((x) => x.trim()).filter(Boolean) : [];
 };
 
-// Apuohjelma: purkaa "120/80" tekstin ylä- ja alapaineeksi numeroina
-const parseBpText = (text) => {
-  const s = (text ?? "").trim();
-  if (!s) return { systolic: null, diastolic: null };
-  const parts = s.split("/").map((x) => x.trim());
-  return {
-    systolic: Number(parts[0]) || null,
-    diastolic: Number(parts[1]) || null,
-  };
-};
-
-// Alustetaan lomake storesta löytyvillä tiedoilla
 const loadFromStore = () => {
   const p = auth.user?.patient_info;
   if (!p) return;
 
   formData.weight = p.weight ?? "";
   formData.height = p.height ?? "";
-  
-  // Yhdistetään verenpaine takaisin näytettäväksi tekstiksi
-  const bp = p.avg_blood_pressure;
-  formData.avg_blood_pressure_text = 
-    bp?.systolic != null ? `${bp.systolic}/${bp.diastolic}` : "";
+  formData.age = p.age ?? "";
 
-  // Muutetaan taulukot takaisin pilkulla erotelluksi tekstiksi käyttäjälle
+  const bp = p.avg_blood_pressure ?? {};
+  formData.bp_systolic = bp.systolic ?? "";
+  formData.bp_diastolic = bp.diastolic ?? "";
+
+  formData.alcohol_use = p.alcohol_use ?? "";
+  formData.activity = p.activity ?? "";
+
   formData.conditions = (p.conditions ?? []).join(", ");
-  // ... muut kentät samalla tavalla
+  formData.risk_factors = (p.risk_factors ?? []).join(", ");
+  formData.allergies = (p.allergies ?? []).join(", ");
+  formData.medications = (p.medications ?? []).join(", ");
+  formData.heart_procedures = (p.heart_procedures ?? []).join(", ");
 };
 
 // Haetaan käyttäjän tiedot heti, kun komponentti ladataan
@@ -120,25 +168,36 @@ onMounted(async () => {
   loadFromStore();
 });
 
-// Lomakkeen lähetys
+watch(
+  () => auth.user,
+  () => {
+    loadFromStore();
+  },
+  { deep: true }
+);
+
 const handleSubmit = async () => {
   if (!auth.isAuthenticated) return;
 
   message.value = "";
-  
-  // Muunnetaan lomakkeen tiedot takaisin API:n ymmärtämään muotoon
-  const bp = parseBpText(formData.avg_blood_pressure_text);
+  messageType.value = "";
+
+  const bp = {
+    systolic: formData.bp_systolic === "" ? null : Number(formData.bp_systolic),
+    diastolic: formData.bp_diastolic === "" ? null : Number(formData.bp_diastolic),
+  };
+
   const payload = {
     patient_info: {
       weight: formData.weight === "" ? null : Number(formData.weight),
       height: formData.height === "" ? null : Number(formData.height),
-      avg_blood_pressure: bp,
-      alcohol_use: formData.alcohol_use || null,
-      activity: formData.activity || null,
-      // Käytetään apufunktiota tekstin pilkkomiseen taulukoksi
+      age: formData.age === "" ? undefined : Number(formData.age),
       conditions: splitToArray(formData.conditions),
+      avg_blood_pressure: bp,
       risk_factors: splitToArray(formData.risk_factors),
+      alcohol_use: formData.alcohol_use || null,
       allergies: splitToArray(formData.allergies),
+      activity: formData.activity || null,
       medications: splitToArray(formData.medications),
       heart_procedures: splitToArray(formData.heart_procedures),
     },
@@ -147,14 +206,14 @@ const handleSubmit = async () => {
   try {
     // Lähetetään päivitys palvelimelle
     await auth.updateProfile(payload);
-    message.value = t("modifyPersonalInfo.saveSuccess");
-    messageType.value = "success";
-    
-    // Päivitetään paikallinen tila vastaamaan tallennettuja tietoja
     await auth.fetchUser();
     loadFromStore();
+
+    message.value = t("modifyPersonalInfo.saveSuccess");
+    messageType.value = "success";
   } catch (error) {
-    message.value = t("modifyPersonalInfo.saveError");
+    console.error("Profile update failed:", error);
+    message.value = error?.response?.data?.detail || t("modifyPersonalInfo.saveError");
     messageType.value = "error";
   }
 };

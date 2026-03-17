@@ -39,7 +39,7 @@
         <input v-model="patient.height" type="number">
 
         <label>{{ $t("patientForm.age") }}:</label>
-        <input v-model.number="patient.age" type="number" min="0">
+        <input v-model.number="patient.age" type="number">
 
         <label>{{ $t("patientForm.conditions") }}:</label>
         <input
@@ -49,8 +49,8 @@
 
         <label>{{ $t("patientForm.avgBloodPressure") }}:</label>
         <div class="bp-row">
-          <input v-model.number="patient.avg_bp_systolic" type="number" placeholder="Systolic" >
-          <input v-model.number="patient.avg_bp_diastolic" type="number" placeholder="Diastolic">
+          <input v-model="patient.avg_bp_systolic" type="number" placeholder="Systolic" >
+          <input v-model="patient.avg_bp_diastolic" type="number" placeholder="Diastolic">
         </div>
 
         <label>{{ $t("patientForm.riskFactors") }}:</label>
@@ -89,8 +89,8 @@
 
         <label>{{ $t("patientForm.activity") }}:</label>
         <select v-model="patient.activity">
-          <option disabled value="">
-            {{ $t("patientForm.activity") }}
+          <option disabled value="none">
+            {{ $t("patientForm.activityNone") }}
           </option>
           <option value="sedentary">
             {{ $t("patientForm.activityNone") }}
@@ -164,8 +164,8 @@ export default {
         height: "",
         age: "",
         conditions: "",
-        avg_bp_systolic: "50",
-        avg_bp_diastolic: "30",
+        avg_bp_systolic: "",
+        avg_bp_diastolic: "",
         risk_factors: "",
         alcohol_use: "none",
         allergies: "",
@@ -207,31 +207,37 @@ export default {
 
       try {
         // Build ONE final payload that includes BOTH pages
+        // patient info (page 2)
+        const patientInfo = {
+          weight: this.patient.weight === "" ? undefined : Number(this.patient.weight),
+          height: this.patient.height === "" ? undefined : Number(this.patient.height),
+          age: this.patient.age === "" ? undefined : Number(this.patient.age),
+          conditions: this.splitToArray(this.patient.conditions),
+          risk_factors: this.splitToArray(this.patient.risk_factors),
+          alcohol_use: this.patient.alcohol_use,
+          allergies: this.splitToArray(this.patient.allergies),
+          activity: this.patient.activity,
+          medications: this.splitToArray(this.patient.medications),
+          heart_procedures: this.splitToArray(this.patient.heart_procedures)
+        };
+
+        if (
+          this.patient.avg_bp_systolic !== "" &&
+          this.patient.avg_bp_diastolic !== ""
+        ) {
+          patientInfo.avg_blood_pressure = {
+            systolic: Number(this.patient.avg_bp_systolic),
+            diastolic: Number(this.patient.avg_bp_diastolic),
+          };
+        }
+
         const formattedData = {
           // registration (page 1)
           email: this.register.email.trim(),
           password: this.register.password,
           role : "patient",
-
-          // patient info (page 2)
-          patient_info: {
-            weight: Number(this.patient.weight),
-            height: Number(this.patient.height),
-            age: Number(this.patient.age),
-            conditions: this.splitToArray(this.patient.conditions),
-            avg_blood_pressure: {
-              systolic: Number(this.patient.avg_bp_systolic),
-              diastolic: Number(this.patient.avg_bp_diastolic)
-            },
-            risk_factors: this.splitToArray(this.patient.risk_factors),
-            alcohol_use: this.patient.alcohol_use,
-            allergies: this.splitToArray(this.patient.allergies),
-            activity: this.patient.activity,
-            medications: this.splitToArray(this.patient.medications),
-            heart_procedures: this.splitToArray(this.patient.heart_procedures)
-          }
+          patient_info: patientInfo
         };
-
         await this.auth.register(formattedData); // stores token + user
         this.$emit("close");
       } catch (err) {

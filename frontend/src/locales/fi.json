@@ -70,7 +70,11 @@
     "medicalInfo": "Lääketiedot",
     "weight": "Paino",
     "height": "Pituus",
+    "age": "Ikä",
     "avgBloodPressure": "Keskiverenpaine",
+    "bloodPressure": "Keskiverenpaine",
+    "systolic": "Systolinen",
+    "diastolic": "Diastolinen",
     "alcoholUse": "Alkoholin käyttö",
     "activity": "Liikunta",
     "conditions": "Sairaudet",
@@ -117,12 +121,14 @@
     "password": "Salasana",
     "register": "Rekisteröidy",
     "continue": "Jatka",
-    "return": "Takaisin"
+    "return": "Takaisin",
+    "optional": "Kaikki kentät ovat valinnaisia"
   },
   "patientForm": {
     "title": "Esitietolomake",
     "weight": "Paino",
     "height": "Pituus",
+    "age": "Ikä",
     "conditions": "Sairaudet",
     "conditionsPlaceholder": "Erottele pilkuilla (esim. Diabetes, Verenpainetauti)",
     "avgBloodPressure": "Keskiverenpaine",

@@ -1,12 +1,9 @@
 <template>
   <div class="layout">
-    <HeaderBar 
-      :is-sidebar-open="isSidebarOpen" 
-      @toggle-sidebar="handleSidebarToggle" 
-    />
-    <SidebarMenu 
-      :is-open="isSidebarOpen" 
-      @toggle-sidebar="handleSidebarToggle" 
+    <HeaderBar
+      :queue-count="queueCount"
+      :closed-count="closedCount"
+      :user="headerUser"
       @open-patient-form="openPatientForm"
     />
     <main>
@@ -19,35 +16,56 @@
 </template>
   
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { storeToRefs } from "pinia";
 import HeaderBar from "@/components/HeaderBar.vue";
-import SidebarMenu from "@/components/SidebarMenu.vue";
 import Chat from "@/components/Chat.vue";
+import { useAuthStore } from "@/stores/authStore";
 
-const isSidebarOpen = ref(false);
+// Lomakkeen näkyvyyden tila
 const showForm = ref(false);
+// Vakioarvot jonojen laskureille (voidaan dynaamistaa myöhemmin)
+const queueCount = 0;
+const closedCount = 0;
 
-const handleSidebarToggle = () => {
-  isSidebarOpen.value = !isSidebarOpen.value;
-};
+// Haetaan käyttäjätiedot keskitetystä storesta reaktiivisesti
+const authStore = useAuthStore();
+const { user } = storeToRefs(authStore);
 
+// Muotoillaan käyttäjän nimi ja rooli HeaderBar-komponentille sopivaksi
+const headerUser = computed(() => {
+  const currentUser = user.value;
+  if (!currentUser) return { name: "...", role: "" };
+
+  // Yhdistetään etu- ja sukunimi, jos ne löytyvät
+  const fullName = [currentUser.first_name, currentUser.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return {
+    name: fullName || currentUser.name || currentUser.email || "...",
+    role: currentUser.role || "",
+  };
+});
+
+// Funktio potilaslomakkeen avaamiseksi
 const openPatientForm = () => {
   showForm.value = true;
 };
 </script>
   
 <style scoped>
+/* Koko näytön korkuinen asettelu pystysuunnassa */
 .layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
+/* Chat-alue täyttää kaiken jäljelle jäävän tilan */
 main {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 </style>

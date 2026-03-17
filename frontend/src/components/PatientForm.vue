@@ -1,318 +1,425 @@
 <template>
-  <div class="modal-overlay">
+  <div class="modal-overlay" role="dialog" aria-modal="true" :aria-label="$t('patientForm.title')">
     <div class="modal">
-      <!-- Sulje-nappi oikeassa yläkulmassa -->
-      <button
-        class="close-btn"
-        @click="closeForm"
-      >
-        ✖
-      </button>
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h2 class="modal-title">{{ $t("patientForm.title") }}</h2>
+        </div>
 
-      <h2>{{ $t("patientForm.title") }}</h2>
-      <form @submit.prevent="submitForm">
-        <label>{{ $t("patientForm.weight") }} (kg):</label>
-        <input
-          v-model="patient.weight"
-          type="number"
-          required
-        >
+        <AppButton class="close-btn" variant="neutral" type="button" @click="closeForm" aria-label="Close">
+          ✖
+        </AppButton>
+      </div>
 
-        <label>{{ $t("patientForm.height") }} (cm):</label>
-        <input
-          v-model="patient.height"
-          type="number"
-          required
-        >
+      <form class="form" @submit.prevent="submitForm">
+        <div class="grid-2">
+          <div class="field">
+            <label class="label">{{ $t("patientForm.weight") }} <span class="unit">({{ $t("units.kg") }})</span></label>
+            <input v-model="patient.weight" type="number" required>
+          </div>
 
-        <label>{{ $t("patientForm.conditions") }}:</label>
-        <input
-          v-model="patient.conditions"
-          :placeholder="$t('patientForm.conditionsPlaceholder')"
-        >
+          <div class="field">
+            <label class="label">{{ $t("patientForm.height") }} <span class="unit">({{ $t("units.cm") }})</span></label>
+            <input v-model="patient.height" type="number" required>
+          </div>
+        </div>
 
-        <label>{{ $t("patientForm.avgBloodPressure") }}:</label>
-        <input v-model="patient.avg_blood_pressure">
+        <div class="field">
+          <label class="label">{{ $t("patientForm.conditions") }}</label>
+          <input
+            v-model="patient.conditions"
+            :placeholder="$t('patientForm.conditionsPlaceholder')"
+          >
+        </div>
 
-        <label>{{ $t("patientForm.riskFactors") }}:</label>
-        <input
-          v-model="patient.risk_factors"
-          :placeholder="$t('patientForm.riskFactorsPlaceholder')"
-        >
+        <div class="grid-2">
+          <div class="field">
+            <label class="label">{{ $t("patientForm.avgBloodPressure") }}</label>
+            <input v-model="patient.avg_blood_pressure" placeholder="120/80">
+          </div>
 
-        <label>{{ $t("patientForm.alcoholUse") }}:</label>
-        <input v-model="patient.alcohol_use">
+          <div class="field">
+            <label class="label">{{ $t("patientForm.activity") }}</label>
+            <input v-model="patient.activity">
+          </div>
+        </div>
 
-        <label>{{ $t("patientForm.allergies") }}:</label>
-        <input
-          v-model="patient.allergies"
-          :placeholder="$t('patientForm.allergiesPlaceholder')"
-        >
+        <div class="field">
+          <label class="label">{{ $t("patientForm.riskFactors") }}</label>
+          <input
+            v-model="patient.risk_factors"
+            :placeholder="$t('patientForm.riskFactorsPlaceholder')"
+          >
+        </div>
 
-        <label>{{ $t("patientForm.activity") }}:</label>
-        <input v-model="patient.activity">
+        <div class="field">
+          <label class="label">{{ $t("patientForm.allergies") }}</label>
+          <input
+            v-model="patient.allergies"
+            :placeholder="$t('patientForm.allergiesPlaceholder')"
+          >
+        </div>
 
-        <label>{{ $t("patientForm.medications") }}:</label>
-        <input
-          v-model="patient.medications"
-          :placeholder="$t('patientForm.medicationsPlaceholder')"
-        >
+        <div class="field">
+          <label class="label">{{ $t("patientForm.alcoholUse") }}</label>
+          <input v-model="patient.alcohol_use">
+        </div>
 
-        <label>{{ $t("patientForm.heartProcedures") }}:</label>
-        <input
-          v-model="patient.heart_procedures"
-          :placeholder="$t('patientForm.heartProceduresPlaceholder')"
-        >
+        <div class="field">
+          <label class="label">{{ $t("patientForm.medications") }}</label>
+          <input
+            v-model="patient.medications"
+            :placeholder="$t('patientForm.medicationsPlaceholder')"
+          >
+        </div>
+
+        <div class="field">
+          <label class="label">{{ $t("patientForm.heartProcedures") }}</label>
+          <input
+            v-model="patient.heart_procedures"
+            :placeholder="$t('patientForm.heartProceduresPlaceholder')"
+          >
+        </div>
 
         <div class="form-actions">
-          <button type="submit">
+          <AppButton class="btn btn-primary" variant="primary" type="submit">
             {{ $t("patientForm.save") }}
-          </button>
-          <button
-            type="button"
-            @click="closeForm"
-          >
+          </AppButton>
+          <AppButton class="btn btn-ghost" variant="neutral" type="button" @click="closeForm">
             {{ $t("patientForm.skip") }}
-          </button>
+          </AppButton>
         </div>
       </form>
 
-      <!--User ID display section-->
-      <div
-        v-if="userId"
-        class="user-id-section"
-      >
-        <p>{{ $t("user_saved") }}</p>
-        <p>{{ $t("user_id") }} <strong>{{ userId }}</strong></p>
+      <div v-if="userId" class="user-id-section">
+        <div class="success">
+          <div class="success-dot" aria-hidden="true"></div>
+          <div>
+            <p class="success-title">{{ $t("user_saved") }}</p>
+            <p class="success-text">
+              {{ $t("user_id") }} <strong>{{ userId }}</strong>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
-  
-  <script>
-  import { createUser } from "@/api/users";
 
-  export default {
-    props: ["show"],
-    emits: ["close"], 
-    data() {
-      return {
-        userId: null,
-        patient: {  
-          weight: "",
-          height: "",
-          conditions: "", 
-          avg_blood_pressure: "",
-          risk_factors: "",
-          alcohol_use: "",
-          allergies: "",
-          activity: "",
-          medications: "",
-          heart_procedures: "",
-        }
-      };
-    },
-    methods: {
-      async submitForm() {
-        try {
-          const formattedData = {
-            user_id: this.userId,
-            weight: Number(this.patient.weight),
-            height: Number(this.patient.height),
-            conditions: this.patient.conditions.trim() !== "" 
-              ? this.patient.conditions.split(",").map(item => item.trim()).filter(item => item !== "") 
-              : [],
-            avg_blood_pressure: this.patient.avg_blood_pressure,
-            risk_factors: this.patient.risk_factors.trim() !== "" 
-              ? this.patient.risk_factors.split(",").map(item => item.trim()).filter(item => item !== "") 
-              : [],
-            alcohol_use: this.patient.alcohol_use,
-            allergies: this.patient.allergies.trim() !== "" 
-              ? this.patient.allergies.split(",").map(item => item.trim()).filter(item => item !== "") 
-              : [],
-            activity: this.patient.activity,
-            medications: this.patient.medications.trim() !== "" 
-              ? this.patient.medications.split(",").map(item => item.trim()).filter(item => item !== "") 
-              : [],
-            heart_procedures: this.patient.heart_procedures.trim() !== "" 
-              ? this.patient.heart_procedures.split(",").map(item => item.trim()).filter(item => item !== "") 
-              : []
-          };
-  
-          const response = await createUser(formattedData);
-          console.log("Response from MongoDB:", response);
+<script>
+import { createUser } from "@/api/users";
+import AppButton from "@/components/ui/AppButton.vue";
 
-          if (response) {
-            this.userId = response;
-              
-            // Päivitä localStorage ja lähetä tapahtuma
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('user', JSON.stringify({ userId: response }));
-            window.dispatchEvent(new CustomEvent('authChange')); // Lähetä tapahtuma
-            
-          }
-        } catch (error) {
-          console.error("Virhe tallennuksessa:", error);
-        }
+export default {
+  components: { AppButton },
+  props: ["show"],
+  emits: ["close"],
+  data() {
+    return {
+      userId: null,
+      patient: {
+        weight: "",
+        height: "",
+        conditions: "",
+        avg_blood_pressure: "",
+        risk_factors: "",
+        alcohol_use: "",
+        allergies: "",
+        activity: "",
+        medications: "",
+        heart_procedures: "",
       },
-      closeForm() {
-        this.$emit("close");
-      }
-    }
-  };
-  </script>
-  
-  <style scoped>
+    };
+  },
+  methods: {
+    async submitForm() {
+      try {
+        const formattedData = {
+          user_id: this.userId,
+          weight: Number(this.patient.weight),
+          height: Number(this.patient.height),
+          conditions:
+            this.patient.conditions.trim() !== ""
+              ? this.patient.conditions
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter((item) => item !== "")
+              : [],
+          avg_blood_pressure: this.patient.avg_blood_pressure,
+          risk_factors:
+            this.patient.risk_factors.trim() !== ""
+              ? this.patient.risk_factors
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter((item) => item !== "")
+              : [],
+          alcohol_use: this.patient.alcohol_use,
+          allergies:
+            this.patient.allergies.trim() !== ""
+              ? this.patient.allergies
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter((item) => item !== "")
+              : [],
+          activity: this.patient.activity,
+          medications:
+            this.patient.medications.trim() !== ""
+              ? this.patient.medications
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter((item) => item !== "")
+              : [],
+          heart_procedures:
+            this.patient.heart_procedures.trim() !== ""
+              ? this.patient.heart_procedures
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter((item) => item !== "")
+              : [],
+        };
 
+        const response = await createUser(formattedData);
+
+        if (response) {
+          this.userId = response;
+
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("user", JSON.stringify({ userId: response }));
+          window.dispatchEvent(new CustomEvent("authChange"));
+        }
+      } catch (error) {
+        console.error("Virhe tallennuksessa:", error);
+      }
+    },
+    closeForm() {
+      this.$emit("close");
+    },
+  },
+};
+</script>
+
+<style scoped>
+/* Overlay matches the soft modern feel */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 14px;
+  z-index: 1000;
 }
 
+/* Modal matches the white card style used on your welcome screen */
 .modal {
   position: relative;
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  max-width: 600px;
   width: 100%;
+  max-width: 720px;
   max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 10px rgba(0, 91, 150, 0.2);
-  border: 2px solid #005b96;
-  font-family: "Arial", sans-serif;
+  overflow: auto;
+
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+
+  padding: 18px 18px 16px;
+  color: #0f172a;
+}
+
+/* Header row */
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 14px;
+}
+
+.modal-title-wrap {
+  min-width: 0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.modal-subtitle {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #64748b;
 }
 
 .close-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 20px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   cursor: pointer;
-  color: #333;
-  line-height: 1;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
 }
-
 .close-btn:hover {
-  color: red;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
-h2 {
-  text-align: center;
-  color: #005b96;
-  margin-bottom: 15px;
-  padding-right: 40px;  /* Estää sulkemispainikkeen menemisen otsikon päälle */
+/* Form layout */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Lomakekenttien tyyli */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
 
-label {
-  display: block;
-  font-weight: bold;
-  margin-top: 10px;
-  color: #333;
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-weight: 800;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.unit {
+  font-weight: 700;
+  color: #64748b;
+  margin-left: 4px;
 }
 
 input {
   width: 100%;
-  padding: 12px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  padding: 12px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
   box-sizing: border-box;
-  font-size: 1rem;
+  font-size: 14px;
+  color: #0f172a;
 }
 
+input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  background: #ffffff;
+}
+
+/* Buttons match your blue primary */
 .form-actions {
   display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
   gap: 10px;
-  flex-wrap: nowrap; /* Estää nappien menemisen päällekkäin */
+  justify-content: flex-end;
+  padding-top: 6px;
 }
 
-button {
-  padding: 12px 20px;
+.btn {
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-  transition: background-color 0.3s;
-  width: auto;
-  min-width: 120px;
-  flex: 0 1 auto;
+  transition: transform 0.05s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-button[type="submit"] {
-  background-color: #005b96;
-  color: white;
+.btn:active {
+  transform: scale(0.98);
 }
 
-button[type="submit"]:hover {
-  background-color: #004080;
+.btn-primary {
+  background: #1d4ed8;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.25);
+}
+.btn-primary:hover {
+  background: #1e40af;
 }
 
-button[type="button"] {
-  background-color: #e0e0e0;
-  color: #333;
+.btn-ghost {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+.btn-ghost:hover {
+  background: #f8fafc;
 }
 
-button[type="button"]:hover {
-  background-color: #bdbdbd;
+/* Saved user success block fits modern look */
+.user-id-section {
+  margin-top: 14px;
 }
 
-/* Responsiivisuus */
-@media (max-width: 600px) {
+.success {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+}
+
+.success-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #22c55e;
+  margin-top: 4px;
+  flex: 0 0 auto;
+}
+
+.success-title {
+  margin: 0;
+  font-weight: 900;
+  color: #166534;
+  font-size: 13px;
+}
+
+.success-text {
+  margin: 4px 0 0;
+  color: #166534;
+  font-size: 12.5px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
   .modal {
-    max-width: 90vw;
-    padding: 15px;
+    max-width: 96vw;
+    padding: 16px 14px 14px;
+    border-radius: 18px;
   }
 
-  .close-btn {
-    font-size: 18px;
-    top: 10px;
-    right: 15px;
-    width: 25px;
-    height: 25px;
-  }
-
-  input {
-    font-size: 0.9rem;
-    padding: 10px;
+  .grid-2 {
+    grid-template-columns: 1fr;
   }
 
   .form-actions {
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    gap: 10px;
+    flex-direction: column;
   }
 
-  button {
-    flex: 0 1 auto;
+  .btn {
     width: 100%;
-    padding: 10px;
-    font-size: 1rem;
-}
-
-  /* User ID Section */
-  .user-id-section {
-    margin-top: 30px;
   }
-  
 }
 </style>

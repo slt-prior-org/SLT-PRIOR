@@ -14,7 +14,6 @@
         <div class="form-grid">
           <div class="form-card">
             <h3 class="form-card-title">{{ $t("modifyPersonalInfo.basicInfo") }}</h3>
-
             <div class="form-group">
               <label class="input-label">
                 <span>{{ $t("personalInfo.weight") }}:</span>
@@ -24,17 +23,7 @@
                 </div>
               </label>
             </div>
-
-            <div class="form-group">
-              <label class="input-label">
-                <span>{{ $t("personalInfo.height") }}:</span>
-                <div class="input-wrapper">
-                  <input v-model="formData.height" type="number" step="0.1" class="modern-input" />
-                  <span class="input-unit">{{ $t("units.cm") }}</span>
-                </div>
-              </label>
             </div>
-          </div>
 
           <div class="form-card">
             <h3 class="form-card-title">{{ $t("modifyPersonalInfo.healthInfo") }}</h3>
@@ -93,67 +82,7 @@
 
           <div class="form-card">
             <h3 class="form-card-title">{{ $t("modifyPersonalInfo.medicalInfo") }}</h3>
-
-            <div class="form-group">
-              <label class="input-label">
-                <span>{{ $t("personalInfo.conditions") }}:</span>
-                <input
-                  v-model="formData.conditions"
-                  type="text"
-                  class="modern-input"
-                  :placeholder="$t('patientForm.conditionsPlaceholder')"
-                />
-              </label>
             </div>
-
-            <div class="form-group">
-              <label class="input-label">
-                <span>{{ $t("personalInfo.riskFactors") }}:</span>
-                <input
-                  v-model="formData.risk_factors"
-                  type="text"
-                  class="modern-input"
-                  :placeholder="$t('patientForm.riskFactorsPlaceholder')"
-                />
-              </label>
-            </div>
-
-            <div class="form-group">
-              <label class="input-label">
-                <span>{{ $t("personalInfo.allergies") }}:</span>
-                <input
-                  v-model="formData.allergies"
-                  type="text"
-                  class="modern-input"
-                  :placeholder="$t('patientForm.allergiesPlaceholder')"
-                />
-              </label>
-            </div>
-
-            <div class="form-group">
-              <label class="input-label">
-                <span>{{ $t("personalInfo.medications") }}:</span>
-                <input
-                  v-model="formData.medications"
-                  type="text"
-                  class="modern-input"
-                  :placeholder="$t('patientForm.medicationsPlaceholder')"
-                />
-              </label>
-            </div>
-
-            <div class="form-group">
-              <label class="input-label">
-                <span>{{ $t("personalInfo.heartProcedures") }}:</span>
-                <input
-                  v-model="formData.heart_procedures"
-                  type="text"
-                  class="modern-input"
-                  :placeholder="$t('patientForm.heartProceduresPlaceholder')"
-                />
-              </label>
-            </div>
-          </div>
         </div>
 
         <button type="submit" class="modern-submit-btn" :disabled="auth.loading">
@@ -181,13 +110,15 @@
 import { reactive, ref, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/authStore";
+import AppButton from "@/components/ui/AppButton.vue";
 
 const { t } = useI18n();
-const auth = useAuthStore();
+const auth = useAuthStore(); // Käytetään keskitettyä käyttäjänhallintaa (Pinia/Vuex)
 
 const message = ref("");
 const messageType = ref("");
 
+// Lomakkeen reaktiivinen tila
 const formData = reactive({
   weight: "",
   height: "",
@@ -203,6 +134,7 @@ const formData = reactive({
   heart_procedures: "",
 });
 
+// Apuohjelma: muuttaa pilkulla erotellun tekstin siistiksi taulukoksi
 const splitToArray = (v) => {
   const s = (v ?? "").trim();
   return s ? s.split(",").map((x) => x.trim()).filter(Boolean) : [];
@@ -230,6 +162,7 @@ const loadFromStore = () => {
   formData.heart_procedures = (p.heart_procedures ?? []).join(", ");
 };
 
+// Haetaan käyttäjän tiedot heti, kun komponentti ladataan
 onMounted(async () => {
   await auth.fetchUser();
   loadFromStore();
@@ -271,6 +204,7 @@ const handleSubmit = async () => {
   };
 
   try {
+    // Lähetetään päivitys palvelimelle
     await auth.updateProfile(payload);
     await auth.fetchUser();
     loadFromStore();
@@ -286,19 +220,13 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* Tuodaan ulkoinen tyylitiedosto ja määritetään muutama paikallinen tyyli */
 @import "@/assets/settingsstyles.css";
 
 .login-prompt {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
-  border-radius: 8px;
   padding: 20px;
-  margin-bottom: 20px;
   text-align: center;
-  color: #6c757d;
-}
-
-.login-prompt p {
-  margin: 0;
 }
 </style>

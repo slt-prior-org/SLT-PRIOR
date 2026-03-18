@@ -1,22 +1,22 @@
 <!-- Ammattilaisen dashboard: chat-jonot ja esikatselu -->
 
 <template>
-  <NewHeaderBar
+  <HeaderBar
     :queueCount="waiting.length"
     :closedCount="closedToday.length"
     :user="currentUser"
+    :showLanguageSwitcher="false"
+    :showCounts="true"
   />
 
-  <div v-if="!chats" class="loading"></div>
+  <div v-if="!chats" class="loading">Loading...</div>
 
   <div v-else class="dashboard-container">
 
     <!-- Päivämäärä ja näkymän otsikko -->
     <div class="workspace-header">
 
-      <div class="workspace-left">
-        <div class="workspace-label">AMMATTILAISEN TYÖPÖYTÄ</div>
-      </div>
+      <div class="workspace-label">AMMATTILAISEN TYÖPÖYTÄ</div>
 
       <div class="date-chip">
         {{ formattedToday }}
@@ -179,22 +179,14 @@
 import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRouter } from "vue-router"
 import { fetchQueues, claim } from "@/services/professionalChatService"
-import NewHeaderBar from "@/components/NewHeaderBar.vue"
-import AppButton from "@/components/NewAppButton.vue"
+import HeaderBar from "@/components/HeaderBar.vue"
+import AppButton from "@/components/ui/AppButton.vue"
 import { useAuthStore } from "@/stores/authStore"
 
 // käyttäjän sessio ja tiedot
 const authStore = useAuthStore()
 
-// mock-käyttäjä
-const mockUser = {
-  id: "nouser",
-  name: "no_user",
-  role: "professional"
-}
-
-// headerbar käyttää backend-käyttäjää tai mockia
-const currentUser = computed(() => authStore.user ?? mockUser)
+const currentUser = computed(() => authStore.user)
 
 const activeChats = computed(() => [
   ...(inProgress.value || []),
@@ -259,8 +251,6 @@ async function loadQueues() {
 // avaa chatin esikatselu
 function openPreview(chat) {
   selectedChat.value = chat
-  console.log("CHAT:", selectedChat.value)
-  console.log("MESSAGES:", selectedChat.value.messages)
   showModal.value = true
 }
 
@@ -351,7 +341,6 @@ function formatTime(date) {
 /* chat-lista korttina */
 .main-card{
   max-width:900px;
-  max-height:1500px;
   width:100%;
   margin:35px auto;
   background:white;
@@ -368,16 +357,6 @@ function formatTime(date) {
   align-items:center;
   margin-bottom:24px;
   gap:20px;
-}
-
-/* scrollattava jonolista */
-
-.sections-scroll::-webkit-scrollbar{
-  width:8px;
-}
-.sections-scroll::-webkit-scrollbar-thumb{
-  background:#d7dce5;
-  border-radius:10px;
 }
 
 .section{
@@ -522,19 +501,6 @@ function formatTime(date) {
 .footer-logo{
   height:200px;
   opacity:0.8;
-}
-
-/* responsive */
-@media(max-width:1000px){
-  .chat-grid{
-    grid-template-columns:repeat(2,1fr);
-  }
-}
-
-@media(max-width:650px){
-  .chat-grid{
-    grid-template-columns:1fr;
-  }
 }
 
 </style>

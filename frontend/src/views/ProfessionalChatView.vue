@@ -2,11 +2,13 @@
 
   <div class="page">
 
-    <NewHeaderBar
-      :queueCount="waiting.length"
-      :closedCount="closedToday.length"
-      :user="currentUser"
-    />
+    <HeaderBar
+    :queueCount="waiting.length"
+    :closedCount="closedToday.length"
+    :user="currentUser"
+    :showLanguageSwitcher="false"
+    :showCounts="true"
+  />
 
     <div v-if="!chat">Loading...</div>
 
@@ -17,10 +19,14 @@
         <div class="conversation-card">
 
           <!-- Viestihistoria -->
-          <ChatMessageList
-            v-if="chat && chat.messages"
-            :messages="chat.messages"
-          />
+          <div v-if="chat && chat.messages" class="chat-messages">
+            <ChatMessage
+              v-for="(msg, i) in chat.messages"
+              :key="i"
+              :from="mapSender(msg.sender)"
+              :text="msg.content"
+            />
+          </div>
 
           <div v-if="!isClosed" class="divider"></div>
 
@@ -56,16 +62,33 @@
 
           </div>
 
-          <ChatInputBar
-            v-if="!isClosed"
-            v-model="editedReply"
-            :disabled="!isEditing"
-            :showEdit="true"
-            :isEditing="isEditing"
-            placeholder="Kirjoita viesti"
-            @send="sendReply"
-            @toggle-edit="toggleEdit"
-          />
+          <div v-if="!isClosed" class="custom-input">
+
+            <textarea
+              v-model="editedReply"
+              :disabled="!isEditing"
+              placeholder="Kirjoita viesti"
+              @keydown.enter.exact.prevent="sendReply"
+            ></textarea>
+
+            <div class="buttons">
+              <AppButton
+                variant="primary"
+                :disabled="!editedReply.trim()"
+                @click="sendReply"
+              >
+                Lähetä
+              </AppButton>
+
+              <AppButton
+                variant="neutral"
+                @click="toggleEdit"
+              >
+                {{ isEditing ? "Valmis" : "Muokkaa viestiä" }}
+              </AppButton>
+            </div>
+
+</div>
 
           <!-- Keskustelun hallintatoiminnot -->
           <div class="bottom-bar">
@@ -131,10 +154,9 @@
 
 import { ref, onMounted, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import NewHeaderBar from "@/components/NewHeaderBar.vue"
-import ChatInputBar from "@/components/NewChatInputBar.vue"
-import AppButton from "@/components/NewAppButton.vue"
-import ChatMessageList from "@/components/NewChatMessageList.vue"
+import HeaderBar from "@/components/HeaderBar.vue"
+import AppButton from "@/components/ui/AppButton.vue"
+import ChatMessage from "@/components/chat/ChatMessage.vue"
 import { useAuthStore } from "@/stores/authStore"
 import { unclaim } from "@/services/professionalChatService"
 
@@ -161,14 +183,14 @@ const formattedSummary = computed(() => {
     .replace(/\n/g, "<br>")
 })
 
-// mock-käyttäjä fallbackiksi jos backend ei vielä palauta käyttäjää
-const mockUser = {
-  id: "mockProfessional1",
-  name: "Aku Ankka",
-  role: "professional"
+function mapSender(sender) {
+  if (sender === "user") return "self"
+  if (sender === "assistant") return "other"
+  if (sender === "professional") return "other"
+  return "other"
 }
 
-const currentUser = computed(() => authStore.user ?? mockUser)
+const currentUser = computed(() => authStore.user)
 
 // chat-data ja ammattilaisen muokattava vastaus
 const chat = ref(null)
@@ -197,8 +219,6 @@ onMounted(async () => {
 
     const data = await fetchChat(chatId)
 
-    console.log("CHAT DATA:", data)
-
     chat.value = data
     editedReply.value = chat.value.draft_response || ""
   } catch (e) {
@@ -215,6 +235,7 @@ onMounted(async () => {
 // lähettää ammattilaisen viestin
 async function sendReply() {
   if (!editedReply.value.trim()) return
+  if (!currentUser.value) return
 
   try {
   const chatId = chat.value.id || chat.value._id
@@ -302,11 +323,22 @@ function goBack() {
   min-height:0;
 }
 
+.chat-messages {
+  max-width: 1200px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  width: 90%;
+  margin: 0 auto;
+}
+
 /* keskustelukortti */
 .conversation-card{
   display:flex;
   flex-direction:column;
-  max-width:1100px;
+  max-width:1200px;
+  height:100%;
   width:100%;
   margin-left:auto;
   min-height:0;
@@ -380,7 +412,7 @@ function goBack() {
   align-items:center;
   justify-content:space-between;
 
-  max-width:1100px;
+  max-width:1200px;
   width:100%;
   margin-left:auto;
 }
@@ -388,6 +420,32 @@ function goBack() {
 .left-actions{
   display:flex;
   gap:12px;
+}
+
+/* CHAT INPUT AREA */
+.custom-input {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 28px 16px 28px;
+}
+
+.custom-input textarea {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid #e0e4ea;
+  padding: 14px;
+  font-size: 18px;
+  min-height: 100px; 
+  background: #f0f7fc;
+  box-sizing: border-box;
+  resize: none;  
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
 }
 
 /* SOURCES */

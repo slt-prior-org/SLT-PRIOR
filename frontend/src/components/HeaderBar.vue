@@ -10,6 +10,14 @@ defineProps({
   queueCount: Number,
   closedCount: Number,
   user: Object,
+  showLanguageSwitcher: {
+    type: Boolean,
+    default: true
+  },
+  showCounts: {
+    type: Boolean,
+    default: false
+  }
 })
 
 // Alustetaan kielituki ja käyttäjästore
@@ -87,7 +95,17 @@ async function handleLoginLogout() {
     </div>
 
     <div class="right">
-      <div class="language-switcher">
+
+      <div v-if="showCounts" class="counts">
+        <span class="badge">
+          JONOSSA {{ queueCount }}
+        </span>
+        <span class="badge light">
+          VALMIS {{ closedCount }}
+        </span>
+      </div>
+
+      <div v-if="showLanguageSwitcher" class="language-switcher">
         <AppButton 
           :class="{ active: i18n.locale.value === 'en' }" 
           variant="neutral" 

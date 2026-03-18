@@ -24,7 +24,7 @@
           <PersonalInfo v-if="activeSection === 'personalInfo'" />
           <ModifyPersonalInfo v-if="activeSection === 'modifyPersonalInfo'" />
 
-          <UserLogin v-if="!auth.isAuthenticated && activeSection === 'login'" />
+          <UserLogin v-if="!isLoggedIn && activeSection === 'login'" />
           <UserRegister
             v-if="!auth.isAuthenticated && activeSection === 'register'"
             @close="closeModal"

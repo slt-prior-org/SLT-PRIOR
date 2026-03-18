@@ -17,4 +17,5 @@ app.component("FontAwesomeIcon", FontAwesomeIcon); // Register globally
 app.use(i18n);
 app.use(pinia); 
 app.use(router);
+app.use(pinia); 
 app.mount('#app')

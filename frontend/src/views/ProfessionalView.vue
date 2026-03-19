@@ -9,7 +9,7 @@
     :showCounts="true"
   />
 
-  <div v-if="!chats" class="loading">Loading...</div>
+  <div v-if="chatStore.loading.queues" class="loading">Loading...</div>
 
   <div v-else class="dashboard-container">
 
@@ -178,7 +178,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRouter } from "vue-router"
-import { fetchQueues, claim } from "@/services/professionalChatService"
+import { useProfessionalChatStore } from "@/stores/professionalChatStore"
 import HeaderBar from "@/components/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
 import { useAuthStore } from "@/stores/authStore"
@@ -186,19 +186,21 @@ import { useAuthStore } from "@/stores/authStore"
 // käyttäjän sessio ja tiedot
 const authStore = useAuthStore()
 
+const chatStore = useProfessionalChatStore()
+
 const currentUser = computed(() => authStore.user)
 
 const activeChats = computed(() => [
-  ...(inProgress.value || []),
-  ...(waiting.value || [])
+  ...chatStore.queues.in_progress,
+  ...chatStore.queues.waiting
 ])
+
+const waiting = computed(() => chatStore.queues.waiting)
+const closedToday = computed(() => chatStore.queues.closed)
 
 const showClosed = ref(false)
 
 const router = useRouter()
-
-// chat-jonojen tila
-const chats = ref(null)
 
 // valittu chat esikatselussa
 const selectedChat = ref(null)
@@ -206,20 +208,16 @@ const selectedChat = ref(null)
 // modalin näkyvyys
 const showModal = ref(false)
 
-// Backend palauttaa valmiiksi ryhmitellyt jonot
-const inProgress = computed(() => chats.value?.in_progress || [])
-const waiting = computed(() => chats.value?.waiting || [])
-const closedToday = computed(() => chats.value?.closed || [])
-
 // päivämäärä headeriin
-const today = new Date().toLocaleDateString("fi-FI", {
-  weekday: "long",
-  day: "numeric",
-  month: "numeric",
-  year: "numeric"
+const formattedToday = computed(() => {
+  const today = new Date().toLocaleDateString("fi-FI", {
+    weekday: "long",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric"
+  })
+  return today.charAt(0).toUpperCase() + today.slice(1)
 })
-
-const formattedToday = today.charAt(0).toUpperCase() + today.slice(1)
 
 let refreshInterval
 
@@ -230,9 +228,11 @@ onMounted(async () => {
       await authStore.fetchUser()
     }
 
-    await loadQueues()
+    await chatStore.initializeQueues()
 
-    refreshInterval = setInterval(loadQueues, 60000)
+    refreshInterval = setInterval(() => {
+      chatStore.initializeQueues()
+    }, 60000)
 
   } catch (e) {
     console.error("Failed to fetch queues", e)
@@ -242,11 +242,6 @@ onMounted(async () => {
 onUnmounted(() => {
   clearInterval(refreshInterval)
 })
-
-async function loadQueues() {
-  const data = await fetchQueues()
-  chats.value = data
-}
 
 // avaa chatin esikatselu
 function openPreview(chat) {
@@ -265,7 +260,7 @@ async function claimChat() {
   const chatId = selectedChat.value.id || selectedChat.value._id
 
   try {
-    await claim(chatId)
+    await chatStore.claimChat(chatId)
 
     showModal.value = false
     router.push(`/professional/chat/${chatId}`)

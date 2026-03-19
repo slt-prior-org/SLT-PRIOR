@@ -10,7 +10,7 @@
     :showCounts="true"
   />
 
-    <div v-if="!chat">Loading...</div>
+    <div v-if="chatStore.loading.chat">Loading...</div>
 
     <div v-else class="chat-container">
       <div class="layout">
@@ -138,9 +138,6 @@
           <h4>AI-kooste</h4>
           <div v-html="formattedSummary"></div>
 
-          <AppButton variant="neutral">
-            Avaa potilastiedot
-          </AppButton>
         </div>
 
       </div>
@@ -158,14 +155,7 @@ import HeaderBar from "@/components/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
 import ChatMessage from "@/components/chat/ChatMessage.vue"
 import { useAuthStore } from "@/stores/authStore"
-import { unclaim } from "@/services/professionalChatService"
-
-import {
-  fetchChat,
-  addProfessionalMessage,
-  close as closeChatApi,
-  fetchQueues
-} from "@/services/professionalChatService"
+import { useProfessionalChatStore } from "@/stores/professionalChatStore"
 
 const route = useRoute()
 const router = useRouter()
@@ -174,6 +164,7 @@ const router = useRouter()
 const chatId = route.params.id
 
 const authStore = useAuthStore()
+const chatStore = useProfessionalChatStore()
 
 const formattedSummary = computed(() => {
   if (!chat.value?.chat_summary) return ""
@@ -192,8 +183,7 @@ function mapSender(sender) {
 
 const currentUser = computed(() => authStore.user)
 
-// chat-data ja ammattilaisen muokattava vastaus
-const chat = ref(null)
+const chat = computed(() => chatStore.activeChat)
 const editedReply = ref("")
 
 // UI:n tilat: vastauskentän muokkaus ja lähteiden näkyvyys
@@ -201,9 +191,8 @@ const isEditing = ref(false)
 const showSources = ref(false)
 
 // jonot headerbaria varten
-const queues = ref(null)
-const waiting = computed(() => queues.value?.waiting || [])
-const closedToday = computed(() => queues.value?.closed || [])
+const waiting = computed(() => chatStore.queues.waiting)
+const closedToday = computed(() => chatStore.queues.closed)
 
 // tarkistaa onko keskustelu suljettu
 const isClosed = computed(() => chat.value?.status === "closed")
@@ -216,19 +205,17 @@ function toggleEdit() {
 // hakee chatin ja jonot backendista
 onMounted(async () => {
   try {
+    if (!authStore.user) {
+      await authStore.fetchUser()
+    }
 
-    const data = await fetchChat(chatId)
+    await chatStore.openChat(chatId)
+    await chatStore.initializeQueues()
 
-    chat.value = data
-    editedReply.value = chat.value.draft_response || ""
+    editedReply.value = chatStore.activeChat?.draft_response || ""
+
   } catch (e) {
     console.error(e)
-  }
-
-  try {
-  queues.value = await fetchQueues()
-  } catch {
-    queues.value = { waiting: [], closed: [] }
   }
 })
 
@@ -238,19 +225,7 @@ async function sendReply() {
   if (!currentUser.value) return
 
   try {
-  const chatId = chat.value.id || chat.value._id
-
-  await addProfessionalMessage(chatId, {
-    message: editedReply.value,
-    professional_id: currentUser.value.id
-  })
-
-  if (!chat.value.messages) chat.value.messages = []
-
-  chat.value.messages.push({
-    sender: "professional",
-    content: editedReply.value
-  })
+  await chatStore.sendProfessionalMessage(editedReply.value)
 
   editedReply.value = ""
 } catch (e) {
@@ -265,7 +240,7 @@ async function returnToQueue() {
   const chatId = chat.value.id || chat.value._id
 
   try {
-    await unclaim(chatId)
+    await chatStore.unclaimChat(chatId)
 
     router.push("/professional")
   } catch (e) {
@@ -278,7 +253,7 @@ async function closeChat() {
 
   try {
     const chatId = chat.value.id || chat.value._id
-    await closeChatApi(chatId)
+    await chatStore.closeChat(chatId)
     router.push("/professional")
   } catch (e) {
     console.error(e)
@@ -315,7 +290,7 @@ function goBack() {
 /* chat + sidebar layout */
 .layout{
   display:grid;
-  grid-template-columns: minmax(0,1fr) 380px;
+  grid-template-columns: minmax(0,1fr) 350px;
   gap:150px;
 
   width:100%;
@@ -374,6 +349,9 @@ function goBack() {
   display:flex;
   flex-direction:column;
   gap:18px;
+  max-height: 100%;
+  overflow-y: auto;
+  margin-left: -100px;
 }
 
 .sidebar h3{

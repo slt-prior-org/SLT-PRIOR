@@ -46,7 +46,8 @@ async def send_message(body: SendMessageRequest, request: Request):
     if emergency:
         return {
             "reply": emergency.emergency_message_en,
-            "classification": Classification.EMERGENCY,
+            "classification": Classification.EMERGENCY.value,
+            "sources": [],
         }
 
     # 2) Haetaan käyttäjädata, jos user_id on annettu
@@ -88,8 +89,9 @@ async def send_message(body: SendMessageRequest, request: Request):
         return {
             "reply": safe_message,
             "requires_professional": True,
-            "classification": Classification.NEEDS_REVIEW,
+            "classification": Classification.NEEDS_REVIEW.value,
             "classification_reasoning": classification_result.reasoning,
+            "sources": [],
         }
 
     # 6) Rakennetaan prompt käyttäjädatan perusteella (jos SAFE)
@@ -101,8 +103,8 @@ async def send_message(body: SendMessageRequest, request: Request):
 
     # 7) Kutsutaan RAG-mallia
     try:
-        raw_response = await rag_cloud.get_rag_response(prompt)
-        formatted_text = utils.formatGeminiResponse(raw_response)
+        rag_result = await rag_cloud.get_rag_response(prompt)
+        formatted_text = utils.formatGeminiResponse(rag_result["answer"])
     except Exception as e:
         import traceback
         traceback.print_exc()   # Näyttää tarkemman syyn konsolissa
@@ -110,7 +112,8 @@ async def send_message(body: SendMessageRequest, request: Request):
 
     return {
         "reply": formatted_text,
-        "classification": Classification.SAFE,
+        "classification": Classification.SAFE.value,
+        "sources": rag_result["sources"]
     }
 
 @router.post("/chat", response_model=ChatDetailResponse)

@@ -83,6 +83,12 @@ class MessageModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class SourceItem(BaseModel):
+    index: int
+    source: str
+    pages: List[int] = []
+    preview: Optional[str] = None
+
 
 """
 Request models
@@ -124,6 +130,10 @@ class CheckSessionResponse(BaseModel):
 # Chat
 class ChatReplyResponse(BaseModel):
     reply: str
+    classification: str
+    sources: List[SourceItem] = []
+    requires_professional: Optional[bool] = None
+    classification_reasoning: Optional[str] = None
 
 class ChatSummaryItem(BaseModel):
     id: str

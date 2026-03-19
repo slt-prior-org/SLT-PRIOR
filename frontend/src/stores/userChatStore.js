@@ -63,7 +63,19 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         const data = await sendUserMessage(chat.id, { message })
 
-        const { userMessage, botMessage } = data
+        const userMessage = data.userMessage ?? {
+          sender: "user",
+          content: message,
+          classification: "safe",
+          sources: []
+        }
+
+        const botMessage = data.botMessage ?? {
+          sender: "bot",
+          content: data.reply ?? "",
+          classification: data.classification ?? "safe",
+          sources: data.sources ?? []
+        }
 
         chat.messages.push(userMessage)
         if (botMessage) chat.messages.push(botMessage)

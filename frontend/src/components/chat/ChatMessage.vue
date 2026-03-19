@@ -4,16 +4,56 @@
       <span class="sender-label">
         {{ formattedSender }}
       </span>
+
       <div class="bubble" v-html="text" />
+
+      <div v-if="from !== 'self' && sources.length" class="sources-toggle-wrap">
+        <button
+          type="button"
+          class="sources-toggle"
+          @click="sourcesOpen = !sourcesOpen"
+        >
+          {{ sourcesOpen ? "Hide sources" : "Show sources" }}
+        </button>
+
+        <div v-if="sourcesOpen" class="sources">
+          <div class="sources-title">
+            Sources
+          </div>
+
+          <ul class="sources-list">
+            <li
+              v-for="source in sources"
+              :key="`${source.source}-${source.page}-${source.index}`"
+              class="sources-item"
+            >
+              <div class="source-name">
+                [{{ source.index }}] {{ source.source }}
+                <span v-if="source.pages?.length">
+                  · {{ formatPages(source.pages) }}
+                </span>
+                <span v-else-if="source.page">
+                  · p. {{ source.page }}
+                </span>
+              </div>
+
+              <div v-if="source.preview" class="source-preview">
+                {{ source.preview }}
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 const { t } = useI18n()
+const sourcesOpen = ref(false)
 
 // Komponentin ottamat vastaan: kuka lähetti, tekstisisältö ja mahdolliset lisäluokat
 const props = defineProps({
@@ -24,6 +64,10 @@ const props = defineProps({
   text: {
     type: String,
     default: ""
+  },
+  sources: {
+    type: Array,
+    default: () => []
   },
   extraClass: {
     type: [String, Array, Object],
@@ -40,6 +84,18 @@ const formattedSender = computed(() => {
   if (props.from === "other") return t("sender.bot")
   return props.from
 })
+
+// Lähteiden sivunumeroiden muotoilu: yksittäinen sivu "p. X", useampi "pp. X, Y, Z"
+function formatPages(pages) {
+  if (!pages?.length) return ""
+
+  if (pages.length === 1) {
+    return `p. ${pages[0]}`
+  }
+
+  return `pp. ${pages.join(", ")}`
+}
+
 </script>
 
 <style scoped>
@@ -126,5 +182,58 @@ const formattedSender = computed(() => {
   height: 12px;
   background: #16a34a;
   transform: rotate(45deg);
+}
+
+/* Lähteiden toggle-painikkeen ja listan tyylit */
+.sources-toggle-wrap {
+  margin-top: 10px;
+}
+.sources-toggle {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sources-toggle:hover {
+  background: #f8fafc;
+}
+
+/* Lähdelistan tyyli: tausta, reunus ja sisennys */
+.sources {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+.sources-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+.sources-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sources-item + .sources-item {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+.source-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.source-preview {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.45;
 }
 </style>

@@ -122,6 +122,7 @@
         :key="index"
         :from="message.from"
         :text="message.text"
+        :sources="message.sources || []"
         :extra-class="[
           message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '',
           message.classification === 'EMERGENCY' ? 'emergency' : '',
@@ -223,7 +224,7 @@ export default {
       this.waitingForBot = true;
 
       // Add user's message
-      this.messages.push({ text: outgoing, from: "self" });
+      this.messages.push({ text: outgoing, from: "self", sources: [] });
       this.welcomeMessageDisplayed = false;
       this.scrollToBottom();
 
@@ -236,11 +237,15 @@ export default {
         );
 
         const replyHtml = response.data?.reply ?? "";
+        const sources = Array.isArray(response.data?.sources)
+          ? response.data.sources
+          : [];
 
         this.messages.push({
           text: replyHtml,
           from: "other",
           classification: response.data?.classification || "SAFE",
+          sources,
         });
 
         // Scroll to bottom after message
@@ -250,6 +255,7 @@ export default {
         this.messages.push({
           text: this.$t("connection-error"),
           from: "other",
+          sources: []
         });
         this.scrollToBottom();
       } finally {

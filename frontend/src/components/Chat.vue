@@ -9,6 +9,7 @@
     <div
       class="messages"
       :class="{ 'messages--welcome': welcomeMessageDisplayed }"
+      ref="messagesEl"
     >
       <!-- Tervetuloa-näyttö -->
       <section
@@ -123,8 +124,8 @@
         :from="message.from"
         :text="message.text"
         :extra-class="[
-          message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '',
-          message.classification === 'EMERGENCY' ? 'emergency' : '',
+          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'emergency' ? 'emergency' : '',
           ]"
       />
     </div>
@@ -134,8 +135,8 @@
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="false"
-          :send-disabled="waitingForBot"
+          :input-disabled="!authStore.isAuthenticated"
+          :send-disabled="waitingForBot || !authStore.isAuthenticated"
           :show-edit="false"
           :is-editing="false"
           @send="handleSendFromInputBar"
@@ -146,60 +147,100 @@
 </template>
 
 <script>
-import axios from "axios";
 import PatientForm from "./PatientForm.vue";
 import ChatMessage from "./chat/ChatMessage.vue";
 import ChatInputBar from "./chat/ChatInputBar.vue";
 import { useI18n } from "vue-i18n";
+import { useUserChatStore } from "@/stores/userChatStore";
+import { useAuthStore } from "@/stores/authStore";
 
 export default {
   name: "ChatComponent",
   components: { PatientForm, ChatMessage, ChatInputBar },
+
   props: {
     externalShowForm: Boolean,
   },
+
   emits: ["update:externalShowForm"],
+
   setup() {
-    const { t, locale } = useI18n();
-    return { t, locale };
+    const { t } = useI18n();
+    const chatStore = useUserChatStore();
+    const authStore = useAuthStore();
+
+    return { t, chatStore, authStore };
   },
+
   data() {
     return {
-      userId: "user123",
-      messages: [],
       newMessage: "",
       showForm: false,
       welcomeMessageDisplayed: true,
       waitingForBot: false,
     };
   },
-  watch: {
-    externalShowForm(newVal) {
-      this.showForm = newVal;
+
+  computed: {
+    messages() {
+      return this.chatStore.getActiveChat?.messages ?? [];
     },
   },
+
+  watch: {
+    // sync modal state
+    externalShowForm(val) {
+      this.showForm = val;
+    },
+
+    messages: {
+      handler(newMessages) {
+        this.welcomeMessageDisplayed = newMessages.length === 0;
+        // Always scroll to bottom when messages change
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
+      },
+      deep: true,
+      immediate: false
+    },
+
+    "authStore.isAuthenticated": {
+      async handler(val) {
+        if (!val) {
+          this.chatStore.clearChats();
+          this.welcomeMessageDisplayed = true;
+          return;
+        }
+
+        try {
+          await this.chatStore.initializeChats();
+
+          if (!this.chatStore.getActiveChat) {
+            await this.chatStore.createChat();
+          }
+        } catch (error) {
+          console.error("Chat init failed:", error);
+        }
+      },
+      immediate: true,
+    },
+  },
+
   methods: {
     openPatientForm() {
       this.showForm = true;
       this.$emit("update:externalShowForm", true);
     },
+
     closePatientForm() {
       this.showForm = false;
       this.$emit("update:externalShowForm", false);
     },
 
-    async fetchMapping() {
-      try {
-        const response = await axios.get("http://127.0.0.1:8000/api/data");
-        this.mapping = response.data.data;
-      } catch (error) {
-        console.error(this.$t("data-error"), error);
-      }
-    },
-
     scrollToBottom() {
       this.$nextTick(() => {
-        const el = this.$el?.querySelector(".messages");
+        const el = this.$refs.messagesEl;
         if (!el) return;
 
         el.scrollTo({
@@ -210,7 +251,11 @@ export default {
     },
 
     handleSendFromInputBar(text) {
-      if (this.waitingForBot) return;
+      if (!this.authStore.isAuthenticated) {
+        console.warn("User not authenticated");
+        return;
+      }
+
       this.newMessage = "";
       this.sendMessage(text);
     },
@@ -221,37 +266,13 @@ export default {
       if (this.waitingForBot) return;
 
       this.waitingForBot = true;
-
-      // Add user's message
-      this.messages.push({ text: outgoing, from: "self" });
       this.welcomeMessageDisplayed = false;
-      this.scrollToBottom();
 
       try {
-        const response = await axios.post(
-          "http://127.0.0.1:8000/api/chat/send",
-          {
-            message: outgoing,
-          }
-        );
-
-        const replyHtml = response.data?.reply ?? "";
-
-        this.messages.push({
-          text: replyHtml,
-          from: "other",
-          classification: response.data?.classification || "SAFE",
-        });
-
-        // Scroll to bottom after message
-        this.scrollToBottom();
+        await this.chatStore.addUserMessage(outgoing);
+        // scrollToBottom will be handled by watcher below
       } catch (error) {
         console.error(this.$t("send-error"), error);
-        this.messages.push({
-          text: this.$t("connection-error"),
-          from: "other",
-        });
-        this.scrollToBottom();
       } finally {
         this.waitingForBot = false;
       }
@@ -273,13 +294,11 @@ export default {
   box-sizing: border-box;
 }
 
-/* Messages stay centered and scroll */
 .messages {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
 
-  /* centered chat column */
   max-width: 820px;
   width: 100%;
   margin: 0 auto;
@@ -298,7 +317,6 @@ export default {
     Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
-/* Welcome screen */
 .welcome {
   max-width: 780px;
   margin: 0 auto;

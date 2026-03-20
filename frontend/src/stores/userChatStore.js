@@ -1,84 +1,136 @@
+// Pinia-tietovarasto chatille ja viestien hallinnalle
 import { defineStore } from "pinia"
-import { addChat, fetchAllUserChats, sendUserMessage } from "@/services/userChatService"
+import {
+  addChat,
+  fetchAllUserChats,
+  sendUserMessage
+} from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
-    userChats: [],
-    activeChatId: null,
-    isLoaded: false
+    userChats: [], // Kaikki käyttäjän chatit
+    activeChatId: null, // Aktiivisen chatin ID
+    isLoaded: false, // Onko chatit ladattu
+    isSending: false // Estää viestien spam/race condition
   }),
 
   getters: {
-    getUserChats: (state) => state.userChats,
+    getUserChats: (state) => state.userChats, // Palauttaa kaikki chatit
 
     getActiveChat(state) {
       if (!state.activeChatId) return null
-      return state.userChats.find(chat => chat.id === state.activeChatId) || null
+      return state.userChats.find(chat => chat.id === state.activeChatId) || null // Palauttaa aktiivisen chatin
     }
   },
 
   actions: {
     setActiveChat(chatId) {
-      this.activeChatId = chatId
+      this.activeChatId = chatId // Asettaa aktiivisen chatin
     },
 
-    async initializeChats() {
-      if (this.isLoaded) return
+    clearChats() {
+      this.userChats = [] // Tyhjentää chatit
+      this.activeChatId = null // Tyhjentää aktiivisen chatin
+      this.isLoaded = false // Resetoi lataustilan
+    },
+
+    // Chatien haku ja alustaminen
+    async initializeChats(force = false) {
+      if (this.isLoaded && !force) return
+
       try {
         const chats = await fetchAllUserChats()
-        this.userChats = chats
+
+        // Varmistaa että jokaisella chatilla on messages-taulukko
+        this.userChats = chats.map(chat => ({
+          ...chat,
+          messages: chat.messages || []
+        }))
+
+        // Aseta ensimmäinen chat aktiiviseksi jos ei ole
+        if (!this.activeChatId && this.userChats.length > 0) {
+          this.activeChatId = this.userChats[0].id
+        }
 
         this.isLoaded = true
       } catch (error) {
         console.error("Failed to initialize user chats:", error)
+        throw error
       }
     },
 
+    // Uuden chatin luonti
     async createChat() {
       try {
         const newChat = await addChat()
 
-        this.userChats.push({
+        const chat = {
           ...newChat,
-          messages: []
-        })
+          messages: newChat.messages || []
+        }
 
-        this.activeChatId = newChat.id
+        this.userChats.push(chat)
+        this.activeChatId = chat.id
 
-        return newChat
+        return chat
       } catch (error) {
         console.error("Failed to create chat:", error)
         throw error
       }
     },
 
+    // Viestin lähetys chatissa (vain tila ja API, ei UI)
     async addUserMessage(message) {
-      const chat = this.getActiveChat
+      const chat = this.userChats.find(c => c.id === this.activeChatId)
       if (!chat) return
 
+      if (this.isSending) return // Estää useat lähetykset
+
       if (["waiting_for_professional", "in_progress"].includes(chat.status)) {
-        return
+        throw new Error("Chat is locked") // Estää viestit tietyissä tiloissa
       }
+
+      this.isSending = true
+
+      const messageIndex = chat.messages.push({
+        text: message,
+        from: "self",
+        classification: undefined
+      }) - 1
 
       try {
         const data = await sendUserMessage(chat.id, { message })
 
-        const { userMessage, botMessage } = data
+        // Päivitetään viestin luokitus
+        if (chat.messages[messageIndex]) {
+          chat.messages[messageIndex].classification = data.classification
+        }
 
-        chat.messages.push(userMessage)
-        if (botMessage) chat.messages.push(botMessage)
+        // Lisätään botin vastaus
+        if (data.reply) {
+          chat.messages.push({
+            text: data.reply,
+            from: "other",
+            classification: data.classification
+          })
+        }
 
-        if (userMessage.classification === "needs_review") {
+        // Päivitetään chatin status tarvittaessa
+        if (data.classification === "needs_review") {
           chat.status = "waiting_for_professional"
         }
 
-        if (userMessage.classification === "emergency") {
-          console.log("Emergency message detected")
+        if (data.classification === "emergency") {
+          console.warn("Emergency message detected")
         }
 
       } catch (error) {
         console.error("Failed to send user message:", error)
+
+        throw error
+      } finally {
+        this.isSending = false
       }
-    },
-  },
+    }
+  }
 })

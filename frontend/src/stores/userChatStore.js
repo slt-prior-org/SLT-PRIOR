@@ -79,8 +79,8 @@ export const useUserChatStore = defineStore("userChat", {
       }
     },
 
-    // Viestin lähetys chatissa
-    async addUserMessage(message, scrollCallback) {
+    // Viestin lähetys chatissa (vain tila ja API, ei UI)
+    async addUserMessage(message) {
       const chat = this.userChats.find(c => c.id === this.activeChatId)
       if (!chat) return
 
@@ -92,16 +92,11 @@ export const useUserChatStore = defineStore("userChat", {
 
       this.isSending = true
 
-      // Optimistinen UI: lisätään viesti heti
       const messageIndex = chat.messages.push({
         text: message,
         from: "self",
         classification: undefined
       }) - 1
-
-      if (typeof scrollCallback === "function") {
-        scrollCallback()
-      }
 
       try {
         const data = await sendUserMessage(chat.id, { message })
@@ -131,9 +126,6 @@ export const useUserChatStore = defineStore("userChat", {
 
       } catch (error) {
         console.error("Failed to send user message:", error)
-
-        // Rollback optimistinen viesti jos haluat
-        // chat.messages.splice(messageIndex, 1)
 
         throw error
       } finally {

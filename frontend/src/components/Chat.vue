@@ -9,6 +9,7 @@
     <div
       class="messages"
       :class="{ 'messages--welcome': welcomeMessageDisplayed }"
+      ref="messagesEl"
     >
       <!-- Tervetuloa-näyttö -->
       <section
@@ -156,16 +157,21 @@ import { useAuthStore } from "@/stores/authStore";
 export default {
   name: "ChatComponent",
   components: { PatientForm, ChatMessage, ChatInputBar },
+
   props: {
     externalShowForm: Boolean,
   },
+
   emits: ["update:externalShowForm"],
+
   setup() {
-    const { t, locale } = useI18n();
+    const { t } = useI18n();
     const chatStore = useUserChatStore();
     const authStore = useAuthStore();
-    return { t, locale, chatStore, authStore };
+
+    return { t, chatStore, authStore };
   },
+
   data() {
     return {
       newMessage: "",
@@ -174,48 +180,59 @@ export default {
       waitingForBot: false,
     };
   },
-  watch: {
-    externalShowForm(newVal) {
-      this.showForm = newVal;
-    },
-    messages(newMessages) {
-      if (newMessages && newMessages.length > 0) {
-        this.welcomeMessageDisplayed = false;
-      }
-    },
-    'authStore.isAuthenticated'(val) {
-      if (!val) {
-        this.welcomeMessageDisplayed = true;
-      } else {
-        this.chatStore.initializeChats(true).then(() => {
-          if (!this.chatStore.getActiveChat) {
-            this.chatStore.createChat();
-          }
-        });
-      }
-    },
-  },
+
   computed: {
     messages() {
-      return this.chatStore.getActiveChat?.messages || [];
+      return this.chatStore.getActiveChat?.messages ?? [];
     },
   },
-  async mounted() {
-    try {
-      await this.chatStore.initializeChats();
-      
-      if (!this.chatStore.getActiveChat) {
-        await this.chatStore.createChat();
-      }
-    } catch (error) {
-      console.error("Failed to initialize chat:", error);
-    }
+
+  watch: {
+    // sync modal state
+    externalShowForm(val) {
+      this.showForm = val;
+    },
+
+    messages: {
+      handler(newMessages) {
+        this.welcomeMessageDisplayed = newMessages.length === 0;
+        // Always scroll to bottom when messages change
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
+      },
+      deep: true,
+      immediate: false
+    },
+
+    "authStore.isAuthenticated": {
+      async handler(val) {
+        if (!val) {
+          this.chatStore.clearChats();
+          this.welcomeMessageDisplayed = true;
+          return;
+        }
+
+        try {
+          await this.chatStore.initializeChats();
+
+          if (!this.chatStore.getActiveChat) {
+            await this.chatStore.createChat();
+          }
+        } catch (error) {
+          console.error("Chat init failed:", error);
+        }
+      },
+      immediate: true,
+    },
   },
+
   methods: {
     openPatientForm() {
       this.showForm = true;
       this.$emit("update:externalShowForm", true);
     },
+
     closePatientForm() {
       this.showForm = false;
       this.$emit("update:externalShowForm", false);
@@ -223,7 +240,7 @@ export default {
 
     scrollToBottom() {
       this.$nextTick(() => {
-        const el = this.$el?.querySelector(".messages");
+        const el = this.$refs.messagesEl;
         if (!el) return;
 
         el.scrollTo({
@@ -234,8 +251,11 @@ export default {
     },
 
     handleSendFromInputBar(text) {
-      if (this.waitingForBot) return;
-      if (!this.authStore.isAuthenticated) return;
+      if (!this.authStore.isAuthenticated) {
+        console.warn("User not authenticated");
+        return;
+      }
+
       this.newMessage = "";
       this.sendMessage(text);
     },
@@ -249,8 +269,8 @@ export default {
       this.welcomeMessageDisplayed = false;
 
       try {
-        await this.chatStore.addUserMessage(outgoing, this.scrollToBottom);
-        this.scrollToBottom();
+        await this.chatStore.addUserMessage(outgoing);
+        // scrollToBottom will be handled by watcher below
       } catch (error) {
         console.error(this.$t("send-error"), error);
       } finally {

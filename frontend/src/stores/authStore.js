@@ -1,21 +1,24 @@
+// Pinia-tietovarasto käyttäjän autentikaatiolle ja profiilille
 import { defineStore } from 'pinia'
 import { registerUser, fetchUser, loginUser, updateUserProfile } from '@/services/authService'
+import { useUserChatStore } from '@/stores/userChatStore'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,
-    token: localStorage.getItem('token') || null,
-    loading: false,
+    user: null, // Käyttäjän tiedot
+    token: localStorage.getItem('token') || null, // JWT-token
+    loading: false, // Lataustila
   }),
 
   getters: {
-    getCurrentUserID: (state) => state.user?.id || null,
-    isPatient: (state) => state.user?.role === "patient",
-    isProfessional: (state) => state.user?.role === "professional",
-    isAuthenticated: (state) => !!state.token
+    getCurrentUserID: (state) => state.user?.id || null, // Palauttaa käyttäjän ID:n
+    isPatient: (state) => state.user?.role === "patient", // Onko potilas
+    isProfessional: (state) => state.user?.role === "professional", // Onko ammattilainen
+    isAuthenticated: (state) => !!state.token // Onko kirjautunut
   },
 
   actions: {
+    // Käyttäjän rekisteröinti
     async register(formData) {
       this.loading = true
       try {
@@ -32,6 +35,7 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
+    // Kirjautuminen
     async login(email, password) {
       this.loading = true
 
@@ -42,6 +46,9 @@ export const useAuthStore = defineStore('auth', {
 
         localStorage.setItem('token', data.token)
 
+        // Chatin alustaminen kirjautumisen jälkeen
+        const userChatStore = useUserChatStore();
+        await userChatStore.initializeChats(true);
       } catch (error) {
         console.error("Login failed:", error)
         throw error
@@ -49,11 +56,16 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
+    // Uloskirjautuminen
     async logout() {
       this.user = null
       this.token = null
       localStorage.removeItem("token")
+      // Chatin tyhjennys uloskirjautuessa
+      const userChatStore = useUserChatStore();
+      userChatStore.clearChats();
     },
+    // Käyttäjän tietojen haku
     async fetchUser() {
       if (!this.token) return
 
@@ -68,6 +80,7 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
+    // Käyttäjän profiilin päivitys
     async updateProfile(formData) {
       this.loading = true
 

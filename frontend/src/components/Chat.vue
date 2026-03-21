@@ -1,10 +1,7 @@
 <template>
   <div class="chat-container">
     <!-- Esitietolomake-modal -->
-    <PatientForm
-      v-if="showForm"
-      @close="closePatientForm"
-    />
+    <PatientForm v-if="showForm" @close="closePatientForm" />
 
     <div
       class="messages"
@@ -12,19 +9,10 @@
       ref="messagesEl"
     >
       <!-- Tervetuloa-näyttö -->
-      <section
-        v-if="welcomeMessageDisplayed"
-        class="welcome"
-      >
+      <section v-if="welcomeMessageDisplayed" class="welcome">
         <div class="welcome-hero">
-          <div
-            class="welcome-icon"
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class="welcome-icon-svg"
-            >
+          <div class="welcome-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="welcome-icon-svg">
               <path
                 d="M7 8h10M7 12h6M12 20l-3.5-3H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-1.5L12 20z"
                 fill="none"
@@ -46,10 +34,7 @@
 
         <div class="welcome-cards">
           <div class="welcome-card">
-            <div
-              class="card-icon"
-              aria-hidden="true"
-            >
+            <div class="card-icon" aria-hidden="true">
               <span class="icon-dot" />
             </div>
 
@@ -62,10 +47,7 @@
           </div>
 
           <div class="welcome-card">
-            <div
-              class="card-icon"
-              aria-hidden="true"
-            >
+            <div class="card-icon" aria-hidden="true">
               <span class="icon-dot" />
             </div>
 
@@ -78,10 +60,7 @@
           </div>
 
           <div class="welcome-card">
-            <div
-              class="card-icon"
-              aria-hidden="true"
-            >
+            <div class="card-icon" aria-hidden="true">
               <span class="icon-dot" />
             </div>
 
@@ -99,12 +78,7 @@
           role="note"
           aria-label="Important information"
         >
-          <div
-            class="alert-icon"
-            aria-hidden="true"
-          >
-            !
-          </div>
+          <div class="alert-icon" aria-hidden="true">!</div>
           <div class="alert-body">
             <div class="alert-title">
               {{ $t("importantInfo") }}
@@ -119,14 +93,14 @@
       </section>
 
       <ChatMessage
-        v-for="(message, index) in messages"
-        :key="index"
-        :from="message.from"
-        :text="message.text"
+        v-for="(message) in messages"
+        :key="message.id"
+        :from="message.sender"
+        :text="message.content"
         :extra-class="[
           message.classification === 'needs_review' ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
-          ]"
+        ]"
       />
     </div>
 
@@ -147,12 +121,12 @@
 </template>
 
 <script>
-import PatientForm from "./PatientForm.vue";
-import ChatMessage from "./chat/ChatMessage.vue";
-import ChatInputBar from "./chat/ChatInputBar.vue";
-import { useI18n } from "vue-i18n";
-import { useUserChatStore } from "@/stores/userChatStore";
-import { useAuthStore } from "@/stores/authStore";
+import PatientForm from "./PatientForm.vue"
+import ChatMessage from "./chat/ChatMessage.vue"
+import ChatInputBar from "./chat/ChatInputBar.vue"
+import { useI18n } from "vue-i18n"
+import { useUserChatStore } from "@/stores/userChatStore"
+import { useAuthStore } from "@/stores/authStore"
 
 export default {
   name: "ChatComponent",
@@ -165,11 +139,11 @@ export default {
   emits: ["update:externalShowForm"],
 
   setup() {
-    const { t } = useI18n();
-    const chatStore = useUserChatStore();
-    const authStore = useAuthStore();
+    const { t } = useI18n()
+    const chatStore = useUserChatStore()
+    const authStore = useAuthStore()
 
-    return { t, chatStore, authStore };
+    return { t, chatStore, authStore }
   },
 
   data() {
@@ -178,49 +152,59 @@ export default {
       showForm: false,
       welcomeMessageDisplayed: true,
       waitingForBot: false,
-    };
+    }
   },
 
   computed: {
     messages() {
-      return this.chatStore.getActiveChat?.messages ?? [];
+      return this.chatStore.getActiveChat?.messages ?? []
     },
   },
 
   watch: {
     // sync modal state
     externalShowForm(val) {
-      this.showForm = val;
+      this.showForm = val
     },
 
     messages: {
       handler(newMessages) {
-        this.welcomeMessageDisplayed = newMessages.length === 0;
+        this.welcomeMessageDisplayed = newMessages.length === 0
         // Always scroll to bottom when messages change
         this.$nextTick(() => {
-          this.scrollToBottom();
-        });
+          this.scrollToBottom()
+        })
       },
       deep: true,
-      immediate: false
+      immediate: false,
     },
 
     "authStore.isAuthenticated": {
       async handler(val) {
         if (!val) {
-          this.chatStore.clearChats();
-          this.welcomeMessageDisplayed = true;
-          return;
+          this.chatStore.clearChats()
+          this.welcomeMessageDisplayed = true
+          return
         }
 
         try {
-          await this.chatStore.initializeChats();
+          console.log("Käyttäjä kirjautui sisään, alusta käyttäjän chatit")
+          await this.chatStore.initializeChats()
 
-          if (!this.chatStore.getActiveChat) {
-            await this.chatStore.createChat();
+          /**
+          if (
+            !this.chatStore.getActiveChat &&
+            this.chatStore.getUserChats.length > 0
+          ) {
+            await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
+          } */
+
+          if (!this.chatStore.activeChat) {
+            console.log("Käyttäjä kirjautui sisään, luodaan uusi chatti")
+            await this.chatStore.createChat()
           }
         } catch (error) {
-          console.error("Chat init failed:", error);
+          console.error("Chat init failed:", error)
         }
       },
       immediate: true,
@@ -229,56 +213,56 @@ export default {
 
   methods: {
     openPatientForm() {
-      this.showForm = true;
-      this.$emit("update:externalShowForm", true);
+      this.showForm = true
+      this.$emit("update:externalShowForm", true)
     },
 
     closePatientForm() {
-      this.showForm = false;
-      this.$emit("update:externalShowForm", false);
+      this.showForm = false
+      this.$emit("update:externalShowForm", false)
     },
 
     scrollToBottom() {
       this.$nextTick(() => {
-        const el = this.$refs.messagesEl;
-        if (!el) return;
+        const el = this.$refs.messagesEl
+        if (!el) return
 
         el.scrollTo({
           top: el.scrollHeight,
           behavior: "smooth",
-        });
-      });
+        })
+      })
     },
 
     handleSendFromInputBar(text) {
       if (!this.authStore.isAuthenticated) {
-        console.warn("User not authenticated");
-        return;
+        console.warn("User not authenticated")
+        return
       }
 
-      this.newMessage = "";
-      this.sendMessage(text);
+      this.newMessage = ""
+      this.sendMessage(text)
     },
 
     async sendMessage(text) {
-      const outgoing = (text ?? "").trim();
-      if (!outgoing) return;
-      if (this.waitingForBot) return;
+      const outgoing = (text ?? "").trim()
+      if (!outgoing) return
+      if (this.waitingForBot) return
 
-      this.waitingForBot = true;
-      this.welcomeMessageDisplayed = false;
+      this.waitingForBot = true
+      this.welcomeMessageDisplayed = false
 
       try {
-        await this.chatStore.addUserMessage(outgoing);
+        await this.chatStore.addUserMessage(outgoing)
         // scrollToBottom will be handled by watcher below
       } catch (error) {
-        console.error(this.$t("send-error"), error);
+        console.error(this.$t("send-error"), error)
       } finally {
-        this.waitingForBot = false;
+        this.waitingForBot = false
       }
     },
   },
-};
+}
 </script>
 
 <style scoped>
@@ -313,8 +297,16 @@ export default {
 
 .welcome,
 .welcome * {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    "Noto Sans",
+    "Liberation Sans",
+    sans-serif;
 }
 
 .welcome {

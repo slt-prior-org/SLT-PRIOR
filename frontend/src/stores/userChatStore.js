@@ -3,34 +3,28 @@ import { defineStore } from "pinia"
 import {
   addChat,
   fetchAllUserChats,
-  sendUserMessage
+  sendUserMessage,
+  fetchChat,
 } from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
     userChats: [], // Kaikki käyttäjän chatit
-    activeChatId: null, // Aktiivisen chatin ID
+    activeChat: null, // Aktiivinen chat
     isLoaded: false, // Onko chatit ladattu
-    isSending: false // Estää viestien spam/race condition
+    isSending: false, // Estää viestien spam/race condition
+    isLoadingChat: false,
   }),
 
   getters: {
     getUserChats: (state) => state.userChats, // Palauttaa kaikki chatit
-
-    getActiveChat(state) {
-      if (!state.activeChatId) return null
-      return state.userChats.find(chat => chat.id === state.activeChatId) || null // Palauttaa aktiivisen chatin
-    }
+    getActiveChat: (state) => state.activeChat,
   },
 
   actions: {
-    setActiveChat(chatId) {
-      this.activeChatId = chatId // Asettaa aktiivisen chatin
-    },
-
     clearChats() {
       this.userChats = [] // Tyhjentää chatit
-      this.activeChatId = null // Tyhjentää aktiivisen chatin
+      this.activeChat = null // Tyhjentää aktiivisen chatin
       this.isLoaded = false // Resetoi lataustilan
     },
 
@@ -41,16 +35,12 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         const chats = await fetchAllUserChats()
 
-        // Varmistaa että jokaisella chatilla on messages-taulukko
-        this.userChats = chats.map(chat => ({
-          ...chat,
-          messages: chat.messages || []
-        }))
+        this.userChats = chats
 
         // Aseta ensimmäinen chat aktiiviseksi jos ei ole
-        if (!this.activeChatId && this.userChats.length > 0) {
-          this.activeChatId = this.userChats[0].id
-        }
+        //if (!this.activeChatId && this.userChats.length > 0) {
+        //  this.activeChatId = this.userChats[0].id
+        //}
 
         this.isLoaded = true
       } catch (error) {
@@ -58,21 +48,44 @@ export const useUserChatStore = defineStore("userChat", {
         throw error
       }
     },
+    // Aseta aktiivinen chat
+    async setActiveChat(chatId) {
+      if (this.activeChat?.id === chatId) return
 
+      this.isLoadingChat = true
+
+      try {
+        const chat = await fetchChat(chatId)
+
+        this.activeChat = {
+          ...chat,
+          messages: chat.messages || [],
+        }
+      } catch (error) {
+        console.error("Failed to load chat:", error)
+        throw error
+      } finally {
+        this.isLoadingChat = false
+      }
+    },
     // Uuden chatin luonti
     async createChat() {
       try {
         const newChat = await addChat()
 
-        const chat = {
+        this.userChats.unshift({
+          id: newChat.id,
+          status: newChat.status,
+          created_at: newChat.created_at,
+          updated_at: newChat.updated_at,
+        })
+
+        this.activeChat = {
           ...newChat,
-          messages: newChat.messages || []
+          messages: newChat.messages || [],
         }
 
-        this.userChats.push(chat)
-        this.activeChatId = chat.id
-
-        return chat
+        return this.activeChat
       } catch (error) {
         console.error("Failed to create chat:", error)
         throw error
@@ -81,38 +94,54 @@ export const useUserChatStore = defineStore("userChat", {
 
     // Viestin lähetys chatissa (vain tila ja API, ei UI)
     async addUserMessage(message) {
-      const chat = this.userChats.find(c => c.id === this.activeChatId)
-      if (!chat) return
+      if (!this.activeChat) return
 
       if (this.isSending) return // Estää useat lähetykset
 
-      if (["waiting_for_professional", "in_progress"].includes(chat.status)) {
+      if (
+        ["waiting_for_professional", "in_progress"].includes(
+          this.activeChat.status,
+        )
+      ) {
         throw new Error("Chat is locked") // Estää viestit tietyissä tiloissa
       }
 
       this.isSending = true
 
-      const messageIndex = chat.messages.push({
-        text: message,
-        from: "self",
-        classification: undefined
-      }) - 1
+      const chat = this.activeChat
+
+      // Lisätään käyttäjän viesti
+      const userMessage = {
+        id: crypto.randomUUID(),
+        sender: "user",
+        content: message,
+        classification: undefined,
+        flagged_for_human: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      console.log("User message:", userMessage)
+
+      chat.messages.push(userMessage)
 
       try {
-        const data = await sendUserMessage(chat.id, { message })
-
-        // Päivitetään viestin luokitus
-        if (chat.messages[messageIndex]) {
-          chat.messages[messageIndex].classification = data.classification
-        }
+        const data = await sendUserMessage(chat.id, message)
+        userMessage.classification = data.classification
 
         // Lisätään botin vastaus
         if (data.reply) {
-          chat.messages.push({
-            text: data.reply,
-            from: "other",
-            classification: data.classification
-          })
+          const botMessage = {
+            id: crypto.randomUUID(),
+            sender: "bot",
+            content: data.reply,
+            flagged_for_human: false,
+            classification: data.classification,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+          console.log("Bot message:", botMessage)
+          
+          chat.messages.push(botMessage)
         }
 
         // Päivitetään chatin status tarvittaessa
@@ -123,14 +152,13 @@ export const useUserChatStore = defineStore("userChat", {
         if (data.classification === "emergency") {
           console.warn("Emergency message detected")
         }
-
       } catch (error) {
         console.error("Failed to send user message:", error)
-
+        chat.messages = chat.messages.filter((m) => m !== userMessage)
         throw error
       } finally {
         this.isSending = false
       }
-    }
-  }
+    },
+  },
 })

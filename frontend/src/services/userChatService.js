@@ -12,7 +12,7 @@ export const fetchChat = async (chatId) => {
 }
 
 export const sendUserMessage = async (chatId, message) => {
-  const response = await api.post("/api/chat/send", message) // Lähettää viestin
+  const response = await api.post("/api/chat/send", { message }) // Lähettää viestin
   return response.data
 }
 

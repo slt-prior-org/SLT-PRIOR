@@ -19,25 +19,38 @@ const { t } = useI18n()
 const props = defineProps({
   from: {
     type: String,
-    required: true
+    required: true,
   },
   text: {
     type: String,
-    default: ""
+    default: "",
   },
   extraClass: {
     type: [String, Array, Object],
-    default: ""
-  }
+    default: "",
+  },
 })
 
 // Lasketaan CSS-luokka lähettäjän perusteella (self = käyttäjä, other = botti/muu)
-const fromClass = computed(() => (props.from === "self" ? "self" : "other"))
+const fromClass = computed(() => {
+  if (props.from === "self" || props.from === "user") return "self"
+  return "other"
+})
 
 // Muotoillaan lähettäjän nimi käännösten perusteella
 const formattedSender = computed(() => {
-  if (props.from === "self") return t("sender.customer")
-  if (props.from === "other") return t("sender.bot")
+  if (props.from === "self" || props.from === "user") {
+    return t("sender.customer")
+  }
+
+  if (
+    props.from === "other" ||
+    props.from === "bot" ||
+    props.from === "assistant"
+  ) {
+    return t("sender.bot")
+  }
+
   return props.from
 })
 </script>
@@ -50,8 +63,12 @@ const formattedSender = computed(() => {
 }
 
 /* Viestien kohdistus: omat viestit oikealle, muiden vasemmalle */
-.message.self { justify-content: flex-end; }
-.message.other { justify-content: flex-start; }
+.message.self {
+  justify-content: flex-end;
+}
+.message.other {
+  justify-content: flex-start;
+}
 
 .bubble-wrapper {
   position: relative;
@@ -66,15 +83,15 @@ const formattedSender = computed(() => {
   color: #64748b;
   margin: 0 0 6px;
 }
-.message.self .sender-label { 
-    text-align: right; 
-    padding-right: 8px; 
-    display: none; /* Piilotetaan oma nimi tilan säästämiseksi */
+.message.self .sender-label {
+  text-align: right;
+  padding-right: 8px;
+  display: none; /* Piilotetaan oma nimi tilan säästämiseksi */
 }
 
-.message.other .sender-label { 
-    text-align: left; 
-    padding-left: 8px; 
+.message.other .sender-label {
+  text-align: left;
+  padding-left: 8px;
 }
 
 /* Viestikuplan perusmuotoilu: pyöristys, välit ja tekstin rivitys */
@@ -87,7 +104,7 @@ const formattedSender = computed(() => {
   white-space: pre-wrap;
   box-sizing: border-box;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 18px; 
+  font-size: 18px;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -112,7 +129,7 @@ const formattedSender = computed(() => {
   top: 18px;
   width: 12px;
   height: 12px;
-  background: #f1f5f9;                 
+  background: #f1f5f9;
   transform: rotate(45deg);
 }
 

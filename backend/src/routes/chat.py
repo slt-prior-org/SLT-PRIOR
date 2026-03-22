@@ -46,7 +46,7 @@ async def send_message(body: SendMessageRequest, request: Request):
     emergency = detect_emergency(user_message)
     if emergency:
         return {
-            "reply": emergency.emergency_message_en,
+            "reply": "",
             "classification": Classification.EMERGENCY,
         }
 
@@ -77,7 +77,16 @@ async def send_message(body: SendMessageRequest, request: Request):
 
     # 5) NEEDS_REVIEW – palataan heti, ei RAG-kutsua
     if classification_result.classification == Classification.NEEDS_REVIEW:
-        is_finnish = any(c in user_message for c in "äöåÄÖÅ")
+        _FINNISH_WORDS = {
+            "sopiiko", "minulle", "minun", "kanssa", "liikunta", "raskas",
+            "harrastaa", "onko", "voiko", "voisiko", "tarvitsen", "tarvitsee",
+            "lopettaa", "aloittaa", "vaarallista", "turvallista", "verenpaine",
+            "sydansairaus", "lihavuus", "laihduttaa", "ruokavalio",
+        }
+        is_finnish = (
+            any(c in user_message for c in "äöåÄÖÅ")
+            or any(w in user_message.lower().split() for w in _FINNISH_WORDS)
+        )
         if is_finnish:
             excerpt_query = f"{user_message} hoitosuositus suomalainen ohje"
         else:
@@ -85,15 +94,14 @@ async def send_message(body: SendMessageRequest, request: Request):
         excerpt_data = await get_guideline_excerpt(excerpt_query, score_threshold=0.60)
 
         if excerpt_data:
-            if not is_finnish:
-                excerpt_data["text"] = await translate_excerpt(excerpt_data["text"])
-            # Osuva excerpt löytyi → käyttäjä vahvistaa tarpeen
-            reply = (
-                "Löysin aiheeseen liittyvän hoitosuosituksen. "
-                "Auttoiko tämä sinua?"
-                "<br><br>"
-                "I found a relevant care guideline. Was this helpful?"
-            )
+            excerpt_is_finnish = any(c in excerpt_data["text"] for c in "äöåÄÖÅ")
+            print(f"DEBUG excerpt_is_finnish={excerpt_is_finnish}, is_finnish={is_finnish}, text[:80]={excerpt_data['text'][:80]!r}")
+            if is_finnish and not excerpt_is_finnish:
+                excerpt_data["text"] = await translate_excerpt(excerpt_data["text"], target="fi")
+            elif not is_finnish and excerpt_is_finnish:
+                excerpt_data["text"] = await translate_excerpt(excerpt_data["text"], target="en")
+            # Osuva excerpt löytyi → käyttäjä vahvistaa tarpeen (teksti haetaan frontendin locale-tiedostoista)
+            reply = ""
             return {
                 "reply": reply,
                 "requires_confirmation": True,
@@ -103,18 +111,9 @@ async def send_message(body: SendMessageRequest, request: Request):
                 "guideline_source": excerpt_data["source"],
             }
         else:
-            # Ei osuvaa excerptia → välitetään heti ammattilaiselle
-            safe_message = (
-                "Tämä aihe liittyy henkilökohtaiseen "
-                "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
-                "on välitetty ammattilaiselle arvioitavaksi."
-                "<br><br>"
-                "This topic relates to a personal "
-                "health assessment that I cannot answer. Your conversation has been "
-                "forwarded to a professional for review."
-            )
+            # Ei osuvaa excerptia → välitetään heti ammattilaiselle (teksti haetaan frontendin locale-tiedostoista)
             return {
-                "reply": safe_message,
+                "reply": "",
                 "requires_professional": True,
                 "classification": Classification.NEEDS_REVIEW,
                 "classification_reasoning": classification_result.reasoning,

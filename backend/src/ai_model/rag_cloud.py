@@ -124,6 +124,11 @@ def _clean_chunk_text(text: str, min_broken_run: int = 4) -> str:
     1. PyPDF2:n rikkinäinen välistys ('Ko hon neen ve ren') — poistetaan lyhyiden
        sanojen juoksu alussa (≥4 peräkkäistä ≤4-merkkistä alpha-sanaa).
     2. Kuva/Figure-kuvatekstilohkot alussa ('Kuva 6. ... Kuva 7. ...') — poistetaan.
+    3. Päivämäärät (esim. '4.3.2025 at 17.13') — poistetaan.
+    4. Sivunumerot (esim. '15/29') — poistetaan.
+    5. URL-osoitteet — poistetaan.
+    6. Kuva/Figure-viittaukset kesken tekstin — poistetaan.
+    7. Ylimääräiset välilyönnit normalisoidaan.
     Palauttaa tyhjän merkkijonon jos puhdistuksen jälkeen alle 100 merkkiä jäljellä.
     """
     t = text.strip()
@@ -139,6 +144,21 @@ def _clean_chunk_text(text: str, min_broken_run: int = 4) -> str:
     # 2) Kuva/Figure-kuvatekstit alussa
     t = re.sub(r'^(?:(?:Kuva|Figure)\s+\d+\.[^\n]*\n?)+', '', t).strip()
 
+    # 3) Päivämäärät (esim. "4.3.2025 at 17.13", "12.11.2024") — ilman \b koska pisteet aiheuttavat ongelmia
+    t = re.sub(r'\d{1,2}\.\d{1,2}\.\d{4}(?:\s+(?:at\s+)?\d{1,2}[.:]\d{2})?', '', t)
+
+    # 4) Sivunumerot (esim. "15/29") — ei poisteta verenpainelukemia kuten "140/90 mmHg"
+    t = re.sub(r'\b\d+\s*/\s*\d+\b(?!\s*mmHg)', '', t)
+
+    # 5) URL-osoitteet
+    t = re.sub(r'https?://\S*', '', t)
+
+    # 6) Kuva/Figure-viittaukset kesken tekstin (esim. "Figure 7.", "Kuva 3.")
+    t = re.sub(r'(?:Kuva|Figure)\s+\d+\.', '', t)
+
+    # 7) Ylimääräiset välilyönnit
+    t = re.sub(r'[ \t]{2,}', ' ', t).strip()
+
     return t if len(t) >= 100 else ""
 
 
@@ -150,6 +170,13 @@ def _is_quality_excerpt(text: str, min_chars: int = 150) -> bool:
     t = text.strip()
     if len(t) < min_chars:
         return False
+    # Hylkää rikkinäinen PyPDF2-teksti joka on hajallaan koko chunkissa
+    # (yksittäisiä kirjaimia kuten "e v o v i t" on yli 15% alpha-sanoista)
+    alpha_tokens = [w for w in t.split() if w.isalpha()]
+    if alpha_tokens:
+        single_char_ratio = sum(1 for w in alpha_tokens if len(w) == 1) / len(alpha_tokens)
+        if single_char_ratio > 0.15:
+            return False
     if "utm_source" in t or "utm_medium" in t:
         return False
     if ">>" in t:
@@ -186,16 +213,18 @@ async def _select_best_chunk(query: str, docs: list) -> int:
     chunkille. Palauttaa 0-pohjaisen indeksin (oletuksena 0 virhetilanteessa).
     """
     snippets = "\n\n".join(
-        f"[{i+1}] {doc.page_content[:300]}..."
+        f"[{i+1}] {doc.page_content[:500]}..."
         for i, doc in enumerate(docs)
     )
     prompt = (
-        "You are selecting the best health guideline excerpt for a patient.\n"
-        "Question: " + query + "\n\n"
+        "You are helping a patient find the most relevant health guideline.\n"
+        "Patient question: " + query + "\n\n"
         "Excerpts from Finnish health guideline PDFs:\n" + snippets + "\n\n"
-        "Which excerpt number (1-" + str(len(docs)) + ") contains the most "
-        "specific and actionable recommendation or guideline relevant to the "
-        "question? Reply with ONLY the number."
+        "Which excerpt number (1-" + str(len(docs)) + ") most directly answers "
+        "the patient's question with concrete guidance (e.g. when to start/stop "
+        "treatment, what to do)? Prefer text that answers the question directly, "
+        "not tables of numeric thresholds or treatment algorithms. "
+        "Reply with ONLY the number."
     )
     try:
         result = await selector_llm.ainvoke(prompt)
@@ -205,12 +234,56 @@ async def _select_best_chunk(query: str, docs: list) -> int:
         return 0  # Fallback: ensimmäinen
 
 
+async def _extract_relevant_sentences(query: str, chunk: str) -> str:
+    """
+    Pyytää LLM:ltä 2-3 lausetta chunkista, jotka vastaavat suoraan kysymykseen.
+    Palauttaa alkuperäiset lauseet sellaisenaan — ei muotoile eikä lisää sisältöä.
+    Fallback: _trim_to_sentence virhetilanteessa.
+    """
+    prompt = (
+        "From the following health guideline text, copy the 2-3 sentences that "
+        "most directly answer the question: '" + query + "'\n\n"
+        "Guideline text:\n" + chunk + "\n\n"
+        "Rules:\n"
+        "- Copy sentences verbatim from the text, do not rephrase or add information.\n"
+        "- Always return only the sentence(s) themselves — no preamble, no explanation, "
+        "no phrases like 'The most relevant sentence is' or 'No sentence answers'.\n"
+        "- If no sentence directly answers the question, copy the single most relevant sentence."
+    )
+    try:
+        result = await llm.ainvoke(prompt)
+        extracted = result.content.strip()
+        # Poistetaan mahdollinen LLM-preamble (esim. "The most relevant sentence is: ...")
+        extracted = re.sub(
+            r'^(?:No sentence[^.]*\.\s*)?(?:The (?:most relevant|best matching) sentence is:?\s*)',
+            '', extracted, flags=re.IGNORECASE
+        ).strip()
+        return extracted if extracted else _trim_to_sentence(chunk, max_chars=500)
+    except Exception:
+        return _trim_to_sentence(chunk, max_chars=500)
+
+
+def _verify_verbatim(extracted: str, source: str) -> bool:
+    """
+    Tarkistaa, että jokainen extracted-lauseista löytyy sanatarkasti source-tekstistä
+    (whitespace normalisoituna, kirjainkoosta riippumatta).
+    """
+    def _norm(t: str) -> str:
+        return re.sub(r'\s+', ' ', t).strip().lower()
+
+    source_norm = _norm(source)
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', extracted) if len(s.strip()) > 15]
+    if not sentences:
+        return False
+    return all(_norm(s) in source_norm for s in sentences)
+
+
 async def get_guideline_excerpt(query: str, score_threshold: float = 0.65) -> dict | None:
     """
     Hakee relevanteimman Chroma-chunkin kyselyn perusteella.
     Palauttaa {"text": str, "source": str} tai None.
-    Hakee k=10 kandidaattia, suodattaa laaturoskan, ja pyytää LLM:ltä
-    parhaan indeksin. Palautettu teksti on muuttumaton PDF-chunk.
+    Hakee k=10 kandidaattia, suodattaa laaturoskan, pyytää LLM:ltä
+    parhaan indeksin, ja poimii LLM:llä relevanteimmat lauseet.
     """
     try:
         retriever = vectorstore.as_retriever(
@@ -231,13 +304,21 @@ async def get_guideline_excerpt(query: str, score_threshold: float = 0.65) -> di
         if not quality_docs:
             return None
 
-        # LLM valitsee parhaan indeksin — teksti pysyy muuttumattomana
+        # LLM valitsee parhaan indeksin
         best_idx = await _select_best_chunk(query, quality_docs)
         best_doc = quality_docs[best_idx]
         text = _clean_chunk_text(best_doc.page_content)
 
+        # LLM poimii relevanteimmat lauseet kysymykseen nähden
+        extracted = await _extract_relevant_sentences(query, text)
+
+        # Varmistetaan, että LLM ei parafrasoinut — jos ei löydy lähdetekstistä, käytetään mekaanista trimmeriä
+        if not _verify_verbatim(extracted, text):
+            print("DEBUG _verify_verbatim failed — falling back to _trim_to_sentence")
+            extracted = _trim_to_sentence(text, max_chars=500)
+
         return {
-            "text": _trim_to_sentence(text, max_chars=500),
+            "text": extracted,
             "source": best_doc.metadata.get("source", "käypähoito.fi")
         }
 
@@ -282,13 +363,15 @@ async def get_rag_response(user_input: str, save_to_memory: bool = True) -> str:
 
     return response.content
 
-async def translate_excerpt(text: str) -> str:
+async def translate_excerpt(text: str, target: str = "en") -> str:
     """
-    Kääntää suomenkielisen hoitosuositusotteen englanniksi.
+    Kääntää hoitosuositusotteen kohde kielelle.
+    target="en" → englanniksi, target="fi" → suomeksi.
     Palauttaa alkuperäisen tekstin virhetilanteessa.
     """
+    lang = "Finnish" if target == "fi" else "English"
     prompt = (
-        "Translate the following Finnish health guideline excerpt to English. "
+        f"Translate the following health guideline excerpt to {lang}. "
         "Translate faithfully — do not add, remove, or interpret any medical content. "
         "Return only the translated text, nothing else.\n\n"
         + text
@@ -297,7 +380,7 @@ async def translate_excerpt(text: str) -> str:
         result = await llm.ainvoke(prompt)
         return result.content.strip()
     except Exception:
-        return text  # Fallback: alkuperäinen suomenkielinen teksti
+        return text
 
 
 async def generate_draft_response(user_input: str) -> str:

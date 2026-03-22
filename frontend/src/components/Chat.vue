@@ -100,6 +100,9 @@
         :guideline-excerpt="message.guideline_excerpt"
         :guideline-source="message.guideline_source"
         :requires-confirmation="message.requires_confirmation ?? false"
+        :requires-professional="message.requires_professional ?? false"
+        :is-forward-confirmation="message.is_forward_confirmation ?? false"
+        :is-emergency="message.classification === 'emergency'"
         :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
         :extra-class="[
           message.classification === 'needs_review' ? 'needs-review' : '',

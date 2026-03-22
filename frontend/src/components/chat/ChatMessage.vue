@@ -4,7 +4,13 @@
       <span class="sender-label">
         {{ formattedSender }}
       </span>
-      <div class="bubble" v-html="text" />
+      <div class="bubble">
+        <template v-if="requiresConfirmation">{{ $t('guidelineFound') }}</template>
+        <template v-else-if="requiresProfessional">{{ $t('forwardedToProfessional') }}</template>
+        <template v-else-if="isForwardConfirmation">{{ $t('confirmForwarded') }}</template>
+        <span v-else-if="isEmergency && fromClass === 'other'" v-html="$t('emergencyMessage')" />
+        <span v-else v-html="text" />
+      </div>
       <div
         v-if="guidelineExcerpt && fromClass === 'other'"
         class="guideline-citation"
@@ -61,6 +67,18 @@ const props = defineProps({
     default: null,
   },
   requiresConfirmation: {
+    type: Boolean,
+    default: false,
+  },
+  requiresProfessional: {
+    type: Boolean,
+    default: false,
+  },
+  isForwardConfirmation: {
+    type: Boolean,
+    default: false,
+  },
+  isEmergency: {
     type: Boolean,
     default: false,
   },
@@ -228,4 +246,6 @@ const formattedSender = computed(() => {
   color: #374151;
   border: 1px solid #cbd5e1;
 }
+
+
 </style>

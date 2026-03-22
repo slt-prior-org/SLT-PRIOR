@@ -127,9 +127,13 @@
   },
   "guidelineExcerpt": "Care guideline excerpt",
   "guidelineSource": "Source",
+  "guidelineFound": "I found a relevant care guideline.",
+  "forwardedToProfessional": "This topic relates to a personal health assessment that I cannot answer. Your conversation has been forwarded to a professional for review.",
   "confirmationQuestion": "Did this care guideline help you?",
   "confirmYes": "Yes, this helped",
   "confirmNo": "No, I need more help",
+  "confirmForwarded": "Understood. Your conversation has been forwarded to a professional.",
+  "emergencyMessage": "<strong>⚠️ This appears to be an emergency situation.</strong><br><br>If you or someone near you is in a life-threatening situation, <strong>call the emergency number 112 immediately.</strong><br><br>This chatbot cannot provide first aid or replace emergency services.",
   "patientForm": {
     "title": "Preliminary Form",
     "weight": "Weight",

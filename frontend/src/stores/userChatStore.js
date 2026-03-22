@@ -132,17 +132,19 @@ export const useUserChatStore = defineStore("userChat", {
 
       try {
         const data = await sendUserMessage(chat.id, message)
-        userMessage.classification = data.classification
+        const classification = data.classification?.toLowerCase() ?? null
+        userMessage.classification = classification
 
         // Lisätään botin vastaus
-        if (data.reply) {
+        if (data.reply || data.requires_confirmation || data.requires_professional || classification === 'emergency') {
           const botMessage = {
             id: crypto.randomUUID(),
             sender: "bot",
             content: data.reply,
             flagged_for_human: false,
-            classification: data.classification,
+            classification: classification,
             requires_confirmation: data.requires_confirmation ?? false,
+            requires_professional: data.requires_professional ?? false,
             guideline_excerpt: data.guideline_excerpt ?? null,
             guideline_source: data.guideline_source ?? null,
             created_at: new Date().toISOString(),
@@ -180,11 +182,11 @@ export const useUserChatStore = defineStore("userChat", {
       const forwardMsg = {
         id: crypto.randomUUID(),
         sender: "bot",
-        content:
-          "Ymmärretty. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.<br><br>Understood. Your conversation has been forwarded to a professional.",
+        content: "",
         flagged_for_human: false,
         classification: "needs_review",
         requires_confirmation: false,
+        is_forward_confirmation: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }

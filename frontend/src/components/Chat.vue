@@ -93,7 +93,7 @@
       </section>
 
       <ChatMessage
-        v-for="(message) in messages"
+        v-for="message in messages"
         :key="message.id"
         :from="message.sender"
         :text="message.content"
@@ -162,7 +162,6 @@ export default {
   },
 
   watch: {
-    // sync modal state
     externalShowForm(val) {
       this.showForm = val
     },
@@ -170,7 +169,6 @@ export default {
     messages: {
       handler(newMessages) {
         this.welcomeMessageDisplayed = newMessages.length === 0
-        // Always scroll to bottom when messages change
         this.$nextTick(() => {
           this.scrollToBottom()
         })
@@ -180,31 +178,21 @@ export default {
     },
 
     "authStore.isAuthenticated": {
-      async handler(val) {
-        if (!val) {
+      async handler(isAuthenticated) {
+        if (!isAuthenticated) {
           this.chatStore.clearChats()
           this.welcomeMessageDisplayed = true
           return
         }
 
         try {
-          console.log("Käyttäjä kirjautui sisään, alusta käyttäjän chatit")
+          console.log("Käyttäjä kirjautui sisään, alustetaan käyttäjän chatit")
           await this.chatStore.initializeChats()
 
-          /**
-          if (
-            !this.chatStore.getActiveChat &&
-            this.chatStore.getUserChats.length > 0
-          ) {
-            await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
-          } */
-
-          if (!this.chatStore.activeChat) {
-            console.log("Käyttäjä kirjautui sisään, luodaan uusi chatti")
-            await this.chatStore.createChat()
-          }
+          console.log("Kirjautumisen jälkeen luodaan aina uusi aktiivinen chatti")
+          await this.chatStore.createChat()
         } catch (error) {
-          console.error("Chat init failed:", error)
+          console.error("Chatin alustus epäonnistui:", error)
         }
       },
       immediate: true,
@@ -236,7 +224,7 @@ export default {
 
     handleSendFromInputBar(text) {
       if (!this.authStore.isAuthenticated) {
-        console.warn("User not authenticated")
+        console.warn("Käyttäjää ei ole tunnistettu")
         return
       }
 
@@ -249,12 +237,26 @@ export default {
       if (!outgoing) return
       if (this.waitingForBot) return
 
+      if (!this.chatStore.getActiveChat) {
+        await this.chatStore.initializeChats()
+
+        if (
+          !this.chatStore.getActiveChat &&
+          this.chatStore.getUserChats.length > 0
+        ) {
+          await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
+        }
+
+        if (!this.chatStore.getActiveChat) {
+          await this.chatStore.createChat()
+        }
+      }
+
       this.waitingForBot = true
       this.welcomeMessageDisplayed = false
 
       try {
         await this.chatStore.addUserMessage(outgoing)
-        // scrollToBottom will be handled by watcher below
       } catch (error) {
         console.error(this.$t("send-error"), error)
       } finally {

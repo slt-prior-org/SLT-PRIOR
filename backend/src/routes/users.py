@@ -1,5 +1,4 @@
 import logging
-from ai_model import rag_cloud
 from fastapi import APIRouter, HTTPException, Request
 from database.db import users_collection
 from database.models import UserModel
@@ -71,8 +70,6 @@ async def logout(request: Request):
     request.app.state.logged_in = False
     request.app.state.current_user_id = None
     request.app.state.current_user_data = None
-
-    rag_cloud.memory.chat_memory.clear()  # Tyhjennetään muisti
 
     logging.info("User logged out successfully.")
     return {"status": "success", "message": "logout_success"}

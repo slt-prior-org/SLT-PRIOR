@@ -110,51 +110,49 @@ export const useUserChatStore = defineStore("userChat", {
 
       const chat = this.activeChat
 
-      // Lisätään käyttäjän viesti
+      // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
       const userMessage = {
         id: crypto.randomUUID(),
         sender: "user",
         content: message,
-        classification: undefined,
+        classification: "safe",
         flagged_for_human: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
-      console.log("User message:", userMessage)
 
       chat.messages.push(userMessage)
 
       try {
         const data = await sendUserMessage(chat.id, message)
-        userMessage.classification = data.classification
 
-        // Lisätään botin vastaus
-        if (data.reply) {
-          const botMessage = {
-            id: crypto.randomUUID(),
-            sender: "bot",
-            content: data.reply,
-            flagged_for_human: false,
-            classification: data.classification,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-          console.log("Bot message:", botMessage)
-          
-          chat.messages.push(botMessage)
+        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages.push(data.userMessage)
+
+        // Lisätään backendin palauttama botin vastaus, jos sellainen syntyi
+        if (data.botMessage) {
+          chat.messages.push(data.botMessage)
         }
 
         // Päivitetään chatin status tarvittaessa
-        if (data.classification === "needs_review") {
+        if (
+          data.requires_professional ||
+          data.userMessage.classification === "needs_review"
+        ) {
           chat.status = "waiting_for_professional"
         }
 
-        if (data.classification === "emergency") {
-          console.warn("Emergency message detected")
+        chat.updated_at =
+          data.botMessage?.updated_at ||
+          data.userMessage.updated_at ||
+          chat.updated_at
+
+        if (data.userMessage.classification === "emergency") {
+          console.warn("Hätätilaviesti tunnistettu")
         }
       } catch (error) {
-        console.error("Failed to send user message:", error)
-        chat.messages = chat.messages.filter((m) => m !== userMessage)
+        console.error("Käyttäjän viestin lähetys epäonnistui:", error)
+        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
         throw error
       } finally {
         this.isSending = false

@@ -147,6 +147,15 @@ class MessageDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class SendChatMessageResponse(BaseModel):
+    userMessage: MessageDetailResponse
+    botMessage: Optional[MessageDetailResponse] = None
+    requires_professional: bool = False
+    requires_confirmation: bool = False
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
+    classification_reasoning: Optional[str] = None
+
 class ChatDetailResponse(BaseModel):
     id: str
     user_id: str

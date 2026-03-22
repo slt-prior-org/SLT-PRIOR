@@ -116,61 +116,56 @@ export const useUserChatStore = defineStore("userChat", {
 
       const chat = this.activeChat
 
-      // Lisätään käyttäjän viesti
+      // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
       const userMessage = {
         id: crypto.randomUUID(),
         sender: "user",
         content: message,
-        classification: undefined,
+        classification: "safe",
         flagged_for_human: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
-      console.log("User message:", userMessage)
 
       chat.messages.push(userMessage)
 
       try {
         const data = await sendUserMessage(chat.id, message)
-        const classification = data.classification?.toLowerCase() ?? null
-        userMessage.classification = classification
 
-        // Lisätään botin vastaus
-        if (data.reply || data.requires_confirmation || data.requires_professional || classification === 'emergency') {
+        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages.push(data.userMessage)
+
+        // Lisätään backendin palauttama botin vastaus guideline-kenttineen
+        if (data.botMessage) {
           const botMessage = {
-            id: crypto.randomUUID(),
-            sender: "bot",
-            content: data.reply,
-            flagged_for_human: false,
-            classification: classification,
+            ...data.botMessage,
             requires_confirmation: data.requires_confirmation ?? false,
             requires_professional: data.requires_professional ?? false,
             guideline_excerpt: data.guideline_excerpt ?? null,
             guideline_source: data.guideline_source ?? null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
           }
-          console.log("Bot message:", botMessage)
-
           chat.messages.push(botMessage)
 
-          // Lukitus VAIN kun requires_professional = true (ei confirmation-tilassa)
           if (data.requires_professional && !data.requires_confirmation) {
             chat.status = "waiting_for_professional"
           }
 
-          // Jos requires_confirmation, tallennetaan odottava viesti-id
           if (data.requires_confirmation) {
             this.pendingConfirmationMessageId = botMessage.id
           }
         }
 
-        if (data.classification === "emergency") {
-          console.warn("Emergency message detected")
+        chat.updated_at =
+          data.botMessage?.updated_at ||
+          data.userMessage.updated_at ||
+          chat.updated_at
+
+        if (data.userMessage.classification === "emergency") {
+          console.warn("Hätätilaviesti tunnistettu")
         }
       } catch (error) {
-        console.error("Failed to send user message:", error)
-        chat.messages = chat.messages.filter((m) => m !== userMessage)
+        console.error("Käyttäjän viestin lähetys epäonnistui:", error)
+        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
         throw error
       } finally {
         this.isSending = false

@@ -1,10 +1,11 @@
-import { defineStore } from "pinia";
+import { defineStore } from "pinia"
+import { useUserChatStore } from "@/stores/userChatStore"
 import {
   registerUser,
   fetchUser,
   loginUser,
   updateUserProfile,
-} from "@/services/authService";
+} from "@/services/authService"
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
@@ -57,22 +58,26 @@ export const useAuthStore = defineStore("auth", {
     },
 
     async logout() {
-      this.user = null;
-      this.token = null;
+      const userChatStore = useUserChatStore()
 
-      localStorage.removeItem("token");
+      // Tyhjennetään näkyvä chat heti uloskirjautuessa
+      userChatStore.clearChats()
+      this.user = null
+      this.token = null
+
+      localStorage.removeItem("token")
     },
 
     async fetchUser() {
       if (!this.token) return;
 
-      this.loading = true;
+      this.loading = true
 
       try {
-        const data = await fetchUser(this.token);
-        this.user = data;
+        const data = await fetchUser()
+        this.user = data
       } catch (error) {
-        console.error("Failed to fetch user:", error);
+        console.error("Käyttäjän tietojen haku epäonnistui:", error)
       } finally {
         this.loading = false;
       }
@@ -85,11 +90,11 @@ export const useAuthStore = defineStore("auth", {
         const updatedUser = await updateUserProfile(formData);
         this.user = updatedUser;
       } catch (error) {
-        console.error("Profile update failed:", error);
-        throw error;
+        console.error("Profiilin päivitys epäonnistui:", error)
+        throw error
       } finally {
         this.loading = false;
       }
     },
   },
-});
+})

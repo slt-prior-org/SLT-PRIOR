@@ -1,3 +1,4 @@
+import re
 from config import settings
 from .vectorstore import initialize_vectorstore
 
@@ -24,6 +25,13 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.3, # Alustava lämpötila
     max_tokens=1000,    # nostettu 500 -> 1000
     top_p=0.9,
+    google_api_key=settings.GOOGLE_API_KEY
+)
+
+selector_llm = ChatGoogleGenerativeAI(
+    model='gemini-2.0-flash-001',
+    temperature=0.0,
+    max_tokens=5,           # Vain numero vastauksessa
     google_api_key=settings.GOOGLE_API_KEY
 )
 
@@ -110,21 +118,29 @@ def _trim_to_sentence(text: str, max_chars: int = 500) -> str:
     idx = window.rfind(" ")
     return (window[:idx] + "...") if idx != -1 else (window + "...")
 
-def _strip_broken_prefix(text: str, min_broken_run: int = 4) -> str:
+def _clean_chunk_text(text: str, min_broken_run: int = 4) -> str:
     """
-    Poistaa tekstin alusta PyPDF2:n kirjainryhmiä jotka on eroteltu välilyönnillä
-    ('Ko hon neen ve ren'). Tunnistaa jakson jossa min_broken_run+ peräkkäistä
-    sanaa on kaikki ≤4 kirjainta ja koostuvat pelkistä kirjaimista.
-    Palauttaa tyhjän merkkijonon jos jäljelle ei jää tarpeeksi tekstiä.
+    Puhdistaa PDF-chunkin tekstin ennen laaduntarkistusta:
+    1. PyPDF2:n rikkinäinen välistys ('Ko hon neen ve ren') — poistetaan lyhyiden
+       sanojen juoksu alussa (≥4 peräkkäistä ≤4-merkkistä alpha-sanaa).
+    2. Kuva/Figure-kuvatekstilohkot alussa ('Kuva 6. ... Kuva 7. ...') — poistetaan.
+    Palauttaa tyhjän merkkijonon jos puhdistuksen jälkeen alle 100 merkkiä jäljellä.
     """
-    words = text.split()
+    t = text.strip()
+
+    # 1) Rikkinäinen PyPDF2-prefix
+    words = t.split()
     i = 0
     while i < len(words) and words[i].isalpha() and len(words[i]) <= 4:
         i += 1
     if i >= min_broken_run:
-        remaining = " ".join(words[i:])
-        return remaining if len(remaining) >= 100 else ""
-    return text
+        t = " ".join(words[i:])
+
+    # 2) Kuva/Figure-kuvatekstit alussa
+    t = re.sub(r'^(?:(?:Kuva|Figure)\s+\d+\.[^\n]*\n?)+', '', t).strip()
+
+    return t if len(t) >= 100 else ""
+
 
 def _is_quality_excerpt(text: str, min_chars: int = 150) -> bool:
     """
@@ -145,41 +161,86 @@ def _is_quality_excerpt(text: str, min_chars: int = 150) -> bool:
         return False
     return True
 
+# EI KÄYTÖSSÄ, vaan valitaan LLM:llä. Jätetty varmuuden vuoksi talteen.
 _RECOMMENDATION_KEYWORDS = [
+    # Yleiset suositussanat
     "suositell", "tulisi", "on tärkeää", "hoitosuositus",
     "hoidossa käytetään", "ensisijaisesti", "elintapa", "ohje",
     "voidaan hoitaa", "on suositeltavaa",
+    # Hoitosuositusspesifiset termit
+    "käypä hoito", "hoitosuosituksen", "näytönaste",
+    "suositusluokka", "duodecim", "lääkäriseura",
+    "hoito-ohje", "käypähoito", "hoitoprotokolla",
+    "lääkehoito suosit", "aloitetaan kun", "annostellaan",
 ]
-
+# EI KÄYTÖSSÄ
 def _recommendation_score(text: str) -> int:
     """Laskee suositussanaston esiintymismäärän tekstissä."""
     lower = text.lower()
     return sum(1 for kw in _RECOMMENDATION_KEYWORDS if kw in lower)
 
+
+async def _select_best_chunk(query: str, docs: list) -> int:
+    """
+    Pyytää LLM:ltä indeksin (1-N) parhaalle hoitosuosituksia sisältävälle
+    chunkille. Palauttaa 0-pohjaisen indeksin (oletuksena 0 virhetilanteessa).
+    """
+    snippets = "\n\n".join(
+        f"[{i+1}] {doc.page_content[:300]}..."
+        for i, doc in enumerate(docs)
+    )
+    prompt = (
+        "You are selecting the best health guideline excerpt for a patient.\n"
+        "Question: " + query + "\n\n"
+        "Excerpts from Finnish health guideline PDFs:\n" + snippets + "\n\n"
+        "Which excerpt number (1-" + str(len(docs)) + ") contains the most "
+        "specific and actionable recommendation or guideline relevant to the "
+        "question? Reply with ONLY the number."
+    )
+    try:
+        result = await selector_llm.ainvoke(prompt)
+        idx = int(result.content.strip()) - 1
+        return max(0, min(idx, len(docs) - 1))
+    except Exception:
+        return 0  # Fallback: ensimmäinen
+
+
 async def get_guideline_excerpt(query: str, score_threshold: float = 0.65) -> dict | None:
     """
-    Hakee relevanteimman Chroma-chunkin kyselyn perusteella
-    ILMAN LLM-kutsua. Palauttaa {"text": str, "source": str} tai None.
-    Ei fallbackia – None tarkoittaa "ei osuvaa excerptia".
-    Käy läpi k=5 kandidaattia järjestettynä suositussanaston mukaan.
+    Hakee relevanteimman Chroma-chunkin kyselyn perusteella.
+    Palauttaa {"text": str, "source": str} tai None.
+    Hakee k=10 kandidaattia, suodattaa laaturoskan, ja pyytää LLM:ltä
+    parhaan indeksin. Palautettu teksti on muuttumaton PDF-chunk.
     """
     try:
         retriever = vectorstore.as_retriever(
             search_type="similarity_score_threshold",
-            search_kwargs={"k": 5, "score_threshold": score_threshold}
+            search_kwargs={"k": 10, "score_threshold": score_threshold}
         )
         docs = await retriever.ainvoke(query)
         if not docs:
             return None
-        docs_sorted = sorted(docs, key=lambda d: _recommendation_score(d.page_content), reverse=True)
-        for doc in docs_sorted:
-            text = _strip_broken_prefix(doc.page_content)
+
+        # Suodata laaturoskasta
+        quality_docs = []
+        for doc in docs:
+            text = _clean_chunk_text(doc.page_content)
             if text and _is_quality_excerpt(text):
-                return {
-                    "text": _trim_to_sentence(text, max_chars=500),
-                    "source": doc.metadata.get("source", "käypähoito.fi")
-                }
-        return None
+                quality_docs.append(doc)
+
+        if not quality_docs:
+            return None
+
+        # LLM valitsee parhaan indeksin — teksti pysyy muuttumattomana
+        best_idx = await _select_best_chunk(query, quality_docs)
+        best_doc = quality_docs[best_idx]
+        text = _clean_chunk_text(best_doc.page_content)
+
+        return {
+            "text": _trim_to_sentence(text, max_chars=500),
+            "source": best_doc.metadata.get("source", "käypähoito.fi")
+        }
+
     except Exception as e:
         print(f"get_guideline_excerpt error: {e}")
         return None
@@ -220,6 +281,24 @@ async def get_rag_response(user_input: str, save_to_memory: bool = True) -> str:
         print(f"Chat memory: {memory.messages}")
 
     return response.content
+
+async def translate_excerpt(text: str) -> str:
+    """
+    Kääntää suomenkielisen hoitosuositusotteen englanniksi.
+    Palauttaa alkuperäisen tekstin virhetilanteessa.
+    """
+    prompt = (
+        "Translate the following Finnish health guideline excerpt to English. "
+        "Translate faithfully — do not add, remove, or interpret any medical content. "
+        "Return only the translated text, nothing else.\n\n"
+        + text
+    )
+    try:
+        result = await llm.ainvoke(prompt)
+        return result.content.strip()
+    except Exception:
+        return text  # Fallback: alkuperäinen suomenkielinen teksti
+
 
 async def generate_draft_response(user_input: str) -> str:
     """Generoi RAG-luonnosvastauksen ilman muistiin tallennusta."""

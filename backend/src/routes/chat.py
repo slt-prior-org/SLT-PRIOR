@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from ai_model import rag_cloud
 from ai_model import utils
 from ai_model.classifier import classify_question, Classification
-from ai_model.rag_cloud import get_guideline_excerpt
+from ai_model.rag_cloud import get_guideline_excerpt, translate_excerpt
 from ai_model.emergency import detect_emergency
 from bson import ObjectId
 from database.db import users_collection, chats_collection
@@ -77,10 +77,16 @@ async def send_message(body: SendMessageRequest, request: Request):
 
     # 5) NEEDS_REVIEW – palataan heti, ei RAG-kutsua
     if classification_result.classification == Classification.NEEDS_REVIEW:
-        excerpt_query = f"{user_message} hoitosuositus suomalainen ohje"
+        is_finnish = any(c in user_message for c in "äöåÄÖÅ")
+        if is_finnish:
+            excerpt_query = f"{user_message} hoitosuositus suomalainen ohje"
+        else:
+            excerpt_query = f"{user_message} care guideline Finnish recommendation"
         excerpt_data = await get_guideline_excerpt(excerpt_query, score_threshold=0.60)
 
         if excerpt_data:
+            if not is_finnish:
+                excerpt_data["text"] = await translate_excerpt(excerpt_data["text"])
             # Osuva excerpt löytyi → käyttäjä vahvistaa tarpeen
             reply = (
                 "Löysin aiheeseen liittyvän hoitosuosituksen. "

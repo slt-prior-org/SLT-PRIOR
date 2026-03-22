@@ -1,17 +1,18 @@
 import io
-from typing import List
+from typing import List, Tuple
 from google.cloud import storage
 from PyPDF2 import PdfReader
 
-def download_pdfs_from_bucket(bucket_name: str) -> List[str]:
+def download_pdfs_from_bucket(bucket_name: str) -> List[Tuple[str, str]]:
     """
     Lataa kaikki PDF-tiedostot GCS-bucketista ja palauttaa niiden tekstin listana (yksi elementti per PDF).
+    Palauttaa (teksti, tiedostonimi) -tupleja.
     """
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blobs = bucket.list_blobs()
 
-    all_texts: List[str] = []
+    all_texts: List[Tuple[str, str]] = []
 
     for blob in blobs:
         if blob.name.endswith(".pdf"):
@@ -33,7 +34,7 @@ def download_pdfs_from_bucket(bucket_name: str) -> List[str]:
             # Yhdistetään kaikki sivutekstit yhdeksi stringiksi
             full_text = "\n".join(page_texts)
 
-            all_texts.append(full_text)
+            all_texts.append((full_text, blob.name))
 
     print(f"Ladattu {len(all_texts)} PDF-tiedostoa bucketista {bucket_name}.")
     return all_texts

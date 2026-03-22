@@ -124,6 +124,11 @@
     "return": "Takaisin",
     "optional": "Kaikki kentät ovat valinnaisia"
   },
+  "guidelineExcerpt": "Hoitosuosituksesta",
+  "guidelineSource": "Lähde",
+  "confirmationQuestion": "Auttoiko tämä hoitosuositus sinua?",
+  "confirmYes": "Kyllä, tämä auttoi",
+  "confirmNo": "Ei, tarvitsen lisäapua",
   "patientForm": {
     "title": "Esitietolomake",
     "weight": "Paino",

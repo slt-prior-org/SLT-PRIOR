@@ -22,7 +22,11 @@ def initialize_vectorstore(embeddings, persist_directory, bucket_name):
             chunk_overlap=300,
             separators=["\n\n", "\n", " ", ""],
         )
-        docs = text_splitter.create_documents(all_texts)
+        texts, sources = zip(*all_texts)
+        docs = text_splitter.create_documents(
+            list(texts),
+            metadatas=[{"source": s} for s in sources]
+        )
 
         vectorstore = Chroma.from_documents(
             documents=docs,

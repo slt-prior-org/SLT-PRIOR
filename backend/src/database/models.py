@@ -124,6 +124,12 @@ class CheckSessionResponse(BaseModel):
 # Chat
 class ChatReplyResponse(BaseModel):
     reply: str
+    requires_professional: Optional[bool] = None
+    requires_confirmation: Optional[bool] = None
+    classification: Optional[str] = None
+    classification_reasoning: Optional[str] = None
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
 
 class ChatSummaryItem(BaseModel):
     id: str

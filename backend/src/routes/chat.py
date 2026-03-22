@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 from ai_model import rag_cloud
 from ai_model import utils
 from ai_model.classifier import classify_question, Classification
+from ai_model.rag_cloud import get_guideline_excerpt
 from ai_model.emergency import detect_emergency
 from bson import ObjectId
 from database.db import users_collection, chats_collection
@@ -76,21 +77,42 @@ async def send_message(body: SendMessageRequest, request: Request):
 
     # 5) NEEDS_REVIEW – palataan heti, ei RAG-kutsua
     if classification_result.classification == Classification.NEEDS_REVIEW:
-        safe_message = (
-            "Tämä aihe liittyy henkilökohtaiseen "
-            "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
-            "on välitetty ammattilaiselle arvioitavaksi."
-            "<br><br>"
-            "This topic relates to a personal "
-            "health assessment that I cannot answer. Your conversation has been "
-            "forwarded to a professional for review."
-        )
-        return {
-            "reply": safe_message,
-            "requires_professional": True,
-            "classification": Classification.NEEDS_REVIEW,
-            "classification_reasoning": classification_result.reasoning,
-        }
+        excerpt_query = f"{user_message} hoitosuositus suomalainen ohje"
+        excerpt_data = await get_guideline_excerpt(excerpt_query, score_threshold=0.60)
+
+        if excerpt_data:
+            # Osuva excerpt löytyi → käyttäjä vahvistaa tarpeen
+            reply = (
+                "Löysin aiheeseen liittyvän hoitosuosituksen. "
+                "Auttoiko tämä sinua?"
+                "<br><br>"
+                "I found a relevant care guideline. Was this helpful?"
+            )
+            return {
+                "reply": reply,
+                "requires_confirmation": True,
+                "classification": Classification.NEEDS_REVIEW,
+                "classification_reasoning": classification_result.reasoning,
+                "guideline_excerpt": excerpt_data["text"],
+                "guideline_source": excerpt_data["source"],
+            }
+        else:
+            # Ei osuvaa excerptia → välitetään heti ammattilaiselle
+            safe_message = (
+                "Tämä aihe liittyy henkilökohtaiseen "
+                "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
+                "on välitetty ammattilaiselle arvioitavaksi."
+                "<br><br>"
+                "This topic relates to a personal "
+                "health assessment that I cannot answer. Your conversation has been "
+                "forwarded to a professional for review."
+            )
+            return {
+                "reply": safe_message,
+                "requires_professional": True,
+                "classification": Classification.NEEDS_REVIEW,
+                "classification_reasoning": classification_result.reasoning,
+            }
 
     # 6) Rakennetaan prompt käyttäjädatan perusteella (jos SAFE)
     if logged_in and user_data and user_data.get("patient_info"):

@@ -97,10 +97,16 @@
         :key="message.id"
         :from="message.sender"
         :text="message.content"
+        :guideline-excerpt="message.guideline_excerpt"
+        :guideline-source="message.guideline_source"
+        :requires-confirmation="message.requires_confirmation ?? false"
+        :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
         :extra-class="[
           message.classification === 'needs_review' ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
+        @confirm-helpful="chatStore.dismissConfirmation()"
+        @confirm-needs-forward="chatStore.forwardToProfessional()"
       />
     </div>
 

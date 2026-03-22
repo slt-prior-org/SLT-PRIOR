@@ -14,6 +14,7 @@ export const useUserChatStore = defineStore("userChat", {
     isLoaded: false, // Onko chatit ladattu
     isSending: false, // Estää viestien spam/race condition
     isLoadingChat: false,
+    pendingConfirmationMessageId: null, // Seuraa odottavaa Kyllä/Ei-vahvistusta
   }),
 
   getters: {
@@ -106,6 +107,11 @@ export const useUserChatStore = defineStore("userChat", {
         throw new Error("Chat is locked") // Estää viestit tietyissä tiloissa
       }
 
+      // Käyttäjä jatkoi kirjoittamista → unohdetaan odottava vahvistus
+      if (this.pendingConfirmationMessageId) {
+        this.pendingConfirmationMessageId = null
+      }
+
       this.isSending = true
 
       const chat = this.activeChat
@@ -136,17 +142,25 @@ export const useUserChatStore = defineStore("userChat", {
             content: data.reply,
             flagged_for_human: false,
             classification: data.classification,
+            requires_confirmation: data.requires_confirmation ?? false,
+            guideline_excerpt: data.guideline_excerpt ?? null,
+            guideline_source: data.guideline_source ?? null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }
           console.log("Bot message:", botMessage)
-          
-          chat.messages.push(botMessage)
-        }
 
-        // Päivitetään chatin status tarvittaessa
-        if (data.classification === "needs_review") {
-          chat.status = "waiting_for_professional"
+          chat.messages.push(botMessage)
+
+          // Lukitus VAIN kun requires_professional = true (ei confirmation-tilassa)
+          if (data.requires_professional && !data.requires_confirmation) {
+            chat.status = "waiting_for_professional"
+          }
+
+          // Jos requires_confirmation, tallennetaan odottava viesti-id
+          if (data.requires_confirmation) {
+            this.pendingConfirmationMessageId = botMessage.id
+          }
         }
 
         if (data.classification === "emergency") {
@@ -159,6 +173,28 @@ export const useUserChatStore = defineStore("userChat", {
       } finally {
         this.isSending = false
       }
+    },
+
+    forwardToProfessional() {
+      if (!this.activeChat) return
+      const forwardMsg = {
+        id: crypto.randomUUID(),
+        sender: "bot",
+        content:
+          "Ymmärretty. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.<br><br>Understood. Your conversation has been forwarded to a professional.",
+        flagged_for_human: false,
+        classification: "needs_review",
+        requires_confirmation: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      this.activeChat.messages.push(forwardMsg)
+      this.activeChat.status = "waiting_for_professional"
+      this.pendingConfirmationMessageId = null
+    },
+
+    dismissConfirmation() {
+      this.pendingConfirmationMessageId = null
     },
   },
 })

@@ -125,6 +125,11 @@
     "back": "Return",
     "optional": "All fields are optional"
   },
+  "guidelineExcerpt": "Care guideline excerpt",
+  "guidelineSource": "Source",
+  "confirmationQuestion": "Did this care guideline help you?",
+  "confirmYes": "Yes, this helped",
+  "confirmNo": "No, I need more help",
   "patientForm": {
     "title": "Preliminary Form",
     "weight": "Weight",

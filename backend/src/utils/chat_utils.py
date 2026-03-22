@@ -83,7 +83,8 @@ async def get_chat_summaries(filter_query: dict):
                 "updated_at": 1,
                 "_id": 0,
             }
-        }
+        },
+        {"$sort": {"updated_at": -1}}
     ])
 
     return await cursor.to_list(None)

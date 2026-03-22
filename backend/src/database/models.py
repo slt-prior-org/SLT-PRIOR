@@ -49,15 +49,15 @@ class BloodPressure(BaseModel):
     diastolic: int = Field(..., ge=30, le=200, description="mmHg")
 
 class PatientInfo(BaseModel):
-    weight: float
-    height: float
-    age: int
+    weight: Optional[float] = None
+    height: Optional[float] = None
+    age: Optional[int] = None
     conditions: List[str] = []
-    avg_blood_pressure: BloodPressure
+    avg_blood_pressure: Optional[BloodPressure] = None
     risk_factors: List[str] = []
-    alcohol_use: AlcoholUse
+    alcohol_use: Optional[AlcoholUse] = None
     allergies: List[str] = []
-    activity: ActivityLevel
+    activity: Optional[ActivityLevel] = None
     medications: List[str] = []
     heart_procedures: List[str] = []
 

@@ -1,43 +1,72 @@
 import { defineStore } from "pinia"
-import { addChat, fetchAllUserChats, fetchChat, sendUserMessage } from "@/services/userChatService"
+import {
+  addChat,
+  fetchAllUserChats,
+  fetchChat,
+  sendUserMessage,
+} from "@/services/userChatService"
+
+const LOCKED_STATUSES = ["waiting_for_professional", "in_progress"]
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
     userChats: [],
-    activeChatId: null,
+    activeChat: null,
     isLoaded: false,
-    currentUserId: null
+    isSending: false,
+    isLoadingChat: false,
+    currentUserId: null,
   }),
 
   getters: {
     getUserChats: (state) => state.userChats,
-
+    getActiveChat: (state) => state.activeChat,
+    getLatestChat: (state) => state.userChats[0] || null,
     getWritableChat(state) {
-      return state.userChats.find(
-        (chat) => !["waiting_for_professional", "in_progress"].includes(chat.status)
-      ) || null
+      return (
+        state.userChats.find((chat) => !LOCKED_STATUSES.includes(chat.status)) ||
+        null
+      )
     },
-
-    getActiveChat(state) {
-      if (!state.activeChatId) return null
-      return state.userChats.find(chat => chat.id === state.activeChatId) || null
-    }
   },
 
   actions: {
     resetChatState() {
-      // Tyhjennetään chat-tila, kun käyttäjä vaihtuu
+      // Tyhjennetään chat-tila, kun käyttäjä vaihtuu tai kirjautuu ulos
       this.userChats = []
-      this.activeChatId = null
+      this.activeChat = null
       this.isLoaded = false
+      this.isSending = false
+      this.isLoadingChat = false
       this.currentUserId = null
     },
 
-    setActiveChat(chatId) {
-      this.activeChatId = chatId
+    clearChats() {
+      this.resetChatState()
     },
 
-    async initializeChats(userId = null) {
+    upsertChatSummary(chat) {
+      // Päivitetään chat-listaan tuorein yhteenveto aktiivisesta chatista
+      const summary = {
+        id: chat.id,
+        status: chat.status,
+        created_at: chat.created_at,
+        updated_at: chat.updated_at,
+      }
+      const existingIndex = this.userChats.findIndex((item) => item.id === chat.id)
+
+      if (existingIndex >= 0) {
+        this.userChats.splice(existingIndex, 1, {
+          ...this.userChats[existingIndex],
+          ...summary,
+        })
+        return
+      }
+
+      this.userChats.unshift(summary)
+    },
+
+    async initializeChats(userId = null, force = false) {
       // Nollataan vanhan käyttäjän chatit, jos tunnistautunut käyttäjä vaihtui
       if (this.currentUserId && userId && this.currentUserId !== userId) {
         this.resetChatState()
@@ -47,44 +76,52 @@ export const useUserChatStore = defineStore("userChat", {
         this.currentUserId = userId
       }
 
-      if (this.isLoaded) return
+      if (this.isLoaded && !force) return
+
       try {
         const chats = await fetchAllUserChats()
-        this.userChats = chats.map((chat) => ({
+        this.userChats = [...chats]
+          .sort((first, second) => {
+            const firstUpdatedAt = new Date(first.updated_at).getTime()
+            const secondUpdatedAt = new Date(second.updated_at).getTime()
+            return secondUpdatedAt - firstUpdatedAt
+          })
+          .map((chat) => ({
           ...chat,
-          messages: chat.messages || []
+          messages: chat.messages || [],
         }))
 
-        // Valitaan ensisijaisesti kirjoitettavissa oleva chat
-        if (!this.activeChatId && this.userChats.length > 0) {
-          const writableChat = this.getWritableChat
-          this.activeChatId = writableChat ? writableChat.id : this.userChats[0].id
-          await this.loadActiveChat()
+        if (!this.activeChat && this.userChats.length > 0) {
+          // Näytetään aina viimeisin olemassa oleva chat johdonmukaisesti kirjautumisen jälkeen
+          const initialChatId = this.userChats[0].id
+          await this.setActiveChat(initialChatId)
         }
 
         this.isLoaded = true
       } catch (error) {
-        console.error("Failed to initialize user chats:", error)
+        console.error("Käyttäjän chattien alustus epäonnistui:", error)
+        throw error
       }
     },
 
-    async loadActiveChat() {
-      if (!this.activeChatId) return null
+    async setActiveChat(chatId) {
+      if (this.activeChat?.id === chatId) return this.activeChat
+
+      this.isLoadingChat = true
 
       try {
-        const chat = await fetchChat(this.activeChatId)
-        const existingIndex = this.userChats.findIndex((item) => item.id === chat.id)
-
-        if (existingIndex >= 0) {
-          this.userChats[existingIndex] = chat
-        } else {
-          this.userChats.push(chat)
+        const chat = await fetchChat(chatId)
+        this.activeChat = {
+          ...chat,
+          messages: chat.messages || [],
         }
-
-        return chat
+        this.upsertChatSummary(chat)
+        return this.activeChat
       } catch (error) {
-        console.error("Failed to load active chat:", error)
+        console.error("Aktiivisen chatin lataus epäonnistui:", error)
         throw error
+      } finally {
+        this.isLoadingChat = false
       }
     },
 
@@ -92,47 +129,99 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         const newChat = await addChat()
 
-        this.userChats.push({
+        this.activeChat = {
           ...newChat,
-          messages: []
-        })
+          messages: newChat.messages || [],
+        }
+        this.upsertChatSummary(newChat)
 
-        this.activeChatId = newChat.id
-        await this.loadActiveChat()
-
-        return newChat
+        return this.activeChat
       } catch (error) {
-        console.error("Failed to create chat:", error)
+        console.error("Uuden chatin luonti epäonnistui:", error)
         throw error
       }
     },
 
-    async addUserMessage(message) {
-      const chat = this.getActiveChat
-      if (!chat) return
-
-      if (["waiting_for_professional", "in_progress"].includes(chat.status)) {
-        return
+    async ensureWritableActiveChat() {
+      if (!this.activeChat) {
+        return this.createChat()
       }
 
+      if (!LOCKED_STATUSES.includes(this.activeChat.status)) {
+        return this.activeChat
+      }
+
+      const writableChat = this.getWritableChat
+      if (writableChat) {
+        return this.setActiveChat(writableChat.id)
+      }
+
+      return this.createChat()
+    },
+
+    async addUserMessage(message) {
+      if (!this.activeChat) return
+      if (this.isSending) return
+
+      if (LOCKED_STATUSES.includes(this.activeChat.status)) {
+        throw new Error("Chat on lukittu")
+      }
+
+      this.isSending = true
+
+      // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
+      const optimisticUserMessage = {
+        id: crypto.randomUUID(),
+        sender: "user",
+        content: message,
+        classification: "safe",
+        flagged_for_human: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      this.activeChat.messages = [
+        ...(this.activeChat.messages || []),
+        optimisticUserMessage,
+      ]
+
       try {
-        const data = await sendUserMessage(chat.id, { message })
+        const data = await sendUserMessage(this.activeChat.id, message)
 
-        const { userMessage, botMessage } = data
+        this.activeChat.messages = this.activeChat.messages.filter(
+          (item) => item.id !== optimisticUserMessage.id,
+        )
+        this.activeChat.messages.push(data.userMessage)
 
-        chat.messages.push(userMessage)
-        if (botMessage) chat.messages.push(botMessage)
-
-        if (userMessage.classification === "needs_review") {
-          chat.status = "waiting_for_professional"
+        if (data.botMessage) {
+          this.activeChat.messages.push(data.botMessage)
         }
 
-        if (userMessage.classification === "emergency") {
-          console.log("Emergency message detected")
+        if (
+          data.requires_professional ||
+          data.userMessage.classification === "needs_review"
+        ) {
+          this.activeChat.status = "waiting_for_professional"
         }
 
+        this.activeChat.updated_at =
+          data.botMessage?.updated_at ||
+          data.userMessage.updated_at ||
+          this.activeChat.updated_at
+
+        if (data.userMessage.classification === "emergency") {
+          console.warn("Hätätilaviesti tunnistettu")
+        }
+
+        this.upsertChatSummary(this.activeChat)
       } catch (error) {
-        console.error("Failed to send user message:", error)
+        console.error("Käyttäjän viestin lähetys epäonnistui:", error)
+        this.activeChat.messages = this.activeChat.messages.filter(
+          (item) => item.id !== optimisticUserMessage.id,
+        )
+        throw error
+      } finally {
+        this.isSending = false
       }
     },
   },

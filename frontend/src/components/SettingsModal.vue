@@ -24,14 +24,11 @@
           <PersonalInfo v-if="activeSection === 'personalInfo'" />
           <ModifyPersonalInfo v-if="activeSection === 'modifyPersonalInfo'" />
 
-
-          <UserLogin v-if="!auth.isAuthenticated && activeSection === 'login'" />
+          <UserLogin v-if="!isLoggedIn && activeSection === 'login'" />
           <UserRegister
             v-if="!auth.isAuthenticated && activeSection === 'register'"
             @close="closeModal"
           />
-          <AccessibilitySettings v-if="activeSection === 'accessibility'" />
-          <AnalyticsInsights v-if="activeSection === 'analytics'" />
         </div>
       </div>
     </div>
@@ -48,6 +45,7 @@ import UserLogin from "./settings/UserLogin.vue";
 import UserRegister from "./settings/UserRegister.vue";
 
 const auth = useAuthStore();
+const isLoggedIn = computed(() => !!auth.user);
 const activeSection = ref("personalInfo");
 
 // Props: määritä aloitusosio
@@ -69,7 +67,7 @@ const closeModal = () => {
 const sections = computed(() => {
   const base = [{ key: "personalInfo" }, { key: "modifyPersonalInfo" }];
 
-  if (!auth.isAuthenticated) {
+  if (!isLoggedIn.value) {
     base.push({ key: "login" }, { key: "register" });
   }
 
@@ -81,7 +79,7 @@ const sections = computed(() => {
 watch(
   () => props.initialSection,
   (newVal) => {
-    if (auth.isAuthenticated && (newVal === "login" || newVal === "register")) {
+    if (isLoggedIn.value && (newVal === "login" || newVal === "register")) {
       activeSection.value = "personalInfo";
     } else {
       activeSection.value = newVal;
@@ -128,7 +126,7 @@ watch(
   right: 16px;
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 40px;
   cursor: pointer;
   color: #666;
   transition: color 0.2s;

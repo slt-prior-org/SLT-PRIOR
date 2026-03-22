@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from database.db import users_collection
-from database.models import AuthResponse, UserModel, LoginRequest, UserDetailResponse
+from database.models import AuthResponse, PatientInfo, UserModel, LoginRequest, UserDetailResponse
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
@@ -130,26 +130,33 @@ async def update_me(
     updates: Dict[str, Any],
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    """Update current user's profile fields.
-
-    Notes:
-      - We intentionally block updating password/email here.
-      - Extend allowed fields as needed.
-    """
     blocked = {"password", "email", "_id", "id"}
     for k in list(updates.keys()):
         if k in blocked:
             updates.pop(k, None)
 
+    if "patient_info" in updates and isinstance(updates["patient_info"], dict):
+        existing_patient_info = current_user.get("patient_info", {}) or {}
+        merged_patient_info = {**existing_patient_info, **updates["patient_info"]}
+
+        # remove empty values so partial updates don't create invalid shapes
+        merged_patient_info = {
+            k: v for k, v in merged_patient_info.items()
+            if v is not None
+        }
+
+        updates["patient_info"] = PatientInfo(**merged_patient_info).model_dump()
+
     if not updates:
-        return {"user": _public_user(current_user)}
+        return _public_user(current_user)
 
     await users_collection.update_one(
-        {"_id": current_user["_id"]},
+        {"_id": ObjectId(current_user["_id"])},
         {"$set": updates},
     )
-    refreshed = await users_collection.find_one({"_id": current_user["_id"]})
-    return {"user": _public_user(refreshed)}
+
+    refreshed = await users_collection.find_one({"_id": ObjectId(current_user["_id"])})
+    return _public_user(refreshed)
 
 @router.post("/logout")
 async def logout():

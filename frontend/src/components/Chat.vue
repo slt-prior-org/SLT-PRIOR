@@ -1,328 +1,464 @@
 <template>
   <div class="chat-container">
-    <!-- Esitietolomake-modal -->
-    <PatientForm 
-      v-if="showForm" 
-      @close="closePatientForm" 
-    />
+    <PatientForm v-if="showForm" @close="closePatientForm" />
 
-    <div class="messages">
-      <!-- Tervetuloviesti, joka näytetään vain kerran ensimmäisenä viestinä -->
-      <div
-        v-if="welcomeMessageDisplayed"
-        class="message other"
-      >
-        <div class="message-content">
-          {{ $t("welcomeMessage") }}
-          <a
-            href="#"
-            @click.prevent="openPatientForm"
-          >{{ $t("fillForm") }}</a>.
-          {{ $t("returnLater") }}
+    <div
+      ref="messagesEl"
+      class="messages"
+      :class="{ 'messages--welcome': welcomeMessageDisplayed }"
+    >
+      <section v-if="welcomeMessageDisplayed" class="welcome">
+        <div class="welcome-hero">
+          <div class="welcome-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="welcome-icon-svg">
+              <path
+                d="M7 8h10M7 12h6M12 20l-3.5-3H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-1.5L12 20z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+
+          <h2 class="welcome-title">
+            {{ $t("welcomeTitle") }}
+          </h2>
+          <p class="welcome-subtitle">
+            {{ $t("welcomeDescription") }}
+          </p>
         </div>
-      </div>
 
-      <!-- Käyttäjän ja botin viestit -->
-      <div
-        v-for="(message, index) in messages"
-        :key="index"
-        :class="[
-          'message',
-          message.from === 'self' ? 'self' : 'other',
-          message.from !== 'self' && message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '',
-          message.from !== 'self' && message.classification === 'EMERGENCY' ? 'emergency' : ''
-        ]"
-      >
+        <div class="welcome-cards">
+          <div class="welcome-card">
+            <div class="card-icon" aria-hidden="true">
+              <span class="icon-dot" />
+            </div>
+
+            <h3 class="card-title">
+              {{ $t("chatbotHelpsTitle") }}
+            </h3>
+            <p class="card-text">
+              {{ $t("chatbotHelpsDesc") }}
+            </p>
+          </div>
+
+          <div class="welcome-card">
+            <div class="card-icon" aria-hidden="true">
+              <span class="icon-dot" />
+            </div>
+
+            <h3 class="card-title">
+              {{ $t("professionalSupportTitle") }}
+            </h3>
+            <p class="card-text">
+              {{ $t("professionalSupportDesc") }}
+            </p>
+          </div>
+
+          <div class="welcome-card">
+            <div class="card-icon" aria-hidden="true">
+              <span class="icon-dot" />
+            </div>
+
+            <h3 class="card-title">
+              {{ $t("noDiagnosesTitle") }}
+            </h3>
+            <p class="card-text">
+              {{ $t("noDiagnosesDesc") }}
+            </p>
+          </div>
+        </div>
+
         <div
-          class="message-content"
-          v-html="message.text"
+          class="welcome-alert"
+          role="note"
+          aria-label="Important information"
+        >
+          <div class="alert-icon" aria-hidden="true">!</div>
+          <div class="alert-body">
+            <div class="alert-title">
+              {{ $t("importantInfo") }}
+            </div>
+            <ul class="alert-list">
+              <li>{{ $t("importantInfo1") }}</li>
+              <li>{{ $t("importantInfo2") }}</li>
+              <li>{{ $t("importantInfo3") }}</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <ChatMessage
+        v-for="message in messages"
+        :key="message.id"
+        :from="message.sender"
+        :text="message.content"
+        :extra-class="[
+          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'emergency' ? 'emergency' : '',
+        ]"
+      />
+    </div>
+
+    <div class="input-shell">
+      <div class="chat-input-wrapper">
+        <ChatInputBar
+          v-model="newMessage"
+          :placeholder="$t('prompt')"
+          :input-disabled="!authStore.isAuthenticated"
+          :send-disabled="waitingForBot || !authStore.isAuthenticated"
+          :show-edit="false"
+          :is-editing="false"
+          @send="handleSendFromInputBar"
         />
       </div>
     </div>
-
-    <form
-      class="input-area"
-      @submit.prevent="sendMessage"
-    >
-      <input
-        v-model="newMessage"
-        type="text"
-        :placeholder="$t('prompt')"
-        required
-      >
-      <button type="submit">
-        <p>{{ $t("send") }}</p>
-      </button>
-    </form>
   </div>
 </template>
 
 <script>
-import PatientForm from "./PatientForm.vue";
-import { api } from "@/services/api";
-import { useAuthStore } from "@/stores/authStore";
-import { useUserChatStore } from "@/stores/userChatStore";
-import { useI18n } from "vue-i18n"; // Lisätty kielituki
+import PatientForm from "./PatientForm.vue"
+import ChatMessage from "./chat/ChatMessage.vue"
+import ChatInputBar from "./chat/ChatInputBar.vue"
+import { useI18n } from "vue-i18n"
+import { useUserChatStore } from "@/stores/userChatStore"
+import { useAuthStore } from "@/stores/authStore"
+
+const LOCKED_STATUSES = ["waiting_for_professional", "in_progress"]
 
 export default {
   name: "ChatComponent",
-  components: {
-    PatientForm,
-  },
+  components: { PatientForm, ChatMessage, ChatInputBar },
+
   props: {
     externalShowForm: Boolean,
   },
+
+  emits: ["update:externalShowForm"],
+
   setup() {
-    const { t, locale } = useI18n(); // Hae kielituki
-    const authStore = useAuthStore();
-    const chatStore = useUserChatStore();
-    return { t, locale, authStore, chatStore };
+    const { t } = useI18n()
+    const chatStore = useUserChatStore()
+    const authStore = useAuthStore()
+
+    return { t, chatStore, authStore }
   },
+
   data() {
     return {
-      userId: "user123",
       newMessage: "",
       showForm: false,
-      isInitializing: false,
-    };
+      welcomeMessageDisplayed: true,
+      waitingForBot: false,
+    }
   },
+
   computed: {
-    activeChat() {
-      return this.chatStore.getActiveChat;
-    },
     messages() {
-      return (this.activeChat?.messages || []).map(this.mapBackendMessage);
-    },
-    welcomeMessageDisplayed() {
-      return this.messages.length === 0;
+      return this.chatStore.getActiveChat?.messages ?? []
     },
   },
+
   watch: {
-    externalShowForm(newVal) {
-      this.showForm = newVal;
+    externalShowForm(val) {
+      this.showForm = val
+    },
+
+    messages: {
+      handler(newMessages) {
+        this.welcomeMessageDisplayed = newMessages.length === 0
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
+      },
+      deep: true,
+    },
+
+    "authStore.isAuthenticated": {
+      async handler(isAuthenticated) {
+        if (!isAuthenticated) {
+          this.chatStore.resetChatState()
+          this.welcomeMessageDisplayed = true
+          return
+        }
+
+        await this.initializeActiveChat()
+      },
+      immediate: true,
+    },
+
+    "authStore.getCurrentUserID": {
+      async handler(userId, previousUserId) {
+        if (!this.authStore.isAuthenticated) return
+        if (!userId || userId === previousUserId) return
+
+        await this.initializeActiveChat()
+      },
     },
   },
-  async mounted() {
-    await this.initializeActiveChat();
-  },
+
   methods: {
     openPatientForm() {
-      this.showForm = true;
-      this.$emit("update:externalShowForm", true);
+      this.showForm = true
+      this.$emit("update:externalShowForm", true)
     },
+
     closePatientForm() {
-      this.showForm = false;
-      this.$emit("update:externalShowForm", false);
+      this.showForm = false
+      this.$emit("update:externalShowForm", false)
     },
-    async fetchMapping() {
-      try {
-        const response = await api.get("/api/data"); // Ei löydy backendistä
-        this.mapping = response.data.data;
-      } catch (error) {
-        console.error(this.$t("data-error"), error);
-      }
-    },
-    normalizeClassification(classification) {
-      if (!classification) return "SAFE";
-      return String(classification).toUpperCase();
-    },
-    mapBackendMessage(message) {
-      return {
-        text: message.content,
-        from: message.sender === "user" ? "self" : "other",
-        classification: this.normalizeClassification(message.classification),
-      };
-    },
+
     async initializeActiveChat() {
-      // Käytetään kirjautuneen käyttäjän omaa aktiivista chatia
-      if (!localStorage.getItem("token")) {
-        this.chatStore.resetChatState();
-        return;
-      }
-
-      this.isInitializing = true;
-
       try {
-        await this.chatStore.initializeChats(this.authStore.getCurrentUserID);
+        await this.chatStore.initializeChats(this.authStore.getCurrentUserID)
 
-        // Luodaan uusi chat, jos kirjoitettavaa aktiivista chatia ei ole
-        if (
-          !this.chatStore.getActiveChat ||
-          ["waiting_for_professional", "in_progress"].includes(this.chatStore.getActiveChat.status)
-        ) {
-          await this.chatStore.createChat();
+        // Luodaan uusi chat vain jos käyttäjällä ei ole vielä yhtään keskustelua
+        if (!this.chatStore.getActiveChat) {
+          await this.chatStore.createChat()
         }
       } catch (error) {
-        console.error("Chatin alustus epäonnistui:", error);
-      } finally {
-        this.isInitializing = false;
+        console.error("Chatin alustus epäonnistui:", error)
       }
     },
-    async sendMessage() {
-      if (this.newMessage.trim() === "" || this.isInitializing) return;
 
-      // Varmistetaan, että aktiivinen chat on olemassa ennen lähetystä
-      if (!this.chatStore.getActiveChat) {
-        await this.initializeActiveChat();
+    scrollToBottom() {
+      this.$nextTick(() => {
+        const el = this.$refs.messagesEl
+        if (!el) return
+
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: "smooth",
+        })
+      })
+    },
+
+    handleSendFromInputBar(text) {
+      if (!this.authStore.isAuthenticated) {
+        console.warn("Käyttäjää ei ole tunnistettu")
+        return
       }
 
+      this.newMessage = ""
+      this.sendMessage(text)
+    },
+
+    async sendMessage(text) {
+      const outgoing = (text ?? "").trim()
+      if (!outgoing) return
+      if (this.waitingForBot) return
+
       if (!this.chatStore.getActiveChat) {
-        return;
+        await this.initializeActiveChat()
       }
+
+      // Jos näkyvissä oleva chat on lukittu, vaihdetaan kirjoitettavaan chattiin vasta lähetyksen yhteydessä
+      if (LOCKED_STATUSES.includes(this.chatStore.getActiveChat?.status)) {
+        await this.chatStore.ensureWritableActiveChat()
+      }
+
+      if (!this.chatStore.getActiveChat) return
+
+      this.waitingForBot = true
+      this.welcomeMessageDisplayed = false
 
       try {
-        await this.chatStore.addUserMessage(this.newMessage);
+        await this.chatStore.addUserMessage(outgoing)
       } catch (error) {
-        console.error(this.$t("send-error"), error);
+        console.error(this.$t("send-error"), error)
+      } finally {
+        this.waitingForBot = false
       }
-
-      // Tyhjennä syötekenttä
-      this.newMessage = "";
     },
   },
-};
+}
 </script>
 
 <style scoped>
-body {
-  background-color: #f0f4f8;
-  font-family: "Arial", sans-serif;
-  margin: 0;
-  padding: 0;
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  flex-direction: column;
-}
-
-.logo {
-  width: 200px;
-  height: auto;
-  max-width: 100%;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
-}
-
 .chat-container {
   width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  background: #ffffff;
-  border: 2px solid #005b96;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 91, 150, 0.2);
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 80vh;
+  padding: 24px 0 0;
   box-sizing: border-box;
-  padding: 20px;
 }
 
 .messages {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  margin-bottom: 15px;
-  padding-right: 10px;
-}
-
-.message {
-  margin-bottom: 10px;
-  word-wrap: break-word;
-}
-
-.message.self {
-  text-align: right;
-}
-
-.message.other {
-  text-align: left;
-}
-
-.message-content {
-  display: inline-block;
-  padding: 10px 15px;
-  border-radius: 20px;
-  max-width: 75%;
-  font-size: 1rem;
-}
-
-.message.self .message-content {
-  background: #43a352;
-  color: white;
-}
-
-.message.other .message-content {
-  background: #e0e0e0;
-  color: #333;
-}
-
-.message.needs-review .message-content {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffc107;
-}
-
-.message.emergency .message-content {
-  background: #f8d7da;
-  color: #721c24;
-  border: 2px solid #dc3545;
-  font-weight: bold;
-}
-
-.input-area {
-  display: flex;
-  align-items: center;
-}
-
-.input-area input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
+  max-width: 820px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 18px 18px;
   box-sizing: border-box;
-  font-size: 1rem;
 }
 
-.input-area button {
-  margin-left: 10px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 20px;
-  background-color: #005b96;
-  color: white;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.messages--welcome {
+  overflow-y: hidden;
 }
 
-.input-area button:hover {
-  background-color: #004080;
+.welcome,
+.welcome * {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    "Noto Sans",
+    "Liberation Sans",
+    sans-serif;
 }
 
-@media (max-width: 600px) {
-  .logo {
-    width: 150px;
-  }
+.welcome {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px 0 12px;
+  font-size: 18px;
+  line-height: 1;
+}
 
-  .chat-container {
-    height: 90vh;
-    padding: 15px;
-  }
+.welcome-hero {
+  text-align: center;
+  padding: 10px 10px 18px;
+}
 
-  .message-content {
-    font-size: 0.9rem;
-  }
+.welcome-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px;
+  border-radius: 18px;
+  background: #1d4ed8;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 16px 40px rgba(29, 78, 216, 0.25);
+}
 
-  .input-area input {
-    padding: 8px;
-  }
+.welcome-icon-svg {
+  width: 40px;
+  height: 40px;
+}
 
-  .input-area button {
-    padding: 8px 15px;
-  }
+.welcome-title {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-weight: 750;
+}
+
+.welcome-subtitle {
+  margin: 0 auto;
+  max-width: 640px;
+  color: #475569;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.welcome-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.welcome-card {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  min-height: 150px;
+  padding-bottom: 10px;
+}
+
+.card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #eff6ff;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.icon-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
+.card-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.card-text {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.welcome-alert {
+  margin: 18px auto 0;
+  background: #fff7ed;
+  border: 1px solid #fde68a;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.alert-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: #ffedd5;
+  color: #92400e;
+  display: grid;
+  place-items: center;
+  font-weight: 750;
+  flex: 0 0 auto;
+}
+
+.alert-title {
+  font-weight: 750;
+  color: #7c2d12;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.alert-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #7c2d12;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.input-shell {
+  width: 100%;
+  padding: 12px 18px 18px;
+  box-sizing: border-box;
+  background: rgba(226, 240, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(203, 213, 225, 0.7);
+}
+
+.input-shell > .chat-input-wrapper {
+  max-width: 820px;
+  width: 100%;
+  margin: 0 auto;
 }
 </style>

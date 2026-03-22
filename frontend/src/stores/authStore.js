@@ -61,7 +61,7 @@ export const useAuthStore = defineStore("auth", {
       const userChatStore = useUserChatStore()
 
       // Tyhjennetään näkyvä chat heti uloskirjautuessa
-      userChatStore.resetChatState()
+      userChatStore.clearChats()
       this.user = null
       this.token = null
 

@@ -1,12 +1,14 @@
 <template>
   <div class="chat-container">
+    <!-- Esitietolomake-modal -->
     <PatientForm v-if="showForm" @close="closePatientForm" />
 
     <div
-      ref="messagesEl"
       class="messages"
       :class="{ 'messages--welcome': welcomeMessageDisplayed }"
+      ref="messagesEl"
     >
+      <!-- Tervetuloa-näyttö -->
       <section v-if="welcomeMessageDisplayed" class="welcome">
         <div class="welcome-hero">
           <div class="welcome-icon" aria-hidden="true">
@@ -126,8 +128,6 @@ import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
 
-const LOCKED_STATUSES = ["waiting_for_professional", "in_progress"]
-
 export default {
   name: "ChatComponent",
   components: { PatientForm, ChatMessage, ChatInputBar },
@@ -174,28 +174,28 @@ export default {
         })
       },
       deep: true,
+      immediate: false,
     },
 
     "authStore.isAuthenticated": {
       async handler(isAuthenticated) {
         if (!isAuthenticated) {
-          this.chatStore.resetChatState()
+          this.chatStore.clearChats()
           this.welcomeMessageDisplayed = true
           return
         }
 
-        await this.initializeActiveChat()
+        try {
+          console.log("Käyttäjä kirjautui sisään, alustetaan käyttäjän chatit")
+          await this.chatStore.initializeChats()
+
+          console.log("Kirjautumisen jälkeen luodaan aina uusi aktiivinen chatti")
+          await this.chatStore.createChat()
+        } catch (error) {
+          console.error("Chatin alustus epäonnistui:", error)
+        }
       },
       immediate: true,
-    },
-
-    "authStore.getCurrentUserID": {
-      async handler(userId, previousUserId) {
-        if (!this.authStore.isAuthenticated) return
-        if (!userId || userId === previousUserId) return
-
-        await this.initializeActiveChat()
-      },
     },
   },
 
@@ -208,19 +208,6 @@ export default {
     closePatientForm() {
       this.showForm = false
       this.$emit("update:externalShowForm", false)
-    },
-
-    async initializeActiveChat() {
-      try {
-        await this.chatStore.initializeChats(this.authStore.getCurrentUserID)
-
-        // Luodaan uusi chat vain jos käyttäjällä ei ole vielä yhtään keskustelua
-        if (!this.chatStore.getActiveChat) {
-          await this.chatStore.createChat()
-        }
-      } catch (error) {
-        console.error("Chatin alustus epäonnistui:", error)
-      }
     },
 
     scrollToBottom() {
@@ -251,15 +238,19 @@ export default {
       if (this.waitingForBot) return
 
       if (!this.chatStore.getActiveChat) {
-        await this.initializeActiveChat()
-      }
+        await this.chatStore.initializeChats()
 
-      // Jos näkyvissä oleva chat on lukittu, vaihdetaan kirjoitettavaan chattiin vasta lähetyksen yhteydessä
-      if (LOCKED_STATUSES.includes(this.chatStore.getActiveChat?.status)) {
-        await this.chatStore.ensureWritableActiveChat()
-      }
+        if (
+          !this.chatStore.getActiveChat &&
+          this.chatStore.getUserChats.length > 0
+        ) {
+          await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
+        }
 
-      if (!this.chatStore.getActiveChat) return
+        if (!this.chatStore.getActiveChat) {
+          await this.chatStore.createChat()
+        }
+      }
 
       this.waitingForBot = true
       this.welcomeMessageDisplayed = false
@@ -281,8 +272,10 @@ export default {
   width: 100%;
   height: 100%;
   min-height: 0;
+
   display: flex;
   flex-direction: column;
+
   padding: 24px 0 0;
   box-sizing: border-box;
 }
@@ -291,9 +284,11 @@ export default {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+
   max-width: 820px;
   width: 100%;
   margin: 0 auto;
+
   padding: 0 18px 18px;
   box-sizing: border-box;
 }
@@ -451,6 +446,7 @@ export default {
   width: 100%;
   padding: 12px 18px 18px;
   box-sizing: border-box;
+
   background: rgba(226, 240, 255, 0.92);
   backdrop-filter: blur(6px);
   border-top: 1px solid rgba(203, 213, 225, 0.7);

@@ -1,176 +1,117 @@
+// Pinia-tietovarasto chatille ja viestien hallinnalle
 import { defineStore } from "pinia"
 import {
   addChat,
   fetchAllUserChats,
-  fetchChat,
   sendUserMessage,
+  fetchChat,
 } from "@/services/userChatService"
-
-const LOCKED_STATUSES = ["waiting_for_professional", "in_progress"]
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
-    userChats: [],
-    activeChat: null,
-    isLoaded: false,
-    isSending: false,
+    userChats: [], // Kaikki käyttäjän chatit
+    activeChat: null, // Aktiivinen chat
+    isLoaded: false, // Onko chatit ladattu
+    isSending: false, // Estää viestien spam/race condition
     isLoadingChat: false,
-    currentUserId: null,
   }),
 
   getters: {
-    getUserChats: (state) => state.userChats,
+    getUserChats: (state) => state.userChats, // Palauttaa kaikki chatit
     getActiveChat: (state) => state.activeChat,
-    getLatestChat: (state) => state.userChats[0] || null,
-    getWritableChat(state) {
-      return (
-        state.userChats.find((chat) => !LOCKED_STATUSES.includes(chat.status)) ||
-        null
-      )
-    },
   },
 
   actions: {
-    resetChatState() {
-      // Tyhjennetään chat-tila, kun käyttäjä vaihtuu tai kirjautuu ulos
-      this.userChats = []
-      this.activeChat = null
-      this.isLoaded = false
-      this.isSending = false
-      this.isLoadingChat = false
-      this.currentUserId = null
-    },
-
     clearChats() {
-      this.resetChatState()
+      this.userChats = [] // Tyhjentää chatit
+      this.activeChat = null // Tyhjentää aktiivisen chatin
+      this.isLoaded = false // Resetoi lataustilan
     },
 
-    upsertChatSummary(chat) {
-      // Päivitetään chat-listaan tuorein yhteenveto aktiivisesta chatista
-      const summary = {
-        id: chat.id,
-        status: chat.status,
-        created_at: chat.created_at,
-        updated_at: chat.updated_at,
-      }
-      const existingIndex = this.userChats.findIndex((item) => item.id === chat.id)
-
-      if (existingIndex >= 0) {
-        this.userChats.splice(existingIndex, 1, {
-          ...this.userChats[existingIndex],
-          ...summary,
-        })
-        return
-      }
-
-      this.userChats.unshift(summary)
-    },
-
-    async initializeChats(userId = null, force = false) {
-      // Nollataan vanhan käyttäjän chatit, jos tunnistautunut käyttäjä vaihtui
-      if (this.currentUserId && userId && this.currentUserId !== userId) {
-        this.resetChatState()
-      }
-
-      if (userId && !this.currentUserId) {
-        this.currentUserId = userId
-      }
-
+    // Chatien haku ja alustaminen
+    async initializeChats(force = false) {
       if (this.isLoaded && !force) return
 
       try {
         const chats = await fetchAllUserChats()
-        this.userChats = [...chats]
-          .sort((first, second) => {
-            const firstUpdatedAt = new Date(first.updated_at).getTime()
-            const secondUpdatedAt = new Date(second.updated_at).getTime()
-            return secondUpdatedAt - firstUpdatedAt
-          })
-          .map((chat) => ({
-          ...chat,
-          messages: chat.messages || [],
-        }))
 
-        if (!this.activeChat && this.userChats.length > 0) {
-          // Näytetään aina viimeisin olemassa oleva chat johdonmukaisesti kirjautumisen jälkeen
-          const initialChatId = this.userChats[0].id
-          await this.setActiveChat(initialChatId)
-        }
+        this.userChats = chats
+
+        // Aseta ensimmäinen chat aktiiviseksi jos ei ole
+        //if (!this.activeChatId && this.userChats.length > 0) {
+        //  this.activeChatId = this.userChats[0].id
+        //}
 
         this.isLoaded = true
       } catch (error) {
-        console.error("Käyttäjän chattien alustus epäonnistui:", error)
+        console.error("Failed to initialize user chats:", error)
         throw error
       }
     },
-
+    // Aseta aktiivinen chat
     async setActiveChat(chatId) {
-      if (this.activeChat?.id === chatId) return this.activeChat
+      if (this.activeChat?.id === chatId) return
 
       this.isLoadingChat = true
 
       try {
         const chat = await fetchChat(chatId)
+
         this.activeChat = {
           ...chat,
           messages: chat.messages || [],
         }
-        this.upsertChatSummary(chat)
-        return this.activeChat
       } catch (error) {
-        console.error("Aktiivisen chatin lataus epäonnistui:", error)
+        console.error("Failed to load chat:", error)
         throw error
       } finally {
         this.isLoadingChat = false
       }
     },
-
+    // Uuden chatin luonti
     async createChat() {
       try {
         const newChat = await addChat()
+
+        this.userChats.unshift({
+          id: newChat.id,
+          status: newChat.status,
+          created_at: newChat.created_at,
+          updated_at: newChat.updated_at,
+        })
 
         this.activeChat = {
           ...newChat,
           messages: newChat.messages || [],
         }
-        this.upsertChatSummary(newChat)
 
         return this.activeChat
       } catch (error) {
-        console.error("Uuden chatin luonti epäonnistui:", error)
+        console.error("Failed to create chat:", error)
         throw error
       }
     },
 
-    async ensureWritableActiveChat() {
-      if (!this.activeChat) {
-        return this.createChat()
-      }
-
-      if (!LOCKED_STATUSES.includes(this.activeChat.status)) {
-        return this.activeChat
-      }
-
-      const writableChat = this.getWritableChat
-      if (writableChat) {
-        return this.setActiveChat(writableChat.id)
-      }
-
-      return this.createChat()
-    },
-
+    // Viestin lähetys chatissa (vain tila ja API, ei UI)
     async addUserMessage(message) {
       if (!this.activeChat) return
-      if (this.isSending) return
 
-      if (LOCKED_STATUSES.includes(this.activeChat.status)) {
-        throw new Error("Chat on lukittu")
+      if (this.isSending) return // Estää useat lähetykset
+
+      if (
+        ["waiting_for_professional", "in_progress"].includes(
+          this.activeChat.status,
+        )
+      ) {
+        throw new Error("Chat is locked") // Estää viestit tietyissä tiloissa
       }
 
       this.isSending = true
 
+      const chat = this.activeChat
+
       // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
-      const optimisticUserMessage = {
+      const userMessage = {
         id: crypto.randomUUID(),
         sender: "user",
         content: message,
@@ -180,45 +121,38 @@ export const useUserChatStore = defineStore("userChat", {
         updated_at: new Date().toISOString(),
       }
 
-      this.activeChat.messages = [
-        ...(this.activeChat.messages || []),
-        optimisticUserMessage,
-      ]
+      chat.messages.push(userMessage)
 
       try {
-        const data = await sendUserMessage(this.activeChat.id, message)
+        const data = await sendUserMessage(chat.id, message)
 
-        this.activeChat.messages = this.activeChat.messages.filter(
-          (item) => item.id !== optimisticUserMessage.id,
-        )
-        this.activeChat.messages.push(data.userMessage)
+        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages.push(data.userMessage)
 
+        // Lisätään backendin palauttama botin vastaus, jos sellainen syntyi
         if (data.botMessage) {
-          this.activeChat.messages.push(data.botMessage)
+          chat.messages.push(data.botMessage)
         }
 
+        // Päivitetään chatin status tarvittaessa
         if (
           data.requires_professional ||
           data.userMessage.classification === "needs_review"
         ) {
-          this.activeChat.status = "waiting_for_professional"
+          chat.status = "waiting_for_professional"
         }
 
-        this.activeChat.updated_at =
+        chat.updated_at =
           data.botMessage?.updated_at ||
           data.userMessage.updated_at ||
-          this.activeChat.updated_at
+          chat.updated_at
 
         if (data.userMessage.classification === "emergency") {
           console.warn("Hätätilaviesti tunnistettu")
         }
-
-        this.upsertChatSummary(this.activeChat)
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)
-        this.activeChat.messages = this.activeChat.messages.filter(
-          (item) => item.id !== optimisticUserMessage.id,
-        )
+        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
         throw error
       } finally {
         this.isSending = false

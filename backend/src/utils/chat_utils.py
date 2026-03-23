@@ -1,4 +1,6 @@
-from database.db import chats_collection
+from datetime import datetime
+from database.db import chats_collection, messages_collection
+from database.models import Classification, MessageDetailResponse, SenderType
 from bson import ObjectId
 
 async def get_chat(chat_id: str):
@@ -90,6 +92,13 @@ async def get_chats_with_last_message(filter_query: dict):
     cursor = await chats_collection.aggregate(pipeline)
     return await cursor.to_list(None)
 
+
+def _normalize_message_doc(message: dict) -> dict:
+    normalized = dict(message)
+    normalized["id"] = str(normalized.pop("_id"))
+    normalized["chat_id"] = str(normalized["chat_id"])
+    return normalized
+
 async def get_chat_summaries(filter_query: dict):
     """
     Returns a lightweight list of chats matching the filter.
@@ -106,7 +115,8 @@ async def get_chat_summaries(filter_query: dict):
                 "updated_at": 1,
                 "_id": 0,
             }
-        }
+        },
+        {"$sort": {"updated_at": -1}}
     ])
 
     return await cursor.to_list(None)
@@ -161,3 +171,57 @@ async def get_chats_with_messages(filter_query: dict):
     cursor = await chats_collection.aggregate(pipeline)
 
     return await cursor.to_list(None)
+
+
+async def get_chat_messages(chat_id: str | ObjectId) -> list[dict]:
+    """
+    Returns all messages for a single chat ordered by created_at ascending.
+    """
+    chat_object_id = ObjectId(chat_id) if isinstance(chat_id, str) else chat_id
+    cursor = messages_collection.find({"chat_id": chat_object_id}).sort("created_at", 1)
+    messages = await cursor.to_list(None)
+    return [_normalize_message_doc(message) for message in messages]
+
+
+async def save_chat_message(
+    chat_id: str | ObjectId,
+    sender: SenderType,
+    content: str,
+    classification: Classification = Classification.SAFE,
+    flagged_for_human: bool = False,
+) -> MessageDetailResponse:
+    """
+    Persists a single chat message into MongoDB and returns the normalized message.
+    """
+    chat_object_id = ObjectId(chat_id) if isinstance(chat_id, str) else chat_id
+    now = datetime.utcnow()
+    new_message = {
+        "chat_id": chat_object_id,
+        "sender": sender,
+        "content": content,
+        "classification": classification,
+        "flagged_for_human": flagged_for_human,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    result = await messages_collection.insert_one(new_message)
+    new_message["_id"] = result.inserted_id
+
+    normalized = _normalize_message_doc(new_message)
+    return MessageDetailResponse(**normalized)
+
+
+async def touch_chat(chat_id: str | ObjectId, *, status=None) -> None:
+    """
+    Updates chat.updated_at and optionally chat.status.
+    """
+    chat_object_id = ObjectId(chat_id) if isinstance(chat_id, str) else chat_id
+    update_fields = {"updated_at": datetime.utcnow()}
+    if status is not None:
+        update_fields["status"] = status
+
+    await chats_collection.update_one(
+        {"_id": chat_object_id},
+        {"$set": update_fields},
+    )

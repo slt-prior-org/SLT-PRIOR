@@ -61,7 +61,7 @@
             >
 
               <div class="chat-body">
-                <b>Potilas #{{ chat.id }}</b>
+                <b>Potilas #{{ chat.user_id }}</b>
                 <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
               </div>
 
@@ -190,13 +190,17 @@ const chatStore = useProfessionalChatStore()
 
 const currentUser = computed(() => authStore.user)
 
-const activeChats = computed(() => [
-  ...chatStore.queues.in_progress,
-  ...chatStore.queues.waiting
-])
+const activeChats = computed(() => {
+  const userId = authStore.user?.id
+  if (!userId) return []
+  return [
+    ...chatStore.getMyInProgressChats(userId),
+    ...chatStore.getWaitingChats
+  ]
+})
 
-const waiting = computed(() => chatStore.queues.waiting)
-const closedToday = computed(() => chatStore.queues.closed)
+const waiting = computed(() => chatStore.getWaitingChats)
+const closedToday = computed(() => chatStore.getClosedChats)
 
 const showClosed = ref(false)
 
@@ -335,7 +339,7 @@ function formatTime(date) {
 
 /* chat-lista korttina */
 .main-card{
-  max-width:900px;
+  max-width: clamp(720px, 45vw, 1800px);
   width:100%;
   margin:35px auto;
   background:white;
@@ -388,7 +392,7 @@ function formatTime(date) {
   flex-direction:column;
   gap:12px;
 
-  max-height:400px;
+  max-height: clamp(200px, 40vh, 600px);
   overflow-y:auto;
 }
 

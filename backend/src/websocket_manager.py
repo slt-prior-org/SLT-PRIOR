@@ -58,7 +58,7 @@ class ConnectionManager:
         Sends a JSON message to all connections in a specific room.
         """
         connections = self.rooms.get(room, [])
-        logger.info(f"Broadcasting message to room '{room}' ({len(connections)} connections)")
+        logger.info(f"Broadcasting message '{message}' to room '{room}' ({len(connections)} connections)")
         
         for connection in connections:
             try:

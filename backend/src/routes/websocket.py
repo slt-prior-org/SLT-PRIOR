@@ -4,9 +4,9 @@ from fastapi import (APIRouter,
                      WebSocketDisconnect,
                      )
 from jose import JWTError, jwt
-from ..websocket_manager import manager
+from src.websocket_manager import manager
 from typing import Any, Dict
-from ..utils.chat_utils import get_chat
+from src.utils.chat_utils import get_chat
 from bson import ObjectId
 from config import settings
 from database.db import users_collection
@@ -40,7 +40,7 @@ async def chat_ws(websocket: WebSocket, chat_id: str):
 
     chat = await get_chat(chat_id)
 
-    if not chat or user["_id"] != chat.user_id and user["_id"] != chat.assigned_professional_id:
+    if not chat or user["_id"] != chat.user_id:
         await websocket.close()
         return
 

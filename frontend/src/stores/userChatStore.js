@@ -6,6 +6,8 @@ import {
   sendUserMessage,
   fetchChat,
 } from "@/services/userChatService"
+import { chatSocket } from "@/services/chatSocket"
+import { useAuthStore } from "@/stores/authStore"
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
@@ -61,6 +63,31 @@ export const useUserChatStore = defineStore("userChat", {
           ...chat,
           messages: chat.messages || [],
         }
+
+        const authStore = useAuthStore()
+
+        // katkaise vanha socket
+        chatSocket.disconnect()
+
+        // avaa uusi socket
+        chatSocket.connect(
+          chat.id,
+          authStore.token,
+          (message) => {
+            // message tulee backendiltä websocketin kautta
+            // lisää viesti aktiivisen chatin messages-jonoon
+            this.activeChat.messages.push(message)
+            
+            // päivitys chatin status jos websocket tuo sen
+            if (message.status) {
+              this.activeChat.status = message.status
+            }
+
+            // päivitä viimeisin päivitysaika
+            this.activeChat.updated_at = message.updated_at || this.activeChat.updated_at
+          }
+        )
+
       } catch (error) {
         console.error("Failed to load chat:", error)
         throw error
@@ -80,10 +107,7 @@ export const useUserChatStore = defineStore("userChat", {
           updated_at: newChat.updated_at,
         })
 
-        this.activeChat = {
-          ...newChat,
-          messages: newChat.messages || [],
-        }
+        await this.setActiveChat(newChat.id)
 
         return this.activeChat
       } catch (error) {

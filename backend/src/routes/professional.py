@@ -28,6 +28,7 @@ from ai_model.summarizer import generate_summary_for_professional
 from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse, SmallChatResponse
 from .auth import get_current_user
 from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message
+from src.websocket_manager import manager
 
 router = APIRouter()
 
@@ -188,6 +189,14 @@ async def close_chat(id: str, current_user: Dict[str, Any] = Depends(get_current
 
     if result.matched_count == 0:
         raise HTTPException(404, "Chat not found")
+    
+    await manager.broadcast(
+        f"chat:{id}",
+        {
+            "type": "chat_closed",
+            "chat_id": id
+        }
+    )
 
     return {"status": "success", "message": "Chat closed"}
 
@@ -312,4 +321,9 @@ async def send_professional_message(id: str, body: ProfessionalMessageRequest, c
 
     normalized_message = normalize_message(new_message)
     # Return the whole data of the new_message
+
+    await manager.broadcast(
+        f"chat:{id}",
+        normalized_message
+    )
     return normalized_message

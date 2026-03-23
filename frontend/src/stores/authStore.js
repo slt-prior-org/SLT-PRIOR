@@ -14,7 +14,7 @@ export const useAuthStore = defineStore("auth", {
     loading: false,
   }),
 
-  getters: {
+  getters: {git 
     getCurrentUserID: (state) => state.user?.id || null,
     isPatient: (state) => state.user?.role === "patient",
     isProfessional: (state) => state.user?.role === "professional",

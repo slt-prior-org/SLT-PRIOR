@@ -7,9 +7,11 @@
 "sending": "Sending...",
 "send": "Send",
 "done": "Done",
-  "sender": {
-    "customer": "Customer",
-    "bot": "Bot"},
+"sender": {
+  "customer": "Customer",
+  "bot": "Bot",
+  "professional": "Professional" 
+},
 "editMessage": "Edit message",
 "welcomeTitle": "Welcome to HeartWise",
 "welcomeDescription": "You can ask health-related questions to the chatbot. The AI uses reliable sources when answering.",

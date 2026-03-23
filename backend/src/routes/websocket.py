@@ -10,6 +10,9 @@ from src.utils.chat_utils import get_chat
 from bson import ObjectId
 from config import settings
 from database.db import users_collection
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -39,8 +42,10 @@ async def chat_ws(websocket: WebSocket, chat_id: str):
     user = await verify_token(token)
 
     chat = await get_chat(chat_id)
+    logger.info("chat:", chat)
+    logger.info("user:", user)
 
-    if not chat or user["_id"] != chat.user_id:
+    if not chat or user["_id"] != chat["user_id"]:
         await websocket.close()
         return
 

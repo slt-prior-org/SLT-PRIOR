@@ -3,7 +3,6 @@
     <HeaderBar
       :queue-count="queueCount"
       :closed-count="closedCount"
-      @open-patient-form="openPatientForm"
     />
     <main>
       <Chat
@@ -26,9 +25,9 @@ const queueCount = 0;
 const closedCount = 0;
 
 // Funktio potilaslomakkeen avaamiseksi
-const openPatientForm = () => {
-  showForm.value = true;
-};
+//const openPatientForm = () => {
+//  showForm.value = true;
+//};
 </script>
   
 <style scoped>

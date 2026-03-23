@@ -6,9 +6,11 @@
   "botTyping": "Chatbot kirjoittaa",
   "sending": "Lähetetään...",
   "done": "Valmis",
-    "sender": {
+  "sender": {
     "customer": "Asiakas",
-    "bot": "Bot"},
+    "bot": "Bot",
+    "professional": "Ammattilainen"
+  },
   "editMessage": "Muokkaa viestiä",
   "welcomeTitle": "Tervetuloa HeartWise-palveluun",
   "welcomeDescription": "Voit esittää terveyttäsi koskevia kysymyksiä chatbotille. Tekoäly käyttää luotettavia lähteitä vastatessaan.",

@@ -6,8 +6,6 @@ import {
   sendUserMessage,
   fetchChat,
 } from "@/services/userChatService"
-//import { chatSocket } from "@/services/chatSocket"
-//import { useAuthStore } from "@/stores/authStore"
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
@@ -68,31 +66,6 @@ export const useUserChatStore = defineStore("userChat", {
           ...chat,
           messages: chat.messages || [],
         }
-
-        //const authStore = useAuthStore()
-
-        // katkaise vanha socket
-        //chatSocket.disconnect()
-
-        // avaa uusi socket
-        /**
-        chatSocket.connect(
-          chat.id,
-          authStore.token,
-          (message) => {
-            // message tulee backendiltä websocketin kautta
-            // lisää viesti aktiivisen chatin messages-jonoon
-            this.activeChat.messages.push(message)
-            
-            // päivitys chatin status jos websocket tuo sen
-            if (message.status) {
-              this.activeChat.status = message.status
-            }
-
-            // päivitä viimeisin päivitysaika
-            this.activeChat.updated_at = message.updated_at || this.activeChat.updated_at
-          }
-        ) */
       } catch (error) {
         console.error("Failed to load chat:", error)
         throw error
@@ -120,7 +93,18 @@ export const useUserChatStore = defineStore("userChat", {
         throw error
       }
     },
+    updateChatStatus(status) {
+      this.activeChat.status = status
 
+      // Päivitetään aktiivisen chatin status
+      this.activeChat.status = status
+
+      // Päivitetään myös userChats-taulukossa oleva chat
+      const index = this.userChats.findIndex((c) => c.id === this.activeChat.id)
+      if (index !== -1) {
+        this.userChats[index].status = status
+      }
+    },
     // Viestin lähetys chatissa (vain tila ja API, ei UI)
     async addUserMessage(message) {
       if (!this.activeChat) return
@@ -170,17 +154,17 @@ export const useUserChatStore = defineStore("userChat", {
           data.requires_professional ||
           data.userMessage.classification === "needs_review"
         ) {
-          chat.status = "waiting_for_professional"
+          this.updateChatStatus("waiting_for_professional")
+        }
+
+        if (data.userMessage.classification === "emergency") {
+          console.warn("Hätätilaviesti tunnistettu")
         }
 
         chat.updated_at =
           data.botMessage?.updated_at ||
           data.userMessage.updated_at ||
           chat.updated_at
-
-        if (data.userMessage.classification === "emergency") {
-          console.warn("Hätätilaviesti tunnistettu")
-        }
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)
         chat.messages = chat.messages.filter(

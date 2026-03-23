@@ -6,6 +6,7 @@ import {
   loginUser,
   updateUserProfile,
 } from "@/services/authService"
+import { chatSocket } from "@/services/chatSocket"
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
@@ -84,6 +85,9 @@ export const useAuthStore = defineStore("auth", {
       userChatStore.clearChats()
       this.user = null
       this.token = null
+
+      // Suljetaan WebSocket yhteys
+      chatSocket.disconnect()
 
       sessionStorage.removeItem("token")
     },

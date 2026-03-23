@@ -10,11 +10,11 @@ import {
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     user: null,
-    token: localStorage.getItem("token") || null,
+    token: sessionStorage.getItem("token") || null,
     loading: false,
   }),
 
-  getters: {git 
+  getters: {
     getCurrentUserID: (state) => state.user?.id || null,
     isPatient: (state) => state.user?.role === "patient",
     isProfessional: (state) => state.user?.role === "professional",
@@ -23,37 +23,37 @@ export const useAuthStore = defineStore("auth", {
 
   actions: {
     async register(formData) {
-      this.loading = true;
+      this.loading = true
       try {
-        const data = await registerUser(formData);
+        const data = await registerUser(formData)
 
-        this.user = data.user;
-        this.token = data.token;
+        this.user = data.user
+        this.token = data.token
 
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token)
       } catch (error) {
-        console.error("Registration failed:", error);
-        throw error;
+        console.error("Registration failed:", error)
+        throw error
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
     async login(email, password) {
-      this.loading = true;
+      this.loading = true
 
       try {
-        const data = await loginUser(email, password);
+        const data = await loginUser(email, password)
 
-        this.user = data.user;
-        this.token = data.token;
+        this.user = data.user
+        this.token = data.token
 
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token)
       } catch (error) {
-        console.error("Login failed:", error);
-        throw error;
+        console.error("Login failed:", error)
+        throw error
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
@@ -65,11 +65,11 @@ export const useAuthStore = defineStore("auth", {
       this.user = null
       this.token = null
 
-      localStorage.removeItem("token")
+      sessionStorage.removeItem("token")
     },
 
     async fetchUser() {
-      if (!this.token) return;
+      if (!this.token) return
 
       this.loading = true
 
@@ -79,21 +79,21 @@ export const useAuthStore = defineStore("auth", {
       } catch (error) {
         console.error("Käyttäjän tietojen haku epäonnistui:", error)
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
     async updateProfile(formData) {
-      this.loading = true;
+      this.loading = true
 
       try {
-        const updatedUser = await updateUserProfile(formData);
-        this.user = updatedUser;
+        const updatedUser = await updateUserProfile(formData)
+        this.user = updatedUser
       } catch (error) {
         console.error("Profiilin päivitys epäonnistui:", error)
         throw error
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
   },

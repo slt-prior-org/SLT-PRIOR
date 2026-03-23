@@ -171,7 +171,7 @@ async function handleLoginLogout() {
   display:flex;
   justify-content:center;
   align-items:center;
-  padding:16px 28px;
+  padding: clamp(10px, 1.2vw, 16px) clamp(16px, 2vw, 28px);
   background:white;
   border-bottom:1px solid #eee;
   z-index: 1002;
@@ -185,7 +185,7 @@ async function handleLoginLogout() {
 
 .left {
   position: absolute;
-  left: 28px;
+  left: clamp(12px, 2vw, 28px);
   display:flex; 
   align-items:center;
 }
@@ -196,15 +196,16 @@ async function handleLoginLogout() {
 }
 
 .logo {
-  width: 200px;
-  height: 100px;
+  max-height: clamp(30px, 4vw, 100px);
+  width: auto;
   object-fit: contain;
 }
 
 .badge {
   background:#e8eefc;
   color:#3a5bdc;
-  padding:6px 14px;
+  padding: clamp(2px, 0.5vw, 6px) clamp(6px, 1vw, 14px);
+  font-size: clamp(13px, 0.7vw, 18px);
   border-radius:20px;
 }
 
@@ -215,14 +216,14 @@ async function handleLoginLogout() {
 
 .right {
   position: absolute;
-  right: 28px;
+  right: clamp(12px, 2vw, 28px);
   display:flex;
   gap:16px;
   align-items:center;
   z-index: 1;
 }
 
-.user { display:flex; flex-direction:column; font-size:18px; }
+.user { display:flex; flex-direction:column; font-size:clamp(14px, 1vw, 18px); }
 
 .auth-actions {
   display: flex;

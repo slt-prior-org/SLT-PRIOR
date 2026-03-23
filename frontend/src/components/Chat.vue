@@ -177,25 +177,20 @@ export default {
       immediate: false,
     },
 
-    "authStore.isAuthenticated": {
-      async handler(isAuthenticated) {
-        if (!isAuthenticated) {
-          this.chatStore.clearChats()
+    "chatStore.activeChat": {
+      handler(activeChat) {
+        console.log("Aktiivinen chat päivittyi, päivitä chat näkymä")
+        if (!activeChat) {
+          // Ei aktiivista chattiä -> tervetuloa näkyviin
           this.welcomeMessageDisplayed = true
           return
         }
 
-        try {
-          console.log("Käyttäjä kirjautui sisään, alustetaan käyttäjän chatit")
-          await this.chatStore.initializeChats()
-
-          console.log("Kirjautumisen jälkeen luodaan aina uusi aktiivinen chatti")
-          await this.chatStore.createChat()
-        } catch (error) {
-          console.error("Chatin alustus epäonnistui:", error)
-        }
+        // Jos chatti on olemassa mutta viestejä ei ole -> tervetuloa
+        this.welcomeMessageDisplayed = !activeChat.messages?.length
       },
       immediate: true,
+      deep: true,
     },
   },
 
@@ -236,21 +231,7 @@ export default {
       const outgoing = (text ?? "").trim()
       if (!outgoing) return
       if (this.waitingForBot) return
-
-      if (!this.chatStore.getActiveChat) {
-        await this.chatStore.initializeChats()
-
-        if (
-          !this.chatStore.getActiveChat &&
-          this.chatStore.getUserChats.length > 0
-        ) {
-          await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
-        }
-
-        if (!this.chatStore.getActiveChat) {
-          await this.chatStore.createChat()
-        }
-      }
+      if (!this.chatStore.getActiveChat) return
 
       this.waitingForBot = true
       this.welcomeMessageDisplayed = false

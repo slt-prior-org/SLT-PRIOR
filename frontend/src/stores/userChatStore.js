@@ -6,8 +6,8 @@ import {
   sendUserMessage,
   fetchChat,
 } from "@/services/userChatService"
-import { chatSocket } from "@/services/chatSocket"
-import { useAuthStore } from "@/stores/authStore"
+//import { chatSocket } from "@/services/chatSocket"
+//import { useAuthStore } from "@/stores/authStore"
 
 export const useUserChatStore = defineStore("userChat", {
   state: () => ({
@@ -28,6 +28,11 @@ export const useUserChatStore = defineStore("userChat", {
       this.userChats = [] // Tyhjentää chatit
       this.activeChat = null // Tyhjentää aktiivisen chatin
       this.isLoaded = false // Resetoi lataustilan
+      this.isSending = false
+      this.isLoadingChat = false
+      if (sessionStorage.getItem("userChat")) {
+        sessionStorage.removeItem("userChat")
+      }
     },
 
     // Chatien haku ja alustaminen
@@ -52,7 +57,7 @@ export const useUserChatStore = defineStore("userChat", {
     },
     // Aseta aktiivinen chat
     async setActiveChat(chatId) {
-      if (this.activeChat?.id === chatId) return
+      if (!chatId || (this.activeChat && this.activeChat.id === chatId)) return
 
       this.isLoadingChat = true
 
@@ -64,12 +69,13 @@ export const useUserChatStore = defineStore("userChat", {
           messages: chat.messages || [],
         }
 
-        const authStore = useAuthStore()
+        //const authStore = useAuthStore()
 
         // katkaise vanha socket
-        chatSocket.disconnect()
+        //chatSocket.disconnect()
 
         // avaa uusi socket
+        /**
         chatSocket.connect(
           chat.id,
           authStore.token,
@@ -86,8 +92,7 @@ export const useUserChatStore = defineStore("userChat", {
             // päivitä viimeisin päivitysaika
             this.activeChat.updated_at = message.updated_at || this.activeChat.updated_at
           }
-        )
-
+        ) */
       } catch (error) {
         console.error("Failed to load chat:", error)
         throw error
@@ -150,7 +155,9 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         const data = await sendUserMessage(chat.id, message)
 
-        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages = chat.messages.filter(
+          (item) => item.id !== userMessage.id,
+        )
         chat.messages.push(data.userMessage)
 
         // Lisätään backendin palauttama botin vastaus, jos sellainen syntyi
@@ -176,11 +183,18 @@ export const useUserChatStore = defineStore("userChat", {
         }
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)
-        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages = chat.messages.filter(
+          (item) => item.id !== userMessage.id,
+        )
         throw error
       } finally {
         this.isSending = false
       }
     },
+  },
+  persist: {
+    storage: sessionStorage,
+    key: "userChat",
+    paths: ["userChats", "activeChat"], // vain nämä osiot tallennetaan
   },
 })

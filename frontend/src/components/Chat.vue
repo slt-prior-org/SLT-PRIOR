@@ -102,6 +102,13 @@
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
       />
+
+      <!-- Bot typing indicator -->
+      <div v-if="waitingForBot" class="typing-indicator">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </div>
 
     <div class="input-shell">
@@ -127,6 +134,8 @@ import ChatInputBar from "./chat/ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
+import { onMounted, watch, ref, nextTick } from "vue"
+import { chatSocket } from "@/services/chatSocket"
 
 export default {
   name: "ChatComponent",
@@ -138,130 +147,125 @@ export default {
 
   emits: ["update:externalShowForm"],
 
-  setup() {
+  setup(props, { emit }) {
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
 
-    return { t, chatStore, authStore }
-  },
+    const welcomeMessageDisplayed = ref(true)
+    const messagesEl = ref(null)
+    const newMessage = ref("")
+    const waitingForBot = ref(false)
+    const showForm = ref(false)
 
-  data() {
+    const scrollToBottom = () => {
+      nextTick(() => {
+        if (messagesEl.value) {
+          messagesEl.value.scrollTo({
+            top: messagesEl.value.scrollHeight,
+            behavior: "smooth",
+          })
+        }
+      })
+    }
+
+    const connectWebsocket = (chat) => {
+      if (!chat) return
+      chatSocket.connect(chat.id, authStore.token, (message) => {
+        chat.messages.push(message)
+        chatStore.updateChatStatus("open")
+        scrollToBottom()
+      })
+    }
+
+    onMounted(() => {
+      if (chatStore.activeChat) {
+        connectWebsocket(chatStore.activeChat)
+        welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
+        scrollToBottom()
+      } 
+    })
+
+    watch(
+      () => chatStore.activeChat,
+      (newChat) => {
+        if (!newChat) {
+          welcomeMessageDisplayed.value = true
+          return
+        }
+        connectWebsocket(newChat)
+        welcomeMessageDisplayed.value = !newChat.messages?.length
+        scrollToBottom()
+      },
+      { immediate: true },
+    )
+
+    watch(
+      () => chatStore.activeChat?.messages,
+      (messages) => {
+        welcomeMessageDisplayed.value = !messages?.length
+        scrollToBottom()
+      },
+      { deep: true },
+    )
+
+    watch(
+      () => props.externalShowForm,
+      (val) => {
+        showForm.value = val
+      },
+    )
+
+    const openPatientForm = () => {
+      showForm.value = true
+      emit("update:externalShowForm", true)
+    }
+
+    const closePatientForm = () => {
+      showForm.value = false
+      emit("update:externalShowForm", false)
+    }
+
+    const handleSendFromInputBar = async (text) => {
+      if (!authStore.isAuthenticated) return
+      if (!text.trim()) return
+
+      newMessage.value = ""
+      waitingForBot.value = true
+      welcomeMessageDisplayed.value = false
+
+      try {
+        // Luo chat vain jos sitä ei ole
+        if (!chatStore.activeChat) {
+          await chatStore.createChat()
+        }
+        await chatStore.addUserMessage(text.trim())
+      } catch (error) {
+        console.error("Send error:", error)
+      } finally {
+        waitingForBot.value = false
+      }
+    }
+
     return {
-      newMessage: "",
-      showForm: false,
-      welcomeMessageDisplayed: true,
-      waitingForBot: false,
+      t,
+      chatStore,
+      authStore,
+      welcomeMessageDisplayed,
+      messagesEl,
+      newMessage,
+      waitingForBot,
+      showForm,
+      scrollToBottom,
+      handleSendFromInputBar,
+      openPatientForm,
+      closePatientForm,
     }
   },
 
   computed: {
     messages() {
       return this.chatStore.getActiveChat?.messages ?? []
-    },
-  },
-
-  watch: {
-    externalShowForm(val) {
-      this.showForm = val
-    },
-
-    messages: {
-      handler(newMessages) {
-        this.welcomeMessageDisplayed = newMessages.length === 0
-        this.$nextTick(() => {
-          this.scrollToBottom()
-        })
-      },
-      deep: true,
-      immediate: false,
-    },
-
-    "authStore.isAuthenticated": {
-      async handler(isAuthenticated) {
-        if (!isAuthenticated) {
-          this.chatStore.clearChats()
-          this.welcomeMessageDisplayed = true
-          return
-        }
-
-        try {
-          console.log("Käyttäjä kirjautui sisään, alustetaan käyttäjän chatit")
-          await this.chatStore.initializeChats()
-
-          console.log("Kirjautumisen jälkeen luodaan aina uusi aktiivinen chatti")
-          await this.chatStore.createChat()
-        } catch (error) {
-          console.error("Chatin alustus epäonnistui:", error)
-        }
-      },
-      immediate: true,
-    },
-  },
-
-  methods: {
-    openPatientForm() {
-      this.showForm = true
-      this.$emit("update:externalShowForm", true)
-    },
-
-    closePatientForm() {
-      this.showForm = false
-      this.$emit("update:externalShowForm", false)
-    },
-
-    scrollToBottom() {
-      this.$nextTick(() => {
-        const el = this.$refs.messagesEl
-        if (!el) return
-
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior: "smooth",
-        })
-      })
-    },
-
-    handleSendFromInputBar(text) {
-      if (!this.authStore.isAuthenticated) {
-        console.warn("Käyttäjää ei ole tunnistettu")
-        return
-      }
-
-      this.newMessage = ""
-      this.sendMessage(text)
-    },
-
-    async sendMessage(text) {
-      const outgoing = (text ?? "").trim()
-      if (!outgoing) return
-      if (this.waitingForBot) return
-
-      if (!this.chatStore.getActiveChat) {
-        await this.chatStore.initializeChats()
-
-        if (
-          !this.chatStore.getActiveChat &&
-          this.chatStore.getUserChats.length > 0
-        ) {
-          await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
-        }
-
-        if (!this.chatStore.getActiveChat) {
-          await this.chatStore.createChat()
-        }
-      }
-
-      this.waitingForBot = true
-      this.welcomeMessageDisplayed = false
-
-      try {
-        await this.chatStore.addUserMessage(outgoing)
-      } catch (error) {
-        console.error(this.$t("send-error"), error)
-      } finally {
-        this.waitingForBot = false
-      }
     },
   },
 }
@@ -456,5 +460,44 @@ export default {
   max-width: 820px;
   width: 100%;
   margin: 0 auto;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  width: fit-content;
+  background: #f1f5f9;
+  border-radius: 14px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #64748b;
+  border-radius: 50%;
+  animation: typing 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

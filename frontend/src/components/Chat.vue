@@ -173,6 +173,7 @@ export default {
       if (!chat) return
       chatSocket.connect(chat.id, authStore.token, (message) => {
         chat.messages.push(message)
+        chatStore.updateChatStatus("open")
         scrollToBottom()
       })
     }
@@ -180,10 +181,9 @@ export default {
     onMounted(() => {
       if (chatStore.activeChat) {
         connectWebsocket(chatStore.activeChat)
-        chatStore.updateChatStatus("open")
         welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
         scrollToBottom()
-      }
+      } 
     })
 
     watch(
@@ -235,6 +235,10 @@ export default {
       welcomeMessageDisplayed.value = false
 
       try {
+        // Luo chat vain jos sitä ei ole
+        if (!chatStore.activeChat) {
+          await chatStore.createChat()
+        }
         await chatStore.addUserMessage(text.trim())
       } catch (error) {
         console.error("Send error:", error)

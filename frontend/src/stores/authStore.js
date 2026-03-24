@@ -37,11 +37,6 @@ export const useAuthStore = defineStore("auth", {
         const chatStore = useUserChatStore()
         await chatStore.initializeChats()
 
-        // Jos Pinian store ei sisällä aktiivista chattia, luodaan uusi
-        if (!chatStore.activeChat) {
-          console.log("käyttäjä reksiteröityi sovellukseen, luodaan tyhjä chat")
-          await chatStore.createChat()
-        }
       } catch (error) {
         console.error("Registration failed:", error)
         throw error
@@ -65,11 +60,6 @@ export const useAuthStore = defineStore("auth", {
         const chatStore = useUserChatStore()
         await chatStore.initializeChats()
 
-        // Jos Pinian store ei sisällä aktiivista chattia, luodaan uusi
-        if (!chatStore.activeChat) {
-          console.log("käyttäjä kirjautui sisään, luodaan tyhjä chat")
-          await chatStore.createChat()
-        }
       } catch (error) {
         console.error("Login failed:", error)
         throw error

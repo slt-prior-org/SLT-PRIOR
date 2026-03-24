@@ -190,14 +190,6 @@ async def close_chat(id: str, current_user: Dict[str, Any] = Depends(get_current
 
     if result.matched_count == 0:
         raise HTTPException(404, "Chat not found")
-    
-    await manager.broadcast(
-        f"chat:{id}",
-        {
-            "type": "chat_closed",
-            "chat_id": id
-        }
-    )
 
     return {"status": "success", "message": "Chat closed"}
 

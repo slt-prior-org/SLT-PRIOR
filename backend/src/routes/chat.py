@@ -46,7 +46,7 @@ async def send_message(body: SendMessageRequest, request: Request):
     if emergency:
         return {
             "reply": emergency.emergency_message_en,
-            "classification": Classification.EMERGENCY.value,
+            "classification": Classification.EMERGENCY,
             "sources": [],
         }
 
@@ -89,7 +89,7 @@ async def send_message(body: SendMessageRequest, request: Request):
         return {
             "reply": safe_message,
             "requires_professional": True,
-            "classification": Classification.NEEDS_REVIEW.value,
+            "classification": Classification.NEEDS_REVIEW,
             "classification_reasoning": classification_result.reasoning,
             "sources": [],
         }
@@ -112,7 +112,7 @@ async def send_message(body: SendMessageRequest, request: Request):
 
     return {
         "reply": formatted_text,
-        "classification": Classification.SAFE.value,
+        "classification": Classification.SAFE,
         "sources": rag_result["sources"]
     }
 

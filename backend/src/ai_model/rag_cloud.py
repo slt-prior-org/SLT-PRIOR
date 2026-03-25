@@ -5,7 +5,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.chat_history import InMemoryChatMessageHistory
 
-# -----------------------------
+# ----------------------------- 
 # 1) Embeddings + Vectorstore
 # -----------------------------
 embeddings = GoogleGenerativeAIEmbeddings(
@@ -13,23 +13,21 @@ embeddings = GoogleGenerativeAIEmbeddings(
     google_api_key=settings.GOOGLE_API_KEY
 )
 
-vectorstore = initialize_vectorstore(
-    embeddings,
-    settings.PERSIST_DIRECTORY,
-    settings.BUCKET_NAME
-)
+vectorstore = initialize_vectorstore(embeddings, settings.PERSIST_DIRECTORY, settings.BUCKET_NAME)
 
 # -----------------------------
-# 2) RAG chain
+# 2) Luodaan RAG-ketju (retriever + LLM + prompt)
 # -----------------------------
+
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-001",
-    temperature=0.3,
-    max_tokens=1000,
+    model='gemini-2.0-flash-001', # Gemini 2.0 Flash
+    temperature=0.3, # Alustava lämpötila
+    max_tokens=1000,    # nostettu 500 -> 1000
     top_p=0.9,
     google_api_key=settings.GOOGLE_API_KEY
 )
 
+# Alustetaan keskustelumuisti
 memory = InMemoryChatMessageHistory()
 
 system_prompt = (
@@ -52,8 +50,8 @@ system_prompt = (
     "'Valitettavasti minulla ei ole riittävästi tietoa esittämääsi aiheeseen. Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon tarvittaessa.' "
     "Tämän jälkeen kysy luontevasti jatkokysymys, joka auttaa käyttäjää tarkentamaan tilannettaan ottaen huomioon aikaisemman keskustelun. "
 
-    "\n\nContext:\n{context}\n\n"
-    "Chat history: {chat_history}"
+    "\n\n"
+    "Context: {context}\n\n"
 )
 
 prompt = ChatPromptTemplate.from_messages(
@@ -67,6 +65,9 @@ prompt = ChatPromptTemplate.from_messages(
 rag_chain = prompt | llm
 
 
+# -----------------------------
+# 3) Dokumenttien haku: ensin threshold, tarvittaessa MMR-fallback
+# -----------------------------
 async def retrieve_with_fallback(
     user_input: str,
     vectorstore,
@@ -74,23 +75,30 @@ async def retrieve_with_fallback(
     score_threshold: float = 0.6,
     fallback_k: int = 5
 ):
+    """
+    Hakee ensin dokumentit similarity_thresholdilla. 
+    Jos ei löydy tarpeeksi osumia, käyttää MMR-fallbackia.
+    Palauttaa listan relevantteja dokumentteja.
+    """
+
+    # Threshold-haku
     retriever = vectorstore.as_retriever(
-        search_type="similarity_score_threshold",
-        search_kwargs={"k": top_k, "score_threshold": score_threshold}
+        search_type="similarity_score_threshold", # Vain dokumentit, jotka ovat riittävän lähellä käyttäjän kysymystä, otetaan mukaan.
+        search_kwargs={"k": top_k, "score_threshold": score_threshold} # Kysytään 6 eniten samankaltaista dokumenttia, joista vain ne, joiden samankaltaisuus on yli 0.6, otetaan mukaan.
     )
 
     relevant_docs = await retriever.ainvoke(user_input)
 
+    # Fallback tarvittaessa
     if not relevant_docs:
-        print("⚠️ Ei tarpeeksi relevantteja osumia threshold-hausta – fallback MMR...")
+        print("⚠️ Ei tarpeeksi relevantteja osumia threshold-hausta – otetaan käyttöön fallback MMR...")
         fallback_retriever = vectorstore.as_retriever(
             search_type="mmr",
-            search_kwargs={"k": fallback_k}
+            search_kwargs={"k": fallback_k}#, "fetch_k": 20, "lambda_mult": 0.5}
         )
         relevant_docs = await fallback_retriever.ainvoke(user_input)
 
     return relevant_docs
-
 
 def _build_context_and_sources(relevant_docs):
     context_parts = []
@@ -125,14 +133,19 @@ def _build_context_and_sources(relevant_docs):
 
     return "\n\n".join(context_parts), deduped_sources
 
-
+# -----------------------------
+# 4) Julkaistava funktio, jolla saa RAG-vastauksen
+# -----------------------------
 async def get_rag_response(user_input: str, save_to_memory: bool = True) -> dict:
     """
-    Palauttaa sekä vastauksen että lähteet.
+    Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen tekstinä. 
+    Draft_response-ominaisuus: save_to_memory=False hakee vastauksen ilman, 
+    että keskustelumuistiin tallennetaan uusia viestejä.
     """
     if save_to_memory:
         memory.add_user_message(user_input)
 
+    # Hae dokumentit threshold + fallback -logiikalla
     relevant_docs = await retrieve_with_fallback(user_input, vectorstore)
 
     if not relevant_docs:
@@ -167,9 +180,11 @@ async def get_rag_response(user_input: str, save_to_memory: bool = True) -> dict
 
 
 async def generate_draft_response(user_input: str) -> str:
+    """Generoi RAG-luonnosvastauksen ilman muistiin tallennusta."""
     result = await get_rag_response(user_input, save_to_memory=False)
     return result["answer"]
 
 
 def clear_conversation_memory():
+    # Tyhjentää keskustelumuistin
     memory.clear()

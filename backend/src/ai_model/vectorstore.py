@@ -11,6 +11,7 @@ def initialize_vectorstore(embeddings, persist_directory, bucket_name):
             embedding_function=embeddings
         )
     else:
+        # Ladataan PDF:t GCS:stä
         print("Ladataan ja prosessoidaan kaikki PDF-tiedostot bucketista...")
 
         page_docs = download_pdfs_from_bucket(bucket_name)

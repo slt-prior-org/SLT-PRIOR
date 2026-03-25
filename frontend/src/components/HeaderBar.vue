@@ -70,8 +70,8 @@ const dropdownItems = computed(() => {
     ]
   }
 
+  // Kirjautumattomalle näytetään vain nämä
   return [
-    { key: "settings", labelKey: "settings.title", action: () => openSettings("personalInfo") },
     { key: "login", labelKey: "settings.login", action: () => openSettings("login") },
     { key: "register", labelKey: "settings.register", action: () => openSettings("register") }
   ]
@@ -135,7 +135,7 @@ async function handleLoginLogout() {
         </AppButton>
       </div>
 
-      <AppButton class="gear" variant="neutral" @click="toggleMenu">
+      <AppButton v-if="loggedIn" class="gear" variant="neutral" @click="toggleMenu">
         <svg
           viewBox="0 0 24 24"
           width="22"
@@ -147,6 +147,10 @@ async function handleLoginLogout() {
             fill="currentColor"
           />
         </svg>
+      </AppButton>
+
+      <AppButton v-else class="login-btn" size= lg variant="primary" @click="openSettings('login')">
+        {{$t("settings.login")}}
       </AppButton>
 
       <div v-if="menuOpen" class="menu">
@@ -272,25 +276,22 @@ async function handleLoginLogout() {
 }
 
 /* Asetusrattaan tyylit ja animaatiot */
-.gear {
-  background:#eef2f8;
-  border:none;
-  border-radius:22px;
-  min-width:44px;
-  min-height:44px;
-  padding:10px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.login-btn {
+  background: #3a5bdc;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 18px;
+  cursor: pointer;
   transition: background 0.2s, transform 0.15s;
 }
 
-.gear:hover {
-  background:#dfe7ff;
+.login-btn:hover {
+  background: #2a45b8;
 }
 
-.gear:active {
+.login-btn:active {
   transform: scale(0.97);
 }
 

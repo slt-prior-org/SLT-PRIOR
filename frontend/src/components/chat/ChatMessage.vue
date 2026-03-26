@@ -7,42 +7,45 @@
 
       <div class="bubble" v-html="text" />
 
-      <div v-if="from !== 'self' && sources.length" class="sources-toggle-wrap">
-        <button
-          type="button"
-          class="sources-toggle"
-          @click="sourcesOpen = !sourcesOpen"
-        >
-          {{ sourcesOpen ? "Hide sources" : "Show sources" }}
-        </button>
+      <!-- Toggle button -->
+      <button
+        v-if="fromClass !== 'self' && normalizedSources.length"
+        class="sources-toggle"
+        @click="showSources = !showSources"
+      >
+        {{ showSources ? "Hide sources" : "Show sources" }}
+      </button>
 
-        <div v-if="sourcesOpen" class="sources">
-          <div class="sources-title">
-            Sources
-          </div>
-
-          <ul class="sources-list">
-            <li
-              v-for="source in sources"
-              :key="`${source.source}-${source.page}-${source.index}`"
-              class="sources-item"
-            >
-              <div class="source-name">
-                [{{ source.index }}] {{ source.source }}
-                <span v-if="source.pages?.length">
-                  · {{ formatPages(source.pages) }}
-                </span>
-                <span v-else-if="source.page">
-                  · p. {{ source.page }}
-                </span>
-              </div>
-
-              <div v-if="source.preview" class="source-preview">
-                {{ source.preview }}
-              </div>
-            </li>
-          </ul>
+      <!-- Sources -->
+      <div
+        v-if="fromClass !== 'self' && normalizedSources.length && showSources"
+        class="sources"
+      >
+        <div class="sources-title">
+          Sources
         </div>
+
+        <ul class="sources-list">
+          <li
+            v-for="source in normalizedSources"
+            :key="`${source.source}-${source.index}`"
+            class="sources-item"
+          >
+            <div class="source-name">
+              [{{ source.index }}] {{ source.source }}
+              <span v-if="source.pages?.length">
+                · {{ formatPages(source.pages) }}
+              </span>
+              <span v-else-if="source.page">
+                · p. {{ source.page }}
+              </span>
+            </div>
+
+            <div v-if="source.preview" class="source-preview">
+              {{ source.preview }}
+            </div>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
@@ -53,7 +56,7 @@ import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 const { t } = useI18n()
-const sourcesOpen = ref(false)
+const showSources = ref(false);
 
 // Komponentin ottamat vastaan: kuka lähetti, tekstisisältö ja mahdolliset lisäluokat
 const props = defineProps({
@@ -98,6 +101,19 @@ const formattedSender = computed(() => {
   if (props.from === "professional") return t("sender.professional")
 
   return props.from
+})
+
+const normalizedSources = computed(() => {
+// Lähteiden sivunumeroiden muotoilu: yksittäinen sivu "p. X", useampi "pp. X, Y, Z"
+  if (!Array.isArray(props.sources)) return []
+  return props.sources
+    .filter((source) => source && source.source)
+    .map((source, index) => ({
+      ...source,
+      index: source.index ?? index + 1,
+      pages: Array.isArray(source.pages) ? source.pages : [],
+      preview: typeof source.preview === "string" ? source.preview.trim() : "",
+    }))
 })
 
 // Lähteiden sivunumeroiden muotoilu: yksittäinen sivu "p. X", useampi "pp. X, Y, Z"
@@ -238,6 +254,7 @@ function formatPages(pages) {
   padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
+  margin-top: 10px;
 }
 .sources-toggle:hover {
   background: #f8fafc;
@@ -277,6 +294,12 @@ function formatPages(pages) {
   font-size: 12px;
   color: #475569;
   line-height: 1.45;
+}
+
+@media (max-width: 768px) {
+  .bubble-wrapper {
+    max-width: 88%;
+  }
 }
 
 

@@ -157,9 +157,9 @@ export const useUserChatStore = defineStore("userChat", {
                 content: data.reply ?? "",
                 classification: data.classification ?? "safe",
                 flagged_for_human: false,
+                sources: data.sources ?? [],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                sources: data.sources ?? [],
               }
             : null
         )

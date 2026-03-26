@@ -156,6 +156,7 @@ async def send_message_to_chat(
             SenderType.BOT,
             safe_message,
             classification=DbClassification.NEEDS_REVIEW,
+            sources=[],
         )
         await touch_chat(chatId, status=ChatStatus.WAITING)
         return SendChatMessageResponse(
@@ -194,6 +195,7 @@ async def send_message_to_chat(
         SenderType.BOT,
         formatted_text,
         classification=DbClassification.SAFE,
+        sources=rag_result.get("sources", []),
     )
     await touch_chat(chat["_id"])
 

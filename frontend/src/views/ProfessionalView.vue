@@ -112,7 +112,7 @@
             @click="router.push(`/professional/chat/${chat.id}`)"
           >
             <div class="chat-body">
-              <b>Potilas #{{ chat.id }}</b>
+              <b>Potilas #{{ chat.user_id }}</b>
               <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
             </div>
 
@@ -139,7 +139,7 @@
           <div class="preview-header">
 
             <div class="preview-patient">
-              Potilas #{{ selectedChat?.id }}
+              Potilas #{{ selectedChat?.user_id }}
             </div>
 
             <div class="preview-time">

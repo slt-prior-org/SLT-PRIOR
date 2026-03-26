@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue"
+import { useRouter } from "vue-router"
 import { useI18n } from "vue-i18n"
 import SettingsModal from "./SettingsModal.vue"
 import AppButton from "@/components/ui/AppButton.vue"
@@ -21,6 +22,7 @@ defineProps({
 
 // Alustetaan kielituki ja käyttäjästore
 const auth = useAuthStore()
+const router = useRouter()
 const i18n = useI18n()
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
@@ -77,18 +79,18 @@ const dropdownItems = computed(() => {
   ]
 })
 
-// Uloskirjautumisen tai kirjautumissivun avaamisen hallinta
+// Kirjautumisen ja uloskirjautumisen hallinta
 async function handleLoginLogout() {
   if (loggedIn.value) {
     try {
       await auth.logout()
+      router.push("/")
     } catch (error) {
       console.error("Uloskirjautumisvirhe:", error)
     }
   } else {
     openSettings("login")
   }
-
   menuOpen.value = false
 }
 </script>

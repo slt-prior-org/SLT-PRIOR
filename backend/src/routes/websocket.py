@@ -37,7 +37,10 @@ from fastapi import (APIRouter,
                      WebSocketDisconnect
                      )
 from jose import JWTError, jwt
-from ..websocket_manager import manager
+from websocket_manager import manager
+from config import settings
+from database.db import users_collection
+from bson import ObjectId
 
 router = APIRouter()
 
@@ -51,7 +54,32 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
     # Step 6: disconnect from manager in the except block
 
 
-    #Stub
+    # Step 1: Decode the JWT
+    # If JWTError → websocket.close(code=1008) and return
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
+        user_id = payload.get("sub")
+        if not user_id or not ObjectId.is_valid(user_id):
+            await websocket.close(code=1008)
+            return
+    except JWTError:
+            await websocket.close(code=1008)
+            return
+
+    # Step 2: Look up the user in MongoDB by user_id from the token payload
+    # If not found → websocket.close(code=1008) and return
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+         await websocket.close(code=1008)
+         return
+
+    # Step 3: Check role == "professional"
+    # If not → websocket.close(code=1008) and return
+    if user["role"] != "professional":
+         await websocket.close(code=1008)
+         return
+
+    #Stub (step 4 ->)
     await manager.connect(websocket)
     try:
         while True:

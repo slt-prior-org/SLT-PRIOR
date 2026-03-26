@@ -26,6 +26,11 @@ export const useUserChatStore = defineStore("userChat", {
       this.userChats = [] // Tyhjentää chatit
       this.activeChat = null // Tyhjentää aktiivisen chatin
       this.isLoaded = false // Resetoi lataustilan
+      this.isSending = false
+      this.isLoadingChat = false
+      if (sessionStorage.getItem("userChat")) {
+        sessionStorage.removeItem("userChat")
+      }
     },
 
     // Chatien haku ja alustaminen
@@ -50,7 +55,7 @@ export const useUserChatStore = defineStore("userChat", {
     },
     // Aseta aktiivinen chat
     async setActiveChat(chatId) {
-      if (this.activeChat?.id === chatId) return
+      if (!chatId || (this.activeChat && this.activeChat.id === chatId)) return
 
       this.isLoadingChat = true
 
@@ -80,10 +85,7 @@ export const useUserChatStore = defineStore("userChat", {
           updated_at: newChat.updated_at,
         })
 
-        this.activeChat = {
-          ...newChat,
-          messages: newChat.messages || [],
-        }
+        await this.setActiveChat(newChat.id)
 
         return this.activeChat
       } catch (error) {
@@ -91,7 +93,18 @@ export const useUserChatStore = defineStore("userChat", {
         throw error
       }
     },
+    updateChatStatus(status) {
+      this.activeChat.status = status
 
+      // Päivitetään aktiivisen chatin status
+      this.activeChat.status = status
+
+      // Päivitetään myös userChats-taulukossa oleva chat
+      const index = this.userChats.findIndex((c) => c.id === this.activeChat.id)
+      if (index !== -1) {
+        this.userChats[index].status = status
+      }
+    },
     // Viestin lähetys chatissa (vain tila ja API, ei UI)
     async addUserMessage(message) {
       if (!this.activeChat) return
@@ -126,7 +139,9 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         const data = await sendUserMessage(chat.id, message)
 
-        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages = chat.messages.filter(
+          (item) => item.id !== userMessage.id,
+        )
         chat.messages.push(data.userMessage)
 
         // Lisätään backendin palauttama botin vastaus, jos sellainen syntyi
@@ -139,24 +154,31 @@ export const useUserChatStore = defineStore("userChat", {
           data.requires_professional ||
           data.userMessage.classification === "needs_review"
         ) {
-          chat.status = "waiting_for_professional"
+          this.updateChatStatus("waiting_for_professional")
+        }
+
+        if (data.userMessage.classification === "emergency") {
+          console.warn("Hätätilaviesti tunnistettu")
         }
 
         chat.updated_at =
           data.botMessage?.updated_at ||
           data.userMessage.updated_at ||
           chat.updated_at
-
-        if (data.userMessage.classification === "emergency") {
-          console.warn("Hätätilaviesti tunnistettu")
-        }
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)
-        chat.messages = chat.messages.filter((item) => item.id !== userMessage.id)
+        chat.messages = chat.messages.filter(
+          (item) => item.id !== userMessage.id,
+        )
         throw error
       } finally {
         this.isSending = false
       }
     },
+  },
+  persist: {
+    storage: sessionStorage,
+    key: "userChat",
+    paths: ["userChats", "activeChat"], // vain nämä osiot tallennetaan
   },
 })

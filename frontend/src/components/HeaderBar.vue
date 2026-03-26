@@ -9,7 +9,6 @@ import { useAuthStore } from "@/stores/authStore"
 defineProps({
   queueCount: Number,
   closedCount: Number,
-  user: Object,
   showLanguageSwitcher: {
     type: Boolean,
     default: true
@@ -25,7 +24,21 @@ const auth = useAuthStore()
 const i18n = useI18n()
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
-const loggedIn = computed(() => !!auth.user)
+const loggedIn = computed(() => auth.isAuthenticated)
+const user = computed(() => auth.user)
+
+ // Yhdistetään etu- ja sukunimi, jos ne löytyvät
+const fullName = computed(() => {
+  const u = user.value
+  if (!u) return ""
+
+  const name = [u.first_name, u.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+
+  return name || u.name || u.email || "..."
+})
 
 // Funktio sovelluksen kielen vaihtamiseen
 function switchLanguage(lang) {
@@ -85,7 +98,7 @@ async function handleLoginLogout() {
 
     <div class="left">
       <div v-if="loggedIn" class="user">
-        <strong>{{ user?.name || "" }}</strong>
+        <strong>{{ fullName }}</strong>
         <small>{{ user?.role || "" }}</small>
       </div>
     </div>

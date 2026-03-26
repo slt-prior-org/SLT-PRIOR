@@ -1,30 +1,69 @@
 from fastapi import WebSocket
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ConnectionManager:
-    '''    
-    This class is the heart of the WebSocket feature. Its job is to:
-    1. Keep a list of all currently connected professionals
-    2. Let you add/remove connections
-    3. Broadcast a message to everyone in the list
-    '''
-    
-    # 1. set up an empty list for active_connections
+    """
+    This class manages all WebSocket connections in the application.
+
+    Instead of a single list of connections, it uses "rooms" (channels),
+    which allows separating different types of real-time communication.
+
+    Examples of rooms:
+    - "professionals" → all professionals listening to queue updates
+    - "chat:{chat_id}" → connections for a specific chat between patient and professional
+
+    Responsibilities:
+    1. Keep track of active WebSocket connections per room
+    2. Add/remove connections from specific rooms
+    3. Broadcast messages to all clients in a specific room
+    """
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        # Dictionary mapping room name -> list of WebSocket connections
+        # Example:
+        # {
+        #   "professionals": [ws1, ws2],
+        #   "chat:123": [ws3, ws4]
+        #   "chat:456": [ws5, ws6]
+        # }
+        self.rooms: dict[str, list[WebSocket]] = {}
 
-    # 2. async connect(websocket): accept the connection, add to list
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, room: str):
+        """
+        Accepts a WebSocket connection and adds it to a specific room.
+        """
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.rooms.setdefault(room, []).append(websocket)
 
-    # 3. disconnect(websocket): remove from list
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
+        logger.info(f"WebSocket connected to room '{room}'. Total connections: {len(self.rooms[room])}")
 
-    # 4. async broadcast(message: dict): send JSON to all connections  
-    async def broadcast(self, message: dict):
-        for connection in self.active_connections:
-            await connection.send_json(message)
+    def disconnect(self, websocket: WebSocket, room: str):
+        """
+        Removes a WebSocket connection from a room.
+        Deletes the room if it becomes empty.
+        """
+
+        if room in self.rooms:
+            if websocket in self.rooms[room]:
+                self.rooms[room].remove(websocket)
+                logger.info(f"WebSocket disconnected from room '{room}'")
+
+            if not self.rooms[room]:
+                del self.rooms[room]
+                logger.info(f"Room '{room}' removed (no active connections)")
+
+    async def broadcast(self, room: str, message: dict):
+        """
+        Sends a JSON message to all connections in a specific room.
+        """
+        connections = self.rooms.get(room, [])
+        logger.info(f"Broadcasting message '{message}' to room '{room}' ({len(connections)} connections)")
+        
+        for connection in connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logger.error(f"Error sending message to WebSocket in room '{room}': {e}")
 
 manager = ConnectionManager()

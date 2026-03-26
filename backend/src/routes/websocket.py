@@ -1,78 +1,80 @@
-'''
-The backend must broadcast WebSocket events when:
-
-- A chat status changes to waiting_for_professional
-- A professional claims a chat from the waiting queue (in_progress)
-- A chat is closed
-
-example webSocket event that is sent to frontend
-{
-  "type": "chat_waiting" | "chat_claimed" | "chat_closed",
-  "chat_id": "123"
-}
-
-When the frontend receives a WebSocket event, it should refresh the queue data by
-requesting the updated queues from the backend
-(e.g. by calling professionalChatStore.initialQueues()).
-
-This ensures that all professionals see updated chat queues in real time.
-
-Implementation Steps
-
-- Create WebSocket endpoint /ws/professional/queue
-- Authenticate WebSocket connections using JWT
-- Verify that the connected user has role professional
-- Add connected professionals to a shared queue channel
-- Broadcast events when:
-- Chat status changes to waiting_for_professional
-- Chat is claimed by a professional
-- Chat is closed
-- Implement frontend listener for queue events
-- Trigger queue refresh (initialQueues()) when an event is received
-'''
-
 from fastapi import (APIRouter,
                      WebSocket,
-                     Query,
-                     WebSocketDisconnect
+                     WebSocketDisconnect,
                      )
 from jose import JWTError, jwt
 from websocket_manager import manager
+from typing import Any, Dict
+from utils.chat_utils import get_chat
+from bson import ObjectId
 from config import settings
 from database.db import users_collection
-from bson import ObjectId
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.websocket("/ws/professional/queue")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
-    # Step 1: Decode JWT
-    # Step 2: Look up user in DB                                
-    # Step 3: Check role == "professional"
-    # Step 4: connect to manager
-    # Step 5: keep alive loop (try/except WebSocketDisconnect)
-    # Step 6: disconnect from manager in the except block
+async def verify_token(token: str) -> Dict[str, Any]:
 
+    if not token:
+        raise WebSocketDisconnect(code=1008)
 
-    # Step 1: Decode the JWT
-    # If JWTError → websocket.close(code=1008) and return
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
         user_id = payload.get("sub")
         if not user_id or not ObjectId.is_valid(user_id):
-            await websocket.close(code=1008)
-            return
-    except JWTError:
-            await websocket.close(code=1008)
-            return
 
-    # Step 2: Look up the user in MongoDB by user_id from the token payload
-    # If not found → websocket.close(code=1008) and return
+            raise WebSocketDisconnect(code=1008)
+    except JWTError:
+        raise WebSocketDisconnect(code=1008)
+
     user = await users_collection.find_one({"_id": ObjectId(user_id)})
     if not user:
-         await websocket.close(code=1008)
-         return
+        raise WebSocketDisconnect(code=1008)
 
+    user["_id"] = str(user["_id"])
+    return user
+
+
+@router.websocket("/ws/chats/{chat_id}")
+async def chat_ws(websocket: WebSocket, chat_id: str):
+    token = websocket.query_params.get("token")
+    try:
+        user = await verify_token(token)
+    except WebSocketDisconnect:
+        await websocket.close(code=1008)
+        return
+    
+    chat = await get_chat(chat_id)
+    logger.info("chat:", chat)
+    logger.info("user:", user)
+
+    if not chat or user["_id"] != chat["user_id"]:
+        await websocket.close()
+        return
+
+    await manager.connect(websocket, f"chat:{chat_id}")
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, f"chat:{chat_id}")
+    except Exception as e:
+        manager.disconnect(websocket, f"chat:{chat_id}")
+        raise e 
+
+
+@router.websocket("/ws/professional/queue")
+async def websocket_endpoint(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    try:
+        user = await verify_token(token)
+    except WebSocketDisconnect:
+        await websocket.close(code=1008)
+        return
+    
     # Step 3: Check role == "professional"
     # If not → websocket.close(code=1008) and return
     if user["role"] != "professional":
@@ -80,9 +82,13 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
          return
 
     #Stub (step 4 ->)
-    await manager.connect(websocket)
+    await manager.connect(websocket, "professionals")
+
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, "professionals")
+    except Exception as e:
+        manager.disconnect(websocket, "professionals")
+        raise e 

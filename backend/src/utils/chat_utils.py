@@ -1,9 +1,41 @@
 from datetime import datetime
-
-from bson import ObjectId
-
 from database.db import chats_collection, messages_collection
 from database.models import Classification, MessageDetailResponse, SenderType
+from bson import ObjectId
+
+async def get_chat(chat_id: str):
+    """
+    Returns a single chat without messages.
+    """
+    if not ObjectId.is_valid(chat_id):
+        return None
+
+    pipeline = [
+        {"$match": {"_id": ObjectId(chat_id)}},
+
+        {
+            "$project": {
+                "id": {"$toString": "$_id"},
+                "user_id": {"$toString": "$user_id"},
+                "assigned_professional_id": {
+                    "$cond": [
+                        {"$ifNull": ["$assigned_professional_id", False]},
+                        {"$toString": "$assigned_professional_id"},
+                        None
+                    ]
+                },
+                "status": 1,
+                "created_at": 1,
+                "updated_at": 1,
+                "_id": 0
+            }
+        }
+    ]
+
+    cursor = await chats_collection.aggregate(pipeline)
+    result = await cursor.to_list(1)
+
+    return result[0] if result else None
 
 async def get_chats_with_last_message(filter_query: dict):
     """

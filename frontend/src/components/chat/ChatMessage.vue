@@ -75,7 +75,7 @@ const formattedSender = computed(() => {
 .bubble-wrapper {
   position: relative;
   display: inline-block;
-  max-width: 95%;
+  max-width: 65%;
 }
 
 /* Lähettäjän nimen tyylit ja piilotus omissa viesteissä */

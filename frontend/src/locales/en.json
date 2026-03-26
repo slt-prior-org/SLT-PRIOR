@@ -7,14 +7,18 @@
 "sending": "Sending...",
 "send": "Send",
 "done": "Done",
-  "sender": {
-    "customer": "Customer",
-    "bot": "Bot"},
+"sender": {
+  "customer": "Customer",
+  "bot": "Bot",
+  "professional": "Professional" 
+},
+"or": "or",
+"authPromptSuffix": "to get information based on regulations and a professional-verified answer if needed.",
 "editMessage": "Edit message",
 "welcomeTitle": "Welcome to HeartWise",
-"welcomeDescription": "You can ask health-related questions to the chatbot. The AI uses reliable sources when answering.",
+"welcomeDescription": "HeartWise is a conversational service developed to support self-care for patients with coronary artery disease.",
 "chatbotHelpsTitle": "Chatbot helps",
-"chatbotHelpsDesc": "You can ask general health questions about symptoms or medication. The chatbot uses reliable sources.",
+"chatbotHelpsDesc": "You can chat about self-care topics, and the chatbot will respond based on care recommendations. <b>The chatbot uses AI and errors are possible.</b>",
 "professionalSupportTitle": "Professional support",
 "professionalSupportDesc": "If needed, your conversation can be transferred to a healthcare professional for review.",
 "noDiagnosesTitle": "No diagnoses",

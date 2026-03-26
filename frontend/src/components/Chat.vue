@@ -1,29 +1,18 @@
 <template>
   <div class="chat-container">
     <!-- Esitietolomake-modal -->
-    <PatientForm
-      v-if="showForm"
-      @close="closePatientForm"
-    />
+    <PatientForm v-if="showForm" @close="closePatientForm" />
 
     <div
       class="messages"
       :class="{ 'messages--welcome': welcomeMessageDisplayed }"
+      ref="messagesEl"
     >
       <!-- Tervetuloa-näyttö -->
-      <section
-        v-if="welcomeMessageDisplayed"
-        class="welcome"
-      >
+      <section v-if="welcomeMessageDisplayed" class="welcome">
         <div class="welcome-hero">
-          <div
-            class="welcome-icon"
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class="welcome-icon-svg"
-            >
+          <div class="welcome-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="welcome-icon-svg">
               <path
                 d="M7 8h10M7 12h6M12 20l-3.5-3H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-1.5L12 20z"
                 fill="none"
@@ -45,26 +34,20 @@
 
         <div class="welcome-cards">
           <div class="welcome-card">
-            <div
-              class="card-icon"
-              aria-hidden="true"
-            >
+            <div class="card-icon" aria-hidden="true">
               <span class="icon-dot" />
             </div>
 
             <h3 class="card-title">
               {{ $t("chatbotHelpsTitle") }}
             </h3>
-            <p class="card-text">
-              {{ $t("chatbotHelpsDesc") }}
+            <p class="card-text"
+              v-html= "$t('chatbotHelpsDesc')">
             </p>
           </div>
 
           <div class="welcome-card">
-            <div
-              class="card-icon"
-              aria-hidden="true"
-            >
+            <div class="card-icon" aria-hidden="true">
               <span class="icon-dot" />
             </div>
 
@@ -77,10 +60,7 @@
           </div>
 
           <div class="welcome-card">
-            <div
-              class="card-icon"
-              aria-hidden="true"
-            >
+            <div class="card-icon" aria-hidden="true">
               <span class="icon-dot" />
             </div>
 
@@ -98,12 +78,7 @@
           role="note"
           aria-label="Important information"
         >
-          <div
-            class="alert-icon"
-            aria-hidden="true"
-          >
-            !
-          </div>
+          <div class="alert-icon" aria-hidden="true">!</div>
           <div class="alert-body">
             <div class="alert-title">
               {{ $t("importantInfo") }}
@@ -118,24 +93,31 @@
       </section>
 
       <ChatMessage
-        v-for="(message, index) in messages"
-        :key="index"
-        :from="message.from"
-        :text="message.text"
+        v-for="message in messages"
+        :key="message.id"
+        :from="message.sender"
+        :text="message.content"
         :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'NEEDS_REVIEW' ? 'needs-review' : '',
-          message.classification === 'EMERGENCY' ? 'emergency' : '',
-          ]"
+          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'emergency' ? 'emergency' : '',
+        ]"
       />
+
+      <!-- Bot typing indicator -->
+      <div v-if="waitingForBot" class="typing-indicator">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </div>
 
-    <div class="input-shell">
+<div v-if="authStore.isAuthenticated" class="input-shell">
       <div class="chat-input-wrapper">
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="false"
+          :input-disabled="false" 
           :send-disabled="waitingForBot"
           :show-edit="false"
           :is-editing="false"
@@ -143,127 +125,165 @@
         />
       </div>
     </div>
-  </div>
+
+   <div v-else class="input-shell auth-prompt-shell">
+      <p class="auth-prompt-text">
+        <a href="#" @click.prevent="$emit('open-login')">
+          {{ $t('settings.login') }}
+        </a> 
+        {{ $t('or') }} 
+        <a href="#" @click.prevent="$emit('open-register')">
+          {{ $t('settings.register') }}
+        </a>
+        {{ $t('authPromptSuffix') }}
+      </p>
+    </div>
+  </div>  
 </template>
 
 <script>
-import axios from "axios";
-import PatientForm from "./PatientForm.vue";
-import ChatMessage from "./chat/ChatMessage.vue";
-import ChatInputBar from "./chat/ChatInputBar.vue";
-import { useI18n } from "vue-i18n";
+import PatientForm from "./PatientForm.vue"
+import ChatMessage from "./chat/ChatMessage.vue"
+import ChatInputBar from "./chat/ChatInputBar.vue"
+import { useI18n } from "vue-i18n"
+import { useUserChatStore } from "@/stores/userChatStore"
+import { useAuthStore } from "@/stores/authStore"
+import { onMounted, watch, ref, nextTick } from "vue"
+import { chatSocket } from "@/services/chatSocket"
 
 export default {
   name: "ChatComponent",
   components: { PatientForm, ChatMessage, ChatInputBar },
+
   props: {
     externalShowForm: Boolean,
   },
-  emits: ["update:externalShowForm"],
-  setup() {
-    const { t, locale } = useI18n();
-    return { t, locale };
-  },
-  data() {
-    return {
-      userId: "user123",
-      messages: [],
-      newMessage: "",
-      showForm: false,
-      welcomeMessageDisplayed: true,
-      waitingForBot: false,
-    };
-  },
-  watch: {
-    externalShowForm(newVal) {
-      this.showForm = newVal;
-    },
-  },
-  methods: {
-    openPatientForm() {
-      this.showForm = true;
-      this.$emit("update:externalShowForm", true);
-    },
-    closePatientForm() {
-      this.showForm = false;
-      this.$emit("update:externalShowForm", false);
-    },
 
-    async fetchMapping() {
+  emits: ["update:externalShowForm", "open-login", "open-register"],
+
+  setup(props, { emit }) {
+    const { t } = useI18n()
+    const chatStore = useUserChatStore()
+    const authStore = useAuthStore()
+
+    const welcomeMessageDisplayed = ref(true)
+    const messagesEl = ref(null)
+    const newMessage = ref("")
+    const waitingForBot = ref(false)
+    const showForm = ref(false)
+
+    const scrollToBottom = () => {
+      nextTick(() => {
+        if (messagesEl.value) {
+          messagesEl.value.scrollTo({
+            top: messagesEl.value.scrollHeight,
+            behavior: "smooth",
+          })
+        }
+      })
+    }
+
+    const connectWebsocket = (chat) => {
+      if (!chat) return
+      chatSocket.connect(chat.id, authStore.token, (message) => {
+        chat.messages.push(message)
+        chatStore.updateChatStatus("open")
+        scrollToBottom()
+      })
+    }
+
+    onMounted(() => {
+      if (chatStore.activeChat) {
+        connectWebsocket(chatStore.activeChat)
+        welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
+        scrollToBottom()
+      } 
+    })
+
+    watch(
+      () => chatStore.activeChat,
+      (newChat) => {
+        if (!newChat) {
+          welcomeMessageDisplayed.value = true
+          return
+        }
+        connectWebsocket(newChat)
+        welcomeMessageDisplayed.value = !newChat.messages?.length
+        scrollToBottom()
+      },
+      { immediate: true },
+    )
+
+    watch(
+      () => chatStore.activeChat?.messages,
+      (messages) => {
+        welcomeMessageDisplayed.value = !messages?.length
+        scrollToBottom()
+      },
+      { deep: true },
+    )
+
+    watch(
+      () => props.externalShowForm,
+      (val) => {
+        showForm.value = val
+      },
+    )
+
+    const openPatientForm = () => {
+      showForm.value = true
+      emit("update:externalShowForm", true)
+    }
+
+    const closePatientForm = () => {
+      showForm.value = false
+      emit("update:externalShowForm", false)
+    }
+
+    const handleSendFromInputBar = async (text) => {
+      if (!authStore.isAuthenticated) return
+      if (!text.trim()) return
+
+      newMessage.value = ""
+      waitingForBot.value = true
+      welcomeMessageDisplayed.value = false
+
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/data");
-        this.mapping = response.data.data;
+        // Luo chat vain jos sitä ei ole
+        if (!chatStore.activeChat) {
+          await chatStore.createChat()
+        }
+        await chatStore.addUserMessage(text.trim())
       } catch (error) {
-        console.error(this.$t("data-error"), error);
-      }
-    },
-
-    scrollToBottom() {
-      this.$nextTick(() => {
-        const el = this.$el?.querySelector(".messages");
-        if (!el) return;
-
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior: "smooth",
-        });
-      });
-    },
-
-    handleSendFromInputBar(text) {
-      if (this.waitingForBot) return;
-      this.newMessage = "";
-      this.sendMessage(text);
-    },
-
-    async sendMessage(text) {
-      const outgoing = (text ?? "").trim();
-      if (!outgoing) return;
-      if (this.waitingForBot) return;
-
-      this.waitingForBot = true;
-
-      // Add user's message
-      this.messages.push({ text: outgoing, from: "self", sources: [] });
-      this.welcomeMessageDisplayed = false;
-      this.scrollToBottom();
-
-      try {
-        const response = await axios.post(
-          "http://127.0.0.1:8000/api/chat/send",
-          {
-            message: outgoing,
-          }
-        );
-
-        const replyHtml = response.data?.reply ?? "";
-        const sources = Array.isArray(response.data?.sources)
-          ? response.data.sources
-          : [];
-
-        this.messages.push({
-          text: replyHtml,
-          from: "other",
-          classification: response.data?.classification || "SAFE",
-          sources,
-        });
-
-        // Scroll to bottom after message
-        this.scrollToBottom();
-      } catch (error) {
-        console.error(this.$t("send-error"), error);
-        this.messages.push({
-          text: this.$t("connection-error"),
-          from: "other",
-          sources: []
-        });
-        this.scrollToBottom();
+        console.error("Send error:", error)
       } finally {
-        this.waitingForBot = false;
+        waitingForBot.value = false
+        scrollToBottom()
       }
+    }
+
+    return {
+      t,
+      chatStore,
+      authStore,
+      welcomeMessageDisplayed,
+      messagesEl,
+      newMessage,
+      waitingForBot,
+      showForm,
+      scrollToBottom,
+      handleSendFromInputBar,
+      openPatientForm,
+      closePatientForm,
+    }
+  },
+
+  computed: {
+    messages() {
+      return this.chatStore.getActiveChat?.messages ?? []
     },
   },
-};
+}
 </script>
 
 <style scoped>
@@ -279,14 +299,12 @@ export default {
   box-sizing: border-box;
 }
 
-/* Messages stay centered and scroll */
 .messages {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
 
-  /* centered chat column */
-  max-width: 820px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
 
@@ -295,32 +313,39 @@ export default {
 }
 
 .messages--welcome {
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .welcome,
 .welcome * {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    "Noto Sans",
+    "Liberation Sans",
+    sans-serif;
 }
 
-/* Welcome screen */
 .welcome {
-  max-width: 780px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 24px 0 12px;
+  padding: 24px 0 1;
   font-size: 18px;
   line-height: 1;
 }
 
 .welcome-hero {
   text-align: center;
-  padding: 10px 10px 18px;
+  padding-bottom: 18px;
 }
 
 .welcome-icon {
-  width: 72px;
-  height: 72px;
+  width: 60px;
+  height: 60px;
   margin: 0 auto 18px;
   border-radius: 18px;
   background: #1d4ed8;
@@ -331,8 +356,8 @@ export default {
 }
 
 .welcome-icon-svg {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
 }
 
 .welcome-title {
@@ -353,19 +378,19 @@ export default {
 
 .welcome-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-top: 10px;
+  margin-top: 0px;
 }
 
 .welcome-card {
   background: #ffffff;
   border: 1px solid #dbeafe;
   border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-  min-height: 150px;
-  padding-bottom: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 .card-icon {
@@ -447,8 +472,76 @@ export default {
 }
 
 .input-shell > .chat-input-wrapper {
-  max-width: 820px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
+}
+
+.auth-prompt-shell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px 18px;
+}
+
+.auth-prompt-text {
+  font-size: 18px;
+  color: #475569;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.auth-prompt-text a {
+  color: #3a5bdc; /* Sama sininen kuin brändissänne */
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-prompt-text a:hover {
+  color: #2a45b8;
+  text-decoration: underline;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  width: fit-content;
+  background: #f1f5f9;
+  border-radius: 14px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #64748b;
+  border-radius: 50%;
+  animation: typing 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

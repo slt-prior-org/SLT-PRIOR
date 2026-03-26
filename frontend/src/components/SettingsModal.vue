@@ -88,6 +88,16 @@ watch(
   { immediate: true }
 );
 
+// Sulje modali heti kun käyttäjä kirjautuu onnistuneesti
+watch(
+  () => auth.user,
+  (newUser, oldUser) => {
+    if (newUser && !oldUser) {
+      closeModal();
+    }
+  }
+);
+
 </script>
 
 <style scoped>

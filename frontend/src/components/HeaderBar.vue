@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue"
+import { useRouter } from "vue-router"
 import { useI18n } from "vue-i18n"
 import SettingsModal from "./SettingsModal.vue"
 import AppButton from "@/components/ui/AppButton.vue"
@@ -9,7 +10,6 @@ import { useAuthStore } from "@/stores/authStore"
 defineProps({
   queueCount: Number,
   closedCount: Number,
-  user: Object,
   showLanguageSwitcher: {
     type: Boolean,
     default: true
@@ -22,10 +22,25 @@ defineProps({
 
 // Alustetaan kielituki ja käyttäjästore
 const auth = useAuthStore()
+const router = useRouter()
 const i18n = useI18n()
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
-const loggedIn = computed(() => !!auth.user)
+const loggedIn = computed(() => auth.isAuthenticated)
+const user = computed(() => auth.user)
+
+ // Yhdistetään etu- ja sukunimi, jos ne löytyvät
+const fullName = computed(() => {
+  const u = user.value
+  if (!u) return ""
+
+  const name = [u.first_name, u.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+
+  return name || u.name || u.email || "..."
+})
 
 // Funktio sovelluksen kielen vaihtamiseen
 function switchLanguage(lang) {
@@ -57,25 +72,25 @@ const dropdownItems = computed(() => {
     ]
   }
 
+  // Kirjautumattomalle näytetään vain nämä
   return [
-    { key: "settings", labelKey: "settings.title", action: () => openSettings("personalInfo") },
     { key: "login", labelKey: "settings.login", action: () => openSettings("login") },
     { key: "register", labelKey: "settings.register", action: () => openSettings("register") }
   ]
 })
 
-// Uloskirjautumisen tai kirjautumissivun avaamisen hallinta
+// Kirjautumisen ja uloskirjautumisen hallinta
 async function handleLoginLogout() {
   if (loggedIn.value) {
     try {
       await auth.logout()
+      router.push("/")
     } catch (error) {
       console.error("Uloskirjautumisvirhe:", error)
     }
   } else {
     openSettings("login")
   }
-
   menuOpen.value = false
 }
 </script>
@@ -85,7 +100,7 @@ async function handleLoginLogout() {
 
     <div class="left">
       <div v-if="loggedIn" class="user">
-        <strong>{{ user?.name || "" }}</strong>
+        <strong>{{ fullName }}</strong>
         <small>{{ user?.role || "" }}</small>
       </div>
     </div>
@@ -122,7 +137,7 @@ async function handleLoginLogout() {
         </AppButton>
       </div>
 
-      <AppButton class="gear" variant="neutral" @click="toggleMenu">
+      <AppButton v-if="loggedIn" class="gear" variant="neutral" @click="toggleMenu">
         <svg
           viewBox="0 0 24 24"
           width="22"
@@ -134,6 +149,10 @@ async function handleLoginLogout() {
             fill="currentColor"
           />
         </svg>
+      </AppButton>
+
+      <AppButton v-else class="login-btn" size= lg variant="primary" @click="openSettings('login')">
+        {{$t("settings.login")}}
       </AppButton>
 
       <div v-if="menuOpen" class="menu">
@@ -259,25 +278,22 @@ async function handleLoginLogout() {
 }
 
 /* Asetusrattaan tyylit ja animaatiot */
-.gear {
-  background:#eef2f8;
-  border:none;
-  border-radius:22px;
-  min-width:44px;
-  min-height:44px;
-  padding:10px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.login-btn {
+  background: #3a5bdc;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 18px;
+  cursor: pointer;
   transition: background 0.2s, transform 0.15s;
 }
 
-.gear:hover {
-  background:#dfe7ff;
+.login-btn:hover {
+  background: #2a45b8;
 }
 
-.gear:active {
+.login-btn:active {
   transform: scale(0.97);
 }
 

@@ -1,10 +1,17 @@
-import { defineStore } from 'pinia'
-import { registerUser, fetchUser, loginUser, updateUserProfile } from '@/services/authService'
+import { defineStore } from "pinia"
+import { useUserChatStore } from "@/stores/userChatStore"
+import {
+  registerUser,
+  fetchUser,
+  loginUser,
+  updateUserProfile,
+} from "@/services/authService"
+import { chatSocket } from "@/services/chatSocket"
 
-export const useAuthStore = defineStore('auth', {
+export const useAuthStore = defineStore("auth", {
   state: () => ({
     user: null,
-    token: localStorage.getItem('token') || null,
+    token: sessionStorage.getItem("token") || null,
     loading: false,
   }),
 
@@ -12,7 +19,7 @@ export const useAuthStore = defineStore('auth', {
     getCurrentUserID: (state) => state.user?.id || null,
     isPatient: (state) => state.user?.role === "patient",
     isProfessional: (state) => state.user?.role === "professional",
-    isAuthenticated: (state) => !!state.token
+    isAuthenticated: (state) => !!state.token,
   },
 
   actions: {
@@ -24,23 +31,34 @@ export const useAuthStore = defineStore('auth', {
         this.user = data.user
         this.token = data.token
 
-        localStorage.setItem("token", data.token)
+        sessionStorage.setItem("token", data.token)
+
+        // Alustetaan käyttäjän chat historia
+        const chatStore = useUserChatStore()
+        await chatStore.initializeChats()
+
       } catch (error) {
-        console.log("Registration failed: ", error)
+        console.error("Registration failed:", error)
         throw error
       } finally {
         this.loading = false
       }
     },
+
     async login(email, password) {
       this.loading = true
 
       try {
         const data = await loginUser(email, password)
+
         this.user = data.user
         this.token = data.token
 
-        localStorage.setItem('token', data.token)
+        sessionStorage.setItem("token", data.token)
+
+        // Alustetaan käyttäjän chat historia
+        const chatStore = useUserChatStore()
+        await chatStore.initializeChats()
 
       } catch (error) {
         console.error("Login failed:", error)
@@ -49,37 +67,48 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
+
     async logout() {
+      const userChatStore = useUserChatStore()
+
+      // Tyhjennetään näkyvä chat heti uloskirjautuessa
+      userChatStore.clearChats()
       this.user = null
       this.token = null
-      localStorage.removeItem("token")
+
+      // Suljetaan WebSocket yhteys
+      chatSocket.disconnect()
+
+      sessionStorage.removeItem("token")
     },
+
     async fetchUser() {
       if (!this.token) return
 
       this.loading = true
-      try {
-        const data = await fetchUser(this.token)
-        this.user = data
 
+      try {
+        const data = await fetchUser()
+        this.user = data
       } catch (error) {
-        console.error("Failed to fetch user profile:", error)
+        console.error("Käyttäjän tietojen haku epäonnistui:", error)
       } finally {
         this.loading = false
       }
     },
+
     async updateProfile(formData) {
       this.loading = true
 
       try {
-        const updatedUser = await updateUserProfile(formData);
+        const updatedUser = await updateUserProfile(formData)
         this.user = updatedUser
       } catch (error) {
-        console.error("Profile update failed:", error)
+        console.error("Profiilin päivitys epäonnistui:", error)
         throw error
       } finally {
         this.loading = false
       }
-    }
-  }
+    },
+  },
 })

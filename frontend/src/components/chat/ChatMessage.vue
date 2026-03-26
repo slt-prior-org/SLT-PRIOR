@@ -51,6 +51,8 @@ const formattedSender = computed(() => {
     return t("sender.bot")
   }
 
+  if (props.from === "professional") return t("sender.professional")
+
   return props.from
 })
 </script>
@@ -73,7 +75,7 @@ const formattedSender = computed(() => {
 .bubble-wrapper {
   position: relative;
   display: inline-block;
-  max-width: 95%;
+  max-width: 65%;
 }
 
 /* Lähettäjän nimen tyylit ja piilotus omissa viesteissä */
@@ -143,5 +145,28 @@ const formattedSender = computed(() => {
   height: 12px;
   background: #16a34a;
   transform: rotate(45deg);
+}
+
+/* NEEDS REVIEW */
+.message.other.needs-review .bubble {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+.message.other.needs-review .bubble::after {
+  background: #fff3cd;
+}
+
+/* EMERGENCY */
+.message.other.emergency .bubble {
+  background: #f8d7da;
+  color: #721c24;
+  border: 2px solid #dc3545;
+  font-weight: bold;
+}
+
+.message.other.emergency .bubble::after {
+  background: #f8d7da;
 }
 </style>

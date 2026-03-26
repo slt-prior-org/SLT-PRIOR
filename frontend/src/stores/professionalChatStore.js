@@ -19,7 +19,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
     loading: {
       queues: false,
       chat: false,
-      claim: false,
+      claim: false, 
       close: false,
       send: false,
     },

@@ -42,7 +42,10 @@ defineEmits(["click"])
 
 /* SIZES */
 .size-sm{ padding:10px 16px; font-size:14px; border-radius:8px; }
-.size-md{ padding:14px 24px; font-size:18px; }
+.size-md{ 
+  padding: clamp(6px, 0.8vw, 14px) clamp(12px, 1.1vw, 24px);
+  font-size: clamp(13px, 0.8vw, 18px); 
+  }
 .size-lg{ padding:16px 30px; font-size:22px; }
 
 /* DISABLED */

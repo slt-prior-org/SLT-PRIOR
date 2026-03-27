@@ -41,8 +41,8 @@
             <h3 class="card-title">
               {{ $t("chatbotHelpsTitle") }}
             </h3>
-            <p class="card-text">
-              {{ $t("chatbotHelpsDesc") }}
+            <p class="card-text"
+              v-html= "$t('chatbotHelpsDesc')">
             </p>
           </div>
 
@@ -111,20 +111,33 @@
       </div>
     </div>
 
-    <div class="input-shell">
+<div v-if="authStore.isAuthenticated" class="input-shell">
       <div class="chat-input-wrapper">
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="!authStore.isAuthenticated"
-          :send-disabled="waitingForBot || !authStore.isAuthenticated"
+          :input-disabled="false" 
+          :send-disabled="waitingForBot"
           :show-edit="false"
           :is-editing="false"
           @send="handleSendFromInputBar"
         />
       </div>
     </div>
-  </div>
+
+   <div v-else class="input-shell auth-prompt-shell">
+      <p class="auth-prompt-text">
+        <a href="#" @click.prevent="$emit('open-login')">
+          {{ $t('settings.login') }}
+        </a> 
+        {{ $t('or') }} 
+        <a href="#" @click.prevent="$emit('open-register')">
+          {{ $t('settings.register') }}
+        </a>
+        {{ $t('authPromptSuffix') }}
+      </p>
+    </div>
+  </div>  
 </template>
 
 <script>
@@ -145,7 +158,7 @@ export default {
     externalShowForm: Boolean,
   },
 
-  emits: ["update:externalShowForm"],
+  emits: ["update:externalShowForm", "open-login", "open-register"],
 
   setup(props, { emit }) {
     const { t } = useI18n()
@@ -289,7 +302,7 @@ export default {
   min-height: 0;
   overflow-y: auto;
 
-  max-width: 820px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
 
@@ -298,7 +311,7 @@ export default {
 }
 
 .messages--welcome {
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .welcome,
@@ -316,21 +329,21 @@ export default {
 }
 
 .welcome {
-  max-width: 780px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 24px 0 12px;
+  padding: 24px 0 1;
   font-size: 18px;
   line-height: 1;
 }
 
 .welcome-hero {
   text-align: center;
-  padding: 10px 10px 18px;
+  padding-bottom: 18px;
 }
 
 .welcome-icon {
-  width: 72px;
-  height: 72px;
+  width: 60px;
+  height: 60px;
   margin: 0 auto 18px;
   border-radius: 18px;
   background: #1d4ed8;
@@ -341,8 +354,8 @@ export default {
 }
 
 .welcome-icon-svg {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
 }
 
 .welcome-title {
@@ -363,19 +376,19 @@ export default {
 
 .welcome-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-top: 10px;
+  margin-top: 0px;
 }
 
 .welcome-card {
   background: #ffffff;
   border: 1px solid #dbeafe;
   border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-  min-height: 150px;
-  padding-bottom: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 .card-icon {
@@ -457,9 +470,38 @@ export default {
 }
 
 .input-shell > .chat-input-wrapper {
-  max-width: 820px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
+}
+
+.auth-prompt-shell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px 18px;
+}
+
+.auth-prompt-text {
+  font-size: 18px;
+  color: #475569;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.auth-prompt-text a {
+  color: #3a5bdc; /* Sama sininen kuin brändissänne */
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-prompt-text a:hover {
+  color: #2a45b8;
+  text-decoration: underline;
 }
 
 .typing-indicator {

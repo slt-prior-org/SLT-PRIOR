@@ -8,8 +8,15 @@
       <Chat
         :external-show-form="showForm"
         @update:external-show-form="showForm = $event"
+        @open-login="openSettings('login')"
+        @open-register="openSettings('register')"
       />
     </main>
+    <SettingsModal
+      v-if="settingsOpen"
+      :initialSection="initialSettingsSection"
+      @close="settingsOpen = false"
+    />
   </div>
 </template>
   
@@ -17,6 +24,7 @@
 import { ref } from "vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import Chat from "@/components/Chat.vue";
+import SettingsModal from "@/components/SettingsModal.vue";
 
 // Lomakkeen näkyvyyden tila
 const showForm = ref(false);
@@ -28,6 +36,17 @@ const closedCount = 0;
 //const openPatientForm = () => {
 //  showForm.value = true;
 //};
+
+// Modalin tilan hallinta
+const settingsOpen = ref(false);
+const initialSettingsSection = ref("personalInfo");
+
+// TÄMÄ FUNKTIO PUUTTUI TAI OLI VIRHEELLINEN
+const openSettings = (section) => {
+  console.log("Availlaan osiota:", section); // Lisää tämä testiksi konsoliin
+  initialSettingsSection.value = section;
+  settingsOpen.value = true;
+};
 </script>
   
 <style scoped>

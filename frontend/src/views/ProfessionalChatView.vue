@@ -6,7 +6,7 @@
     :queueCount="waiting.length"
     :closedCount="closedToday.length"
     :user="currentUser"
-    :showLanguageSwitcher="false"
+    :showLanguageSwitcher="true"
     :showCounts="true"
   />
 
@@ -16,7 +16,7 @@
 
       <div class="top-bar">
         <AppButton variant="neutral" @click="goBack">
-          Palaa jonoon
+          {{ $t("professional.back") }}
         </AppButton>
       </div>
 
@@ -30,7 +30,7 @@
             <ChatMessage
               v-for="(msg, i) in chat.messages"
               :key="i"
-              :from="mapSender(msg.sender)"
+              :from="msg.sender"
               :text="msg.content"
             />
           </div>
@@ -41,7 +41,7 @@
           <div class="reply-header">
 
             <div class="reply-label">
-              AI:N VASTAUSEHDOTUS
+              {{ $t("professional.aiReply") }}
             </div>
 
             <AppButton
@@ -49,7 +49,7 @@
               size="sm"
               @click="showSources = !showSources"
             >
-              {{ showSources ? "Piilota lähteet" : "Näytä lähteet" }}
+              {{ showSources ? $t('professional.hideSources') : $t('professional.showSources') }}
             </AppButton>
 
           </div>
@@ -58,7 +58,7 @@
           <div v-if="showSources" class="sources-panel">
 
             <div class="sources-title">
-              VIITTAUKSET
+              {{ $t("professional.sources") }}
             </div>
 
             <ul class="sources-list">
@@ -74,7 +74,7 @@
             <textarea
               v-model="editedReply"
               :disabled="!isEditing"
-              placeholder="Kirjoita viesti"
+              :placeholder="$t('professional.writeMessage')"
               @keydown.enter.exact.prevent="sendReply"
             ></textarea>
 
@@ -84,14 +84,14 @@
                 :disabled="!editedReply.trim()"
                 @click="sendReply"
               >
-                Lähetä
+                {{ $t('send') }}
               </AppButton>
 
               <AppButton
                 variant="neutral"
                 @click="toggleEdit"
               >
-                {{ isEditing ? "Valmis" : "Muokkaa viestiä" }}
+                {{ isEditing ? $t('professional.done') : $t('professional.edit') }}
               </AppButton>
 
               <AppButton
@@ -100,7 +100,7 @@
                 class="push-right"
                 @click="returnToQueue"
               >
-                Palauta jonoon
+                {{ $t('professional.returnToQueue') }}
               </AppButton>
 
               <AppButton
@@ -108,7 +108,7 @@
                 variant="danger"
                 @click="closeChat"
               >
-                Päätä keskustelu
+                {{ $t('professional.closeChat') }}
               </AppButton>
             </div>
 
@@ -118,16 +118,16 @@
 
         <!-- Potilaan tiedot -->
         <div class="sidebar" v-if="chat?.patient_context">
-          <h3>Potilaan tiedot</h3>
+          <h3>{{ $t('professional.patientInfo') }}</h3>
 
-          <p><strong>Ikä:</strong> {{ chat.patient_context.age }}</p>
-          <p><strong>Pituus:</strong> {{ chat.patient_context.height }}</p>
-          <p><strong>Paino:</strong> {{ chat.patient_context.weight }}</p>
+          <p><strong>{{ $t('professional.age') }}</strong> {{ chat.patient_context.age }}</p>
+          <p><strong>{{ $t('professional.height') }}</strong> {{ chat.patient_context.height }}</p>
+          <p><strong>{{ $t('professional.weight') }}</strong> {{ chat.patient_context.weight }}</p>
 
-          <h4>Perussairaudet</h4>
+          <h4>{{ $t('professional.conditions') }}</h4>
           <p>{{ chat.patient_context.conditions?.join(", ") }}</p>
 
-          <h4>AI-kooste</h4>
+          <h4>{{ $t('professional.summary') }}</h4>
           <div v-html="formattedSummary"></div>
 
         </div>
@@ -165,13 +165,6 @@ const formattedSummary = computed(() => {
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\n/g, "<br>")
 })
-
-function mapSender(sender) {
-  if (sender === "user") return "self"
-  if (sender === "assistant") return "other"
-  if (sender === "professional") return "other"
-  return "other"
-}
 
 const currentUser = computed(() => authStore.user)
 

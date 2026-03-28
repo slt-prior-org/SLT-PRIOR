@@ -25,7 +25,17 @@ app.use(router);
 const auth = useAuthStore()
 
 if(auth.token) {
-    auth.fetchUser()
+    auth.fetchUser().then(() => {
+        // Ohjataan tallennettuun reittiin, jos käyttäjä on ammattilainen tai potilas ja reitti on tallennettu
+        const professionalRoute = sessionStorage.getItem('professional-last-route');
+        const patientRoute = sessionStorage.getItem('patient-last-route');
+        if (auth.user?.role === 'professional' && professionalRoute && window.location.pathname !== professionalRoute) {
+            router.replace(professionalRoute);
+        } else if (auth.user?.role === 'patient' && patientRoute && window.location.pathname !== patientRoute) {
+            router.replace(patientRoute);
+        }
+        app.mount('#app')
+    });
+} else {
+    app.mount('#app')
 }
-
-app.mount('#app')

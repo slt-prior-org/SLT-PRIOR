@@ -80,6 +80,8 @@ export const useAuthStore = defineStore("auth", {
       chatSocket.disconnect()
 
       sessionStorage.removeItem("token")
+      sessionStorage.removeItem("patient-last-route")
+      sessionStorage.removeItem("professional-last-route")
     },
 
     async fetchUser() {

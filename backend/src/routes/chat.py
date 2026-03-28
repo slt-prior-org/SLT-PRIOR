@@ -156,6 +156,7 @@ async def send_message_to_chat(
             SenderType.BOT,
             safe_message,
             classification=DbClassification.NEEDS_REVIEW,
+            sources=[],
         )
         await touch_chat(chatId, status=ChatStatus.WAITING)
         return SendChatMessageResponse(
@@ -179,14 +180,13 @@ async def send_message_to_chat(
     )
 
     try:
-        raw_response = await rag_cloud.get_rag_response(
+        rag_result = await rag_cloud.get_rag_response(
             prompt,
             chat_history=conversation_history,
         )
-        formatted_text = utils.formatGeminiResponse(raw_response)
+        formatted_text = utils.formatGeminiResponse(rag_result["answer"])
     except Exception as e:
         import traceback
-
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -195,6 +195,7 @@ async def send_message_to_chat(
         SenderType.BOT,
         formatted_text,
         classification=DbClassification.SAFE,
+        sources=rag_result.get("sources", []),
     )
     await touch_chat(chat["_id"])
 

@@ -2,20 +2,23 @@
   <div class="settings-section">
     <h2>{{ $t("login.title") }}</h2>
 
-    <input
-      type="email"
-      v-model="email"
-      :placeholder="t('login.email')"
-      @keyup.enter="handleLogin"
-    >
+    <div class="email-field">
+      <input
+        type="email"
+        v-model="email"
+        :placeholder="t('login.email')"
+        @keyup.enter="handleLogin"
+      >
+    </div>
 
-    <input
-      type="password"
-      v-model="password"
-      :placeholder="t('login.password')"
-      @keyup.enter="handleLogin"
-    >
-
+    <div class="password-field">
+      <input
+        type="password"
+        v-model="password"
+        :placeholder="t('login.password')"
+        @keyup.enter="handleLogin"
+      >
+    </div>
     <AppButton variant="primary" @click="handleLogin">{{ $t("login.logIn") }}</AppButton>
 
     <div
@@ -84,6 +87,17 @@ const handleLogin = async () => {
   font-size: 0.9rem;
   padding: 10px;
   border-radius: 4px;
+}
+
+.email-field {
+  display: flex;
+  margin-bottom: 12px;
+  margin-top: 12px;
+}
+
+.password-field {
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 @import "@/assets/settingsstyles.css";
 </style>

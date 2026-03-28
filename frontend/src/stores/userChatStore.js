@@ -139,31 +139,54 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         const data = await sendUserMessage(chat.id, message)
 
+        const confirmedUserMessage = data.userMessage ?? {
+          id: userMessage.id,
+          sender: "user",
+          content: message,
+          classification: "safe",
+          flagged_for_human: false,
+          created_at: userMessage.created_at,
+          updated_at: userMessage.updated_at,
+        }
+
+        const botMessage = data.botMessage ?? (
+          data.reply
+            ? {
+                id: crypto.randomUUID(),
+                sender: "bot",
+                content: data.reply ?? "",
+                classification: data.classification ?? "safe",
+                flagged_for_human: false,
+                sources: data.sources ?? [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+            : null
+        )
+
         chat.messages = chat.messages.filter(
           (item) => item.id !== userMessage.id,
         )
-        chat.messages.push(data.userMessage)
+        chat.messages.push(confirmedUserMessage)
 
-        // Lisätään backendin palauttama botin vastaus, jos sellainen syntyi
-        if (data.botMessage) {
-          chat.messages.push(data.botMessage)
+        if (botMessage) {
+          chat.messages.push(botMessage)
         }
 
-        // Päivitetään chatin status tarvittaessa
         if (
           data.requires_professional ||
-          data.userMessage.classification === "needs_review"
+          confirmedUserMessage.classification === "needs_review"
         ) {
           this.updateChatStatus("waiting_for_professional")
         }
 
-        if (data.userMessage.classification === "emergency") {
+        if (confirmedUserMessage.classification === "emergency") {
           console.warn("Hätätilaviesti tunnistettu")
         }
 
         chat.updated_at =
-          data.botMessage?.updated_at ||
-          data.userMessage.updated_at ||
+          botMessage?.updated_at ||
+          confirmedUserMessage.updated_at ||
           chat.updated_at
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)

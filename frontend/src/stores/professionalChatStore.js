@@ -8,6 +8,7 @@ import {
   unclaim,
 } from "@/services/professionalChatService"
 import { useAuthStore } from "@/stores/authStore"
+import { professionalQueueSocket } from "@/services/professionalQueueSocket"
 
 export const useProfessionalChatStore = defineStore("professionalChat", {
   state: () => ({
@@ -24,6 +25,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
       send: false,
     },
     activeChat: null,
+    socket: null
   }),
 
   getters: {
@@ -200,6 +202,19 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
       } finally {
         this.loading.send = false
       }
+    },
+
+    // Connect to professionalQueueSocket
+    async connectToQueueSocket(){
+      professionalQueueSocket.connect(() => {
+        // Update the professional queue
+        this.initializeQueues()
+      })
+    },
+    
+    // End the websocket connection
+    async disconnectFromQueueSocket(){
+      professionalQueueSocket.disconnect()
     },
   },
 })

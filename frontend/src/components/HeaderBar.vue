@@ -113,10 +113,10 @@ async function handleLoginLogout() {
 
       <div v-if="showCounts" class="counts">
         <span class="badge">
-          JONOSSA {{ queueCount }}
+          {{ $t("professional.inQueue") }} {{ queueCount }}
         </span>
         <span class="badge light">
-          VALMIS {{ closedCount }}
+          {{ $t("professional.done") }} {{ closedCount }}
         </span>
       </div>
 

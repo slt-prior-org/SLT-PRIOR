@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import ChatView from "@/views/ChatView.vue"; 
 import ProfessionalView from "@/views/ProfessionalView.vue";
 import ProfessionalChatView from "@/views/ProfessionalChatView.vue";
-
+import { useAuthStore } from "@/stores/authStore";
 
 // Sivujen reitit ja niihin liittyvät roolit/metatiedot
 const routes = [
@@ -23,16 +23,21 @@ const routes = [
   }
 ];
 
-
 const router = createRouter({
   history: createWebHistory(), // Enables modern browser history mode
   routes
 });
 
-
-// Tuodaan authStore navigaatiovartijaa varten
-import { useAuthStore } from "@/stores/authStore";
-
+// Tallennetaan reitti localStorageen aina kun reitti vaihtuu
+router.afterEach((to) => {
+  const auth = useAuthStore();
+  if (auth.user?.role === 'professional') {
+    sessionStorage.setItem('professional-last-route', to.fullPath);
+  }
+  if (auth.user?.role === 'patient') {
+    sessionStorage.setItem('patient-last-route', to.fullPath);
+  }
+});
 
 // Navigaatiovartija ohjaa käyttäjiä roolin ja kirjautumistilan mukaan
 router.beforeEach((to, from, next) => {

@@ -97,6 +97,7 @@
         :key="message.id"
         :from="message.sender"
         :text="message.content"
+        :sources="message.sources || []"
         :extra-class="[
           message.classification === 'needs_review' ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
@@ -257,6 +258,7 @@ export default {
         console.error("Send error:", error)
       } finally {
         waitingForBot.value = false
+        scrollToBottom()
       }
     }
 

@@ -22,7 +22,7 @@ vectorstore = initialize_vectorstore(
 # -----------------------------
 
 llm = ChatGoogleGenerativeAI(
-    model='gemini-2.0-flash-001',  # Gemini 2.0 Flash
+    model='gemini-2.5-flash-lite',  # Gemini 2.0 Flash
     temperature=0.3,  # Alustava lämpötila
     max_tokens=1000,  # nostettu 500 -> 1000
     top_p=0.9,
@@ -62,6 +62,31 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 rag_chain = prompt | llm
+
+
+ALLOWED_HISTORY_CLASSIFICATIONS = {"safe", "needs_review", "emergency"}
+
+
+def _filter_chat_history(chat_history: list[dict] | None):
+    """
+    Suodattaa mallille välitettävän historian vain tunnetusti luokiteltuihin
+    viesteihin. Tämä vähentää testailun tai muun epäolennaisen historian
+    vaikutusta RAG-vastaukseen.
+    """
+    filtered_history = []
+
+    for message in chat_history or []:
+        classification = message.get("classification")
+        if classification is None:
+            continue
+
+        classification_value = str(classification).lower()
+        if classification_value not in ALLOWED_HISTORY_CLASSIFICATIONS:
+            continue
+
+        filtered_history.append(message)
+
+    return filtered_history
 
 
 def _normalize_chat_history(chat_history: list[dict] | None):
@@ -161,27 +186,23 @@ async def get_rag_response(
     Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen sekä lähteet.
     Vastauksen muodostamiseen käytetään annettua chat-historiaa.
     """
-    history_messages = _normalize_chat_history(chat_history)
+    filtered_history = _filter_chat_history(chat_history)
+    history_messages = _normalize_chat_history(filtered_history)
 
     # Hae dokumentit threshold + fallback -logiikalla
     relevant_docs = await retrieve_with_fallback(user_input, vectorstore)
 
     if not relevant_docs:
-        # Jos historiaa on, annetaan mallin vastata historian perusteella ilman dokumenttikontekstia
-        if history_messages:
-            context_text = ""
-            sources = []
-        else:
-            no_info_msg = (
-                "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
-                "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
-            )
-            return {
-                "answer": no_info_msg,
-                "sources": []
-            }
-    else:
-        context_text, sources = _build_context_and_sources(relevant_docs)
+        no_info_msg = (
+            "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
+            "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
+        )
+        return {
+            "answer": no_info_msg,
+            "sources": []
+        }
+
+    context_text, sources = _build_context_and_sources(relevant_docs)
 
     # Vastauksen generointi
     response = await rag_chain.ainvoke({

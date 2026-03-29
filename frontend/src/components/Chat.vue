@@ -41,8 +41,8 @@
             <h3 class="card-title">
               {{ $t("chatbotHelpsTitle") }}
             </h3>
-            <p class="card-text">
-              {{ $t("chatbotHelpsDesc") }}
+            <p class="card-text"
+              v-html= "$t('chatbotHelpsDesc')">
             </p>
           </div>
 
@@ -104,29 +104,50 @@
         :is-forward-confirmation="message.is_forward_confirmation ?? false"
         :is-emergency="message.classification === 'emergency'"
         :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
+        :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'needs_review' && !message.requires_confirmation ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
         @confirm-helpful="chatStore.dismissConfirmation()"
         @confirm-needs-forward="chatStore.forwardToProfessional()"
       />
+
+      <!-- Bot typing indicator -->
+      <div v-if="waitingForBot" class="typing-indicator">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </div>
 
-    <div class="input-shell">
+<div v-if="authStore.isAuthenticated" class="input-shell">
       <div class="chat-input-wrapper">
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="!authStore.isAuthenticated"
-          :send-disabled="waitingForBot || !authStore.isAuthenticated"
+          :input-disabled="false" 
+          :send-disabled="waitingForBot"
           :show-edit="false"
           :is-editing="false"
           @send="handleSendFromInputBar"
         />
       </div>
     </div>
-  </div>
+
+   <div v-else class="input-shell auth-prompt-shell">
+      <p class="auth-prompt-text">
+        <a href="#" @click.prevent="$emit('open-login')">
+          {{ $t('settings.login') }}
+        </a> 
+        {{ $t('or') }} 
+        <a href="#" @click.prevent="$emit('open-register')">
+          {{ $t('settings.register') }}
+        </a>
+        {{ $t('authPromptSuffix') }}
+      </p>
+    </div>
+  </div>  
 </template>
 
 <script>
@@ -136,6 +157,8 @@ import ChatInputBar from "./chat/ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
+import { onMounted, watch, ref, nextTick } from "vue"
+import { chatSocket } from "@/services/chatSocket"
 
 export default {
   name: "ChatComponent",
@@ -145,132 +168,128 @@ export default {
     externalShowForm: Boolean,
   },
 
-  emits: ["update:externalShowForm"],
+  emits: ["update:externalShowForm", "open-login", "open-register"],
 
-  setup() {
+  setup(props, { emit }) {
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
 
-    return { t, chatStore, authStore }
-  },
+    const welcomeMessageDisplayed = ref(true)
+    const messagesEl = ref(null)
+    const newMessage = ref("")
+    const waitingForBot = ref(false)
+    const showForm = ref(false)
 
-  data() {
+    const scrollToBottom = () => {
+      nextTick(() => {
+        if (messagesEl.value) {
+          messagesEl.value.scrollTo({
+            top: messagesEl.value.scrollHeight,
+            behavior: "smooth",
+          })
+        }
+      })
+    }
+
+    const connectWebsocket = (chat) => {
+      if (!chat) return
+      chatSocket.connect(chat.id, authStore.token, (message) => {
+        chat.messages.push(message)
+        chatStore.updateChatStatus("open")
+        scrollToBottom()
+      })
+    }
+
+    onMounted(() => {
+      if (chatStore.activeChat) {
+        connectWebsocket(chatStore.activeChat)
+        welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
+        scrollToBottom()
+      } 
+    })
+
+    watch(
+      () => chatStore.activeChat,
+      (newChat) => {
+        if (!newChat) {
+          welcomeMessageDisplayed.value = true
+          return
+        }
+        connectWebsocket(newChat)
+        welcomeMessageDisplayed.value = !newChat.messages?.length
+        scrollToBottom()
+      },
+      { immediate: true },
+    )
+
+    watch(
+      () => chatStore.activeChat?.messages,
+      (messages) => {
+        welcomeMessageDisplayed.value = !messages?.length
+        scrollToBottom()
+      },
+      { deep: true },
+    )
+
+    watch(
+      () => props.externalShowForm,
+      (val) => {
+        showForm.value = val
+      },
+    )
+
+    const openPatientForm = () => {
+      showForm.value = true
+      emit("update:externalShowForm", true)
+    }
+
+    const closePatientForm = () => {
+      showForm.value = false
+      emit("update:externalShowForm", false)
+    }
+
+    const handleSendFromInputBar = async (text) => {
+      if (!authStore.isAuthenticated) return
+      if (!text.trim()) return
+
+      newMessage.value = ""
+      waitingForBot.value = true
+      welcomeMessageDisplayed.value = false
+
+      try {
+        // Luo chat vain jos sitä ei ole
+        if (!chatStore.activeChat) {
+          await chatStore.createChat()
+        }
+        await chatStore.addUserMessage(text.trim())
+      } catch (error) {
+        console.error("Send error:", error)
+      } finally {
+        waitingForBot.value = false
+        scrollToBottom()
+      }
+    }
+
     return {
-      newMessage: "",
-      showForm: false,
-      welcomeMessageDisplayed: true,
-      waitingForBot: false,
+      t,
+      chatStore,
+      authStore,
+      welcomeMessageDisplayed,
+      messagesEl,
+      newMessage,
+      waitingForBot,
+      showForm,
+      scrollToBottom,
+      handleSendFromInputBar,
+      openPatientForm,
+      closePatientForm,
     }
   },
 
   computed: {
     messages() {
       return this.chatStore.getActiveChat?.messages ?? []
-    },
-  },
-
-  watch: {
-    externalShowForm(val) {
-      this.showForm = val
-    },
-
-    messages: {
-      handler(newMessages) {
-        this.welcomeMessageDisplayed = newMessages.length === 0
-        this.$nextTick(() => {
-          this.scrollToBottom()
-        })
-      },
-      deep: true,
-      immediate: false,
-    },
-
-    "authStore.isAuthenticated": {
-      async handler(isAuthenticated) {
-        if (!isAuthenticated) {
-          this.chatStore.clearChats()
-          this.welcomeMessageDisplayed = true
-          return
-        }
-
-        try {
-          console.log("Käyttäjä kirjautui sisään, alustetaan käyttäjän chatit")
-          await this.chatStore.initializeChats()
-
-          console.log("Kirjautumisen jälkeen luodaan aina uusi aktiivinen chatti")
-          await this.chatStore.createChat()
-        } catch (error) {
-          console.error("Chatin alustus epäonnistui:", error)
-        }
-      },
-      immediate: true,
-    },
-  },
-
-  methods: {
-    openPatientForm() {
-      this.showForm = true
-      this.$emit("update:externalShowForm", true)
-    },
-
-    closePatientForm() {
-      this.showForm = false
-      this.$emit("update:externalShowForm", false)
-    },
-
-    scrollToBottom() {
-      this.$nextTick(() => {
-        const el = this.$refs.messagesEl
-        if (!el) return
-
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior: "smooth",
-        })
-      })
-    },
-
-    handleSendFromInputBar(text) {
-      if (!this.authStore.isAuthenticated) {
-        console.warn("Käyttäjää ei ole tunnistettu")
-        return
-      }
-
-      this.newMessage = ""
-      this.sendMessage(text)
-    },
-
-    async sendMessage(text) {
-      const outgoing = (text ?? "").trim()
-      if (!outgoing) return
-      if (this.waitingForBot) return
-
-      if (!this.chatStore.getActiveChat) {
-        await this.chatStore.initializeChats()
-
-        if (
-          !this.chatStore.getActiveChat &&
-          this.chatStore.getUserChats.length > 0
-        ) {
-          await this.chatStore.setActiveChat(this.chatStore.userChats[0].id)
-        }
-
-        if (!this.chatStore.getActiveChat) {
-          await this.chatStore.createChat()
-        }
-      }
-
-      this.waitingForBot = true
-      this.welcomeMessageDisplayed = false
-
-      try {
-        await this.chatStore.addUserMessage(outgoing)
-      } catch (error) {
-        console.error(this.$t("send-error"), error)
-      } finally {
-        this.waitingForBot = false
-      }
     },
   },
 }
@@ -294,7 +313,7 @@ export default {
   min-height: 0;
   overflow-y: auto;
 
-  max-width: 820px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
 
@@ -303,7 +322,7 @@ export default {
 }
 
 .messages--welcome {
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .welcome,
@@ -321,21 +340,21 @@ export default {
 }
 
 .welcome {
-  max-width: 780px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 24px 0 12px;
+  padding: 24px 0 1;
   font-size: 18px;
   line-height: 1;
 }
 
 .welcome-hero {
   text-align: center;
-  padding: 10px 10px 18px;
+  padding-bottom: 18px;
 }
 
 .welcome-icon {
-  width: 72px;
-  height: 72px;
+  width: 60px;
+  height: 60px;
   margin: 0 auto 18px;
   border-radius: 18px;
   background: #1d4ed8;
@@ -346,8 +365,8 @@ export default {
 }
 
 .welcome-icon-svg {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
 }
 
 .welcome-title {
@@ -368,19 +387,19 @@ export default {
 
 .welcome-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-top: 10px;
+  margin-top: 0px;
 }
 
 .welcome-card {
   background: #ffffff;
   border: 1px solid #dbeafe;
   border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-  min-height: 150px;
-  padding-bottom: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 .card-icon {
@@ -462,8 +481,76 @@ export default {
 }
 
 .input-shell > .chat-input-wrapper {
-  max-width: 820px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
+}
+
+.auth-prompt-shell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px 18px;
+}
+
+.auth-prompt-text {
+  font-size: 18px;
+  color: #475569;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.auth-prompt-text a {
+  color: #3a5bdc; /* Sama sininen kuin brändissänne */
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-prompt-text a:hover {
+  color: #2a45b8;
+  text-decoration: underline;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  width: fit-content;
+  background: #f1f5f9;
+  border-radius: 14px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #64748b;
+  border-radius: 50%;
+  animation: typing 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

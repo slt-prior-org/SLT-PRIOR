@@ -59,7 +59,6 @@ system_prompt = (
 
     "\n\n"
     "Context: {context}\n\n"
-    "Chat history: {chat_history}"
 )
 
 prompt = ChatPromptTemplate.from_messages(
@@ -126,6 +125,38 @@ async def retrieve_with_fallback(
 
     return relevant_docs
 
+def _build_context_and_sources(relevant_docs):
+    context_parts = []
+    grouped_sources = {}
+
+    for index, doc in enumerate(relevant_docs, start=1):
+        metadata = doc.metadata or {}
+        source_name = metadata.get("source", "unknown")
+        page = metadata.get("page")
+
+        label = f"[{index}] Source: {source_name}"
+        if page is not None:
+            label += f", page {page}"
+
+        context_parts.append(f"{label}\n{doc.page_content}")
+
+        if source_name not in grouped_sources:
+            grouped_sources[source_name] = {
+                "source": source_name,
+                "pages": [],
+                "preview": doc.page_content[:220].strip(),
+            }
+
+        if page is not None and page not in grouped_sources[source_name]["pages"]:
+            grouped_sources[source_name]["pages"].append(page)
+
+    deduped_sources = []
+    for new_index, item in enumerate(grouped_sources.values(), start=1):
+        item["pages"] = sorted(item["pages"])
+        item["index"] = new_index
+        deduped_sources.append(item)
+
+    return "\n\n".join(context_parts), deduped_sources
 
 # -----------------------------
 # 4) Hoitosuositusotteiden haku ilman LLM-kutsua
@@ -357,9 +388,9 @@ async def get_guideline_excerpt(query: str, score_threshold: float = 0.65) -> di
 async def get_rag_response(
     user_input: str,
     chat_history: list[dict] | None = None,
-) -> str:
+) -> dict:
     """
-    Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen tekstinä.
+    Kysyy RAG-ketjulta (Chroma+GEMINI) ja palauttaa vastauksen sekä lähteet.
     Vastauksen muodostamiseen käytetään annettua chat-historiaa.
     """
     history_messages = _normalize_chat_history(chat_history)
@@ -368,25 +399,33 @@ async def get_rag_response(
     relevant_docs = await retrieve_with_fallback(user_input, vectorstore)
 
     if not relevant_docs:
-        # Jos uusi chat-kohtainen historia on annettu ja sitä löytyy,
-        # annetaan mallin vastata historian perusteella myös ilman haettuja dokumentteja.
+        # Jos historiaa on, annetaan mallin vastata historian perusteella ilman dokumenttikontekstia
         if history_messages:
-            relevant_docs = []
+            context_text = ""
+            sources = []
         else:
             no_info_msg = (
                 "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
                 "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
             )
-            return no_info_msg
+            return {
+                "answer": no_info_msg,
+                "sources": []
+            }
+    else:
+        context_text, sources = _build_context_and_sources(relevant_docs)
 
     # Vastauksen generointi
     response = await rag_chain.ainvoke({
-        "context": relevant_docs,
+        "context": context_text,
         "chat_history": history_messages,
         "input": user_input
     })
 
-    return response.content
+    return {
+        "answer": response.content,
+        "sources": sources
+    }
 
 async def translate_excerpt(text: str, target: str = "en") -> str:
     """
@@ -410,7 +449,8 @@ async def translate_excerpt(text: str, target: str = "en") -> str:
 
 async def generate_draft_response(user_input: str, chat_history: list[dict] | None = None) -> str:
     """Generoi RAG-luonnosvastauksen ilman muistiin tallennusta."""
-    return await get_rag_response(
+    result = await get_rag_response(
         user_input,
         chat_history=chat_history
     )
+    return result["answer"]

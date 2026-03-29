@@ -18,6 +18,7 @@ Endpoints:
     POST /professional/chats/{chat_id}/messages
 """
 
+import json
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -28,6 +29,7 @@ from ai_model.summarizer import generate_summary_for_professional
 from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse, SmallChatResponse
 from .auth import get_current_user
 from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message
+from src.websocket_manager import manager
 
 router = APIRouter()
 
@@ -297,7 +299,6 @@ async def send_professional_message(id: str, body: ProfessionalMessageRequest, c
 
     # Build the message document following the MessageModel structure
     new_message = {
-        "chat_id": ObjectId(id),
         "sender": SenderType.PROFESSIONAL,
         "content": body.message,
         "classification": Classification.SAFE,
@@ -307,9 +308,19 @@ async def send_professional_message(id: str, body: ProfessionalMessageRequest, c
     }
 
     result = await messages_collection.insert_one(new_message)
-
     new_message["_id"] = str(result.inserted_id)
 
     normalized_message = normalize_message(new_message)
-    # Return the whole data of the new_message
+
+    # --- WebSocket broadcast: convert datetime to JSON-serializable format --
+    def serialize_datetime(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    json_compatible_message = json.loads(
+        json.dumps(normalized_message, default=serialize_datetime)
+    )
+
+    await manager.broadcast(f"chat:{id}", json_compatible_message)
     return normalized_message

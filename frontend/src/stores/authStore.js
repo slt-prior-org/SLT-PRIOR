@@ -6,11 +6,12 @@ import {
   loginUser,
   updateUserProfile,
 } from "@/services/authService"
+import { chatSocket } from "@/services/chatSocket"
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     user: null,
-    token: localStorage.getItem("token") || null,
+    token: sessionStorage.getItem("token") || null,
     loading: false,
   }),
 
@@ -23,37 +24,47 @@ export const useAuthStore = defineStore("auth", {
 
   actions: {
     async register(formData) {
-      this.loading = true;
+      this.loading = true
       try {
-        const data = await registerUser(formData);
+        const data = await registerUser(formData)
 
-        this.user = data.user;
-        this.token = data.token;
+        this.user = data.user
+        this.token = data.token
 
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token)
+
+        // Alustetaan käyttäjän chat historia
+        const chatStore = useUserChatStore()
+        await chatStore.initializeChats()
+
       } catch (error) {
-        console.error("Registration failed:", error);
-        throw error;
+        console.error("Registration failed:", error)
+        throw error
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
     async login(email, password) {
-      this.loading = true;
+      this.loading = true
 
       try {
-        const data = await loginUser(email, password);
+        const data = await loginUser(email, password)
 
-        this.user = data.user;
-        this.token = data.token;
+        this.user = data.user
+        this.token = data.token
 
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token)
+
+        // Alustetaan käyttäjän chat historia
+        const chatStore = useUserChatStore()
+        await chatStore.initializeChats()
+
       } catch (error) {
-        console.error("Login failed:", error);
-        throw error;
+        console.error("Login failed:", error)
+        throw error
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
@@ -65,11 +76,16 @@ export const useAuthStore = defineStore("auth", {
       this.user = null
       this.token = null
 
-      localStorage.removeItem("token")
+      // Suljetaan WebSocket yhteys
+      chatSocket.disconnect()
+
+      sessionStorage.removeItem("token")
+      sessionStorage.removeItem("patient-last-route")
+      sessionStorage.removeItem("professional-last-route")
     },
 
     async fetchUser() {
-      if (!this.token) return;
+      if (!this.token) return
 
       this.loading = true
 
@@ -79,21 +95,21 @@ export const useAuthStore = defineStore("auth", {
       } catch (error) {
         console.error("Käyttäjän tietojen haku epäonnistui:", error)
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
     async updateProfile(formData) {
-      this.loading = true;
+      this.loading = true
 
       try {
-        const updatedUser = await updateUserProfile(formData);
-        this.user = updatedUser;
+        const updatedUser = await updateUserProfile(formData)
+        this.user = updatedUser
       } catch (error) {
         console.error("Profiilin päivitys epäonnistui:", error)
         throw error
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
   },

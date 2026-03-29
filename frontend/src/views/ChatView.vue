@@ -3,24 +3,28 @@
     <HeaderBar
       :queue-count="queueCount"
       :closed-count="closedCount"
-      :user="headerUser"
-      @open-patient-form="openPatientForm"
     />
     <main>
       <Chat
         :external-show-form="showForm"
         @update:external-show-form="showForm = $event"
+        @open-login="openSettings('login')"
+        @open-register="openSettings('register')"
       />
     </main>
+    <SettingsModal
+      v-if="settingsOpen"
+      :initialSection="initialSettingsSection"
+      @close="settingsOpen = false"
+    />
   </div>
 </template>
   
 <script setup>
-import { computed, ref } from "vue";
-import { storeToRefs } from "pinia";
+import { ref } from "vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import Chat from "@/components/Chat.vue";
-import { useAuthStore } from "@/stores/authStore";
+import SettingsModal from "@/components/SettingsModal.vue";
 
 // Lomakkeen näkyvyyden tila
 const showForm = ref(false);
@@ -28,30 +32,20 @@ const showForm = ref(false);
 const queueCount = 0;
 const closedCount = 0;
 
-// Haetaan käyttäjätiedot keskitetystä storesta reaktiivisesti
-const authStore = useAuthStore();
-const { user } = storeToRefs(authStore);
-
-// Muotoillaan käyttäjän nimi ja rooli HeaderBar-komponentille sopivaksi
-const headerUser = computed(() => {
-  const currentUser = user.value;
-  if (!currentUser) return { name: "...", role: "" };
-
-  // Yhdistetään etu- ja sukunimi, jos ne löytyvät
-  const fullName = [currentUser.first_name, currentUser.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  return {
-    name: fullName || currentUser.name || currentUser.email || "...",
-    role: currentUser.role || "",
-  };
-});
-
 // Funktio potilaslomakkeen avaamiseksi
-const openPatientForm = () => {
-  showForm.value = true;
+//const openPatientForm = () => {
+//  showForm.value = true;
+//};
+
+// Modalin tilan hallinta
+const settingsOpen = ref(false);
+const initialSettingsSection = ref("personalInfo");
+
+// TÄMÄ FUNKTIO PUUTTUI TAI OLI VIRHEELLINEN
+const openSettings = (section) => {
+  console.log("Availlaan osiota:", section); // Lisää tämä testiksi konsoliin
+  initialSettingsSection.value = section;
+  settingsOpen.value = true;
 };
 </script>
   

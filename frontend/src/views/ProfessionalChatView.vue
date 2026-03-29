@@ -6,13 +6,20 @@
     :queueCount="waiting.length"
     :closedCount="closedToday.length"
     :user="currentUser"
-    :showLanguageSwitcher="false"
+    :showLanguageSwitcher="true"
     :showCounts="true"
   />
 
-    <div v-if="!chat">Loading...</div>
+    <div v-if="chatStore.loading.chat">Loading...</div>
 
     <div v-else class="chat-container">
+
+      <div class="top-bar">
+        <AppButton variant="neutral" @click="goBack">
+          {{ $t("professional.back") }}
+        </AppButton>
+      </div>
+
       <div class="layout">
 
         <!-- Koko chat -->
@@ -23,7 +30,7 @@
             <ChatMessage
               v-for="(msg, i) in chat.messages"
               :key="i"
-              :from="mapSender(msg.sender)"
+              :from="msg.sender"
               :text="msg.content"
             />
           </div>
@@ -34,7 +41,7 @@
           <div class="reply-header">
 
             <div class="reply-label">
-              AI:N VASTAUSEHDOTUS
+              {{ $t("professional.aiReply") }}
             </div>
 
             <AppButton
@@ -42,7 +49,7 @@
               size="sm"
               @click="showSources = !showSources"
             >
-              {{ showSources ? "Piilota lähteet" : "Näytä lähteet" }}
+              {{ showSources ? $t('professional.hideSources') : $t('professional.showSources') }}
             </AppButton>
 
           </div>
@@ -51,7 +58,7 @@
           <div v-if="showSources" class="sources-panel">
 
             <div class="sources-title">
-              VIITTAUKSET
+              {{ $t("professional.sources") }}
             </div>
 
             <ul class="sources-list">
@@ -67,7 +74,7 @@
             <textarea
               v-model="editedReply"
               :disabled="!isEditing"
-              placeholder="Kirjoita viesti"
+              :placeholder="$t('professional.writeMessage')"
               @keydown.enter.exact.prevent="sendReply"
             ></textarea>
 
@@ -77,70 +84,52 @@
                 :disabled="!editedReply.trim()"
                 @click="sendReply"
               >
-                Lähetä
+                {{ $t('send') }}
               </AppButton>
 
               <AppButton
                 variant="neutral"
                 @click="toggleEdit"
               >
-                {{ isEditing ? "Valmis" : "Muokkaa viestiä" }}
-              </AppButton>
-            </div>
-
-</div>
-
-          <!-- Keskustelun hallintatoiminnot -->
-          <div class="bottom-bar">
-
-            <div class="left-actions">
-              <AppButton
-                variant="neutral"
-                @click="goBack"
-              >
-                Palaa jonoon
+                {{ isEditing ? $t('professional.done') : $t('professional.edit') }}
               </AppButton>
 
               <AppButton
                 v-if="!isClosed"
                 variant="neutral"
+                class="push-right"
                 @click="returnToQueue"
               >
-                Palauta jonoon
+                {{ $t('professional.returnToQueue') }}
               </AppButton>
-            </div>
 
-            <div class="right-actions">
               <AppButton
                 v-if="!isClosed"
                 variant="danger"
                 @click="closeChat"
               >
-                Päätä keskustelu
+                {{ $t('professional.closeChat') }}
               </AppButton>
             </div>
 
-          </div>
+</div>
 
         </div>
 
         <!-- Potilaan tiedot -->
         <div class="sidebar" v-if="chat?.patient_context">
-          <h3>Potilaan tiedot</h3>
+          <h3>{{ $t('professional.patientInfo') }}</h3>
 
-          <p><strong>Ikä:</strong> {{ chat.patient_context.age }}</p>
-          <p><strong>Pituus:</strong> {{ chat.patient_context.height }}</p>
-          <p><strong>Paino:</strong> {{ chat.patient_context.weight }}</p>
+          <p><strong>{{ $t('professional.age') }}</strong> {{ chat.patient_context.age }}</p>
+          <p><strong>{{ $t('professional.height') }}</strong> {{ chat.patient_context.height }}</p>
+          <p><strong>{{ $t('professional.weight') }}</strong> {{ chat.patient_context.weight }}</p>
 
-          <h4>Perussairaudet</h4>
+          <h4>{{ $t('professional.conditions') }}</h4>
           <p>{{ chat.patient_context.conditions?.join(", ") }}</p>
 
-          <h4>AI-kooste</h4>
+          <h4>{{ $t('professional.summary') }}</h4>
           <div v-html="formattedSummary"></div>
 
-          <AppButton variant="neutral">
-            Avaa potilastiedot
-          </AppButton>
         </div>
 
       </div>
@@ -158,14 +147,7 @@ import HeaderBar from "@/components/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
 import ChatMessage from "@/components/chat/ChatMessage.vue"
 import { useAuthStore } from "@/stores/authStore"
-import { unclaim } from "@/services/professionalChatService"
-
-import {
-  fetchChat,
-  addProfessionalMessage,
-  close as closeChatApi,
-  fetchQueues
-} from "@/services/professionalChatService"
+import { useProfessionalChatStore } from "@/stores/professionalChatStore"
 
 const route = useRoute()
 const router = useRouter()
@@ -174,6 +156,7 @@ const router = useRouter()
 const chatId = route.params.id
 
 const authStore = useAuthStore()
+const chatStore = useProfessionalChatStore()
 
 const formattedSummary = computed(() => {
   if (!chat.value?.chat_summary) return ""
@@ -183,17 +166,9 @@ const formattedSummary = computed(() => {
     .replace(/\n/g, "<br>")
 })
 
-function mapSender(sender) {
-  if (sender === "user") return "self"
-  if (sender === "assistant") return "other"
-  if (sender === "professional") return "other"
-  return "other"
-}
-
 const currentUser = computed(() => authStore.user)
 
-// chat-data ja ammattilaisen muokattava vastaus
-const chat = ref(null)
+const chat = computed(() => chatStore.activeChat)
 const editedReply = ref("")
 
 // UI:n tilat: vastauskentän muokkaus ja lähteiden näkyvyys
@@ -201,9 +176,8 @@ const isEditing = ref(false)
 const showSources = ref(false)
 
 // jonot headerbaria varten
-const queues = ref(null)
-const waiting = computed(() => queues.value?.waiting || [])
-const closedToday = computed(() => queues.value?.closed || [])
+const waiting = computed(() => chatStore.getWaitingChats)
+const closedToday = computed(() => chatStore.getClosedChats)
 
 // tarkistaa onko keskustelu suljettu
 const isClosed = computed(() => chat.value?.status === "closed")
@@ -216,19 +190,16 @@ function toggleEdit() {
 // hakee chatin ja jonot backendista
 onMounted(async () => {
   try {
+    if (!authStore.user) {
+      await authStore.fetchUser()
+    }
 
-    const data = await fetchChat(chatId)
+    await chatStore.openChat(chatId)
 
-    chat.value = data
-    editedReply.value = chat.value.draft_response || ""
+    editedReply.value = chatStore.activeChat?.draft_response || ""
+
   } catch (e) {
     console.error(e)
-  }
-
-  try {
-  queues.value = await fetchQueues()
-  } catch {
-    queues.value = { waiting: [], closed: [] }
   }
 })
 
@@ -238,19 +209,7 @@ async function sendReply() {
   if (!currentUser.value) return
 
   try {
-  const chatId = chat.value.id || chat.value._id
-
-  await addProfessionalMessage(chatId, {
-    message: editedReply.value,
-    professional_id: currentUser.value.id
-  })
-
-  if (!chat.value.messages) chat.value.messages = []
-
-  chat.value.messages.push({
-    sender: "professional",
-    content: editedReply.value
-  })
+  await chatStore.sendProfessionalMessage(editedReply.value)
 
   editedReply.value = ""
 } catch (e) {
@@ -265,7 +224,7 @@ async function returnToQueue() {
   const chatId = chat.value.id || chat.value._id
 
   try {
-    await unclaim(chatId)
+    await chatStore.unclaimChat(chatId)
 
     router.push("/professional")
   } catch (e) {
@@ -278,7 +237,7 @@ async function closeChat() {
 
   try {
     const chatId = chat.value.id || chat.value._id
-    await closeChatApi(chatId)
+    await chatStore.closeChat(chatId)
     router.push("/professional")
   } catch (e) {
     console.error(e)
@@ -296,8 +255,8 @@ function goBack() {
 .page{
   height:100vh;
   display:flex;
-  flex-direction:column;
   overflow:hidden;
+  flex-direction:column;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
@@ -306,42 +265,41 @@ function goBack() {
   flex:1;
   min-height:0;
   background:#e3f2fd;
-  padding:32px;
+  padding: clamp(16px, 2vw, 40px);
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  position:relative;
 }
 
 /* chat + sidebar layout */
-.layout{
-  display:grid;
-  grid-template-columns: minmax(0,1fr) 380px;
-  gap:150px;
-
-  width:100%;
-  flex:1;
-  min-height:0;
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(200px, 17vw, 400px);
+  gap: clamp(24px, 4vw, 120px);
+  width: min(2000px, 70vw);
+  margin-left: clamp(40px, 20vw, 700px);
+  min-height: 0;
+  height:100%;
 }
 
 .chat-messages {
-  max-width: 1200px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0;
-  width: 90%;
-  margin: 0 auto;
+  padding-bottom: 16px;
 }
 
 /* keskustelukortti */
 .conversation-card{
   display:flex;
   flex-direction:column;
-  max-width:1200px;
-  height:100%;
-  width:100%;
+  flex: 1;
+  width: clamp(600px, 50vw, 1400px);
+  min-height: 0;
+  
   margin-left:auto;
-  min-height:0;
 }
 
 /* tekstilaatikon header */
@@ -365,15 +323,22 @@ function goBack() {
   background:#e6eaf0;
 }
 
-/* potilaan tiedot -sivupalkki */
+/* Potilastiedot-kortti */
 .sidebar{
   background:white;
   border-radius:24px;
-  padding:28px;
+  padding: clamp(16px, 2vw, 32px);
   box-shadow:0 10px 30px rgba(0,0,0,0.05);
+
   display:flex;
   flex-direction:column;
   gap:18px;
+
+  height: 100%;
+  min-height: 0;
+
+  overflow-y: auto;
+  width: 100%;
 }
 
 .sidebar h3{
@@ -389,42 +354,22 @@ function goBack() {
   margin-bottom:2px;
 }
 
-/* tekstiblokit */
 .sidebar p{
   font-size:14px;
   line-height:1.5;
   color:#2b2f36;
 }
 
-/* potilaan perustiedot */
 .sidebar p strong{
   display:inline-block;
   min-width:70px;
   font-weight:600;
 }
 
-/* keskustelun hallintapalkki */
-.bottom-bar{
-  border-top:1px solid #e6eaf0;
-  padding:18px 28px;
-
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-
-  max-width:1200px;
-  width:100%;
-  margin-left:auto;
-}
-
-.left-actions{
-  display:flex;
-  gap:12px;
-}
-
 /* CHAT INPUT AREA */
 .custom-input {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   gap: 10px;
   padding: 0 28px 16px 28px;
@@ -432,19 +377,20 @@ function goBack() {
 
 .custom-input textarea {
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: clamp(12px, 1vw, 18px);
   width: 100%;
   border-radius: 16px;
   border: 1px solid #e0e4ea;
   padding: 14px;
-  font-size: 18px;
   min-height: 100px; 
   background: #f0f7fc;
   box-sizing: border-box;
-  resize: none;  
+  resize: vertical;  
 }
 
 .buttons {
   display: flex;
+  align-items: center;
   gap: 10px;
 }
 
@@ -476,15 +422,18 @@ function goBack() {
   margin-bottom:6px;
 }
 
-@media (max-width:1100px){
-  .layout{
-    grid-template-columns:1fr;
-    gap:24px;
-  }
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
 
-  .sidebar{
-    order:-1;
-  }
+  padding: 12px clamp(16px, 2vw, 40px);
+  pointer-events: auto;
+}
+
+.push-right {
+  margin-left: auto;
 }
 
 </style>

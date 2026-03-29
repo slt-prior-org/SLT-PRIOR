@@ -2,21 +2,24 @@
   <div class="settings-section">
     <h2>{{ $t("login.title") }}</h2>
 
-    <input
-      type="email"
-      v-model="email"
-      :placeholder="t('login.email')"
-      @keyup.enter="handleLogin"
-    >
+    <div class="email-field">
+      <input
+        type="email"
+        v-model="email"
+        :placeholder="t('login.email')"
+        @keyup.enter="handleLogin"
+      >
+    </div>
 
-    <input
-      type="password"
-      v-model="password"
-      :placeholder="t('login.password')"
-      @keyup.enter="handleLogin"
-    >
-
-    <AppButton variant="primary" size="sm" @click="handleLogin">{{ $t("login.logIn") }}</AppButton>
+    <div class="password-field">
+      <input
+        type="password"
+        v-model="password"
+        :placeholder="t('login.password')"
+        @keyup.enter="handleLogin"
+      >
+    </div>
+    <AppButton variant="primary" @click="handleLogin">{{ $t("login.logIn") }}</AppButton>
 
     <div
       v-if="loginMessage"
@@ -31,13 +34,17 @@
 </template>
 
 <script setup>
+
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/authStore";
 import AppButton from "@/components/ui/AppButton.vue";
+import { useRouter } from "vue-router";
+
 
 const { t } = useI18n();
 const auth = useAuthStore();
+const router = useRouter();
 
 
 const email = ref('')
@@ -45,17 +52,25 @@ const password = ref('')
 const loginMessage = ref('')
 const messageType = ref('')
 
+
+// Kirjautumiskäsittelijä: lähettää tunnukset, näyttää viestin ja ohjaa roolin mukaan
 const handleLogin = async () => {
   try {
     loginMessage.value = "";
     await auth.login(email.value, password.value);
 
+    // Onnistunut kirjautuminen
     messageType.value = "success";
     loginMessage.value = t("loginStatus.success");
 
-    // Optional redirect:
-    window.location.href = "/#";
+    // Ohjataan käyttäjä roolin perusteella oikealle sivulle
+    if (auth.user?.role === "professional") {
+      router.push("/professional");
+    } else {
+      router.push("/");
+    }
   } catch (error) {
+    // Virhe kirjautumisessa, näytetään viesti
     messageType.value = "error";
     const detail = error?.response?.data?.detail || "server_error";
     loginMessage.value = typeof detail === "string" ? detail : t("loginStatus.failed");
@@ -72,6 +87,17 @@ const handleLogin = async () => {
   font-size: 0.9rem;
   padding: 10px;
   border-radius: 4px;
+}
+
+.email-field {
+  display: flex;
+  margin-bottom: 12px;
+  margin-top: 12px;
+}
+
+.password-field {
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 @import "@/assets/settingsstyles.css";
 </style>

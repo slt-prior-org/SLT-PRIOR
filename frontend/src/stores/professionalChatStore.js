@@ -19,7 +19,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
     loading: {
       queues: false,
       chat: false,
-      claim: false,
+      claim: false, 
       close: false,
       send: false,
     },
@@ -30,6 +30,12 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
     getInProgressChats: (state) => state.queues.in_progress,
     getWaitingChats: (state) => state.queues.waiting,
     getClosedChats: (state) => state.queues.closed,
+    getMyInProgressChats: (state) => {
+      return (userId) =>
+        state.queues.in_progress.filter(
+          (chat) => chat.assigned_professional_id === userId
+        )
+}
   },
 
   actions: {

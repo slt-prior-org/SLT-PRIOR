@@ -99,7 +99,11 @@ async def send_message_to_chat(
     existing_messages = await get_chat_messages(chatId)
 
     conversation_history = [
-        {"sender": message["sender"], "content": message["content"]}
+        {
+            "sender": message["sender"],
+            "content": message["content"],
+            "classification": message.get("classification"),
+        }
         for message in existing_messages
     ]
 

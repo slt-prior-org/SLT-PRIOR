@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # LLM tiivistämiseen (matala temperature tarkkuuden vuoksi)
 summarizer_llm = ChatGoogleGenerativeAI(
-    model='gemini-2.0-flash-001',
+    model='gemini-2.5-flash-lite',
     temperature=0,
     max_tokens=800,
     google_api_key=settings.GOOGLE_API_KEY

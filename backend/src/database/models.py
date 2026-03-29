@@ -75,12 +75,19 @@ class ChatModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class SourceItem(BaseModel):
+    index: int
+    source: str
+    pages: List[int] = []
+    preview: Optional[str] = None
+
 class MessageModel(BaseModel):
     chat_id: str
     sender: SenderType
     content: str
     classification: Classification = Classification.SAFE
     flagged_for_human: bool = False
+    sources: List[SourceItem] = []
     created_at: datetime
     updated_at: datetime
 
@@ -125,6 +132,10 @@ class CheckSessionResponse(BaseModel):
 # Chat
 class ChatReplyResponse(BaseModel):
     reply: str
+    classification: str
+    sources: List[SourceItem] = []
+    requires_professional: Optional[bool] = None
+    classification_reasoning: Optional[str] = None
 
 class ChatSummaryItem(BaseModel):
     id: str
@@ -139,6 +150,7 @@ class MessageDetailResponse(BaseModel):
     content: str
     classification: Classification
     flagged_for_human: bool
+    sources: List[SourceItem] = []
     created_at: datetime
     updated_at: datetime
 

@@ -4,7 +4,7 @@
   <HeaderBar
     :queueCount="waiting.length"
     :closedCount="closedToday.length"
-    :showLanguageSwitcher="false"
+    :showLanguageSwitcher="true"
     :showCounts="true"
   />
 
@@ -15,7 +15,9 @@
     <!-- Päivämäärä ja näkymän otsikko -->
     <div class="workspace-header">
 
-      <div class="workspace-label">AMMATTILAISEN TYÖPÖYTÄ</div>
+      <div class="workspace-label">
+        {{ $t("professional.dashboardTitle") }}
+      </div>
 
       <div class="date-chip">
         {{ formattedToday }}
@@ -29,10 +31,10 @@
     <div class="main-card">
 
       <div class="main-card-header">
-        <h2>Päivän tehtäväjono</h2>
+        <h2>{{ $t("professional.queueTitle") }}</h2>
 
         <AppButton variant="primary" @click="openNext">
-          Avaa seuraava →
+          {{ $t("professional.openNext") }}
         </AppButton>
       </div>
 
@@ -41,12 +43,12 @@
         <div class="section">
 
           <div class="section-header">
-            <span>AKTIIVISET</span>
+            <span>{{ $t("professional.active") }}</span>
             <div class="section-count">{{ activeChats.length }}</div>
           </div>
 
           <div v-if="!activeChats.length" class="empty">
-            Ei tapauksia tässä osiossa
+            {{ $t("professional.empty") }}
           </div>
 
           <div v-else class="chat-grid">
@@ -60,8 +62,8 @@
             >
 
               <div class="chat-body">
-                <b>Potilas #{{ chat.user_id }}</b>
-                <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
+                <b>{{ $t("professional.patient") }} #{{ chat.user_id }}</b>
+                <p>{{ chat.last_message ?? "" }}</p>
               </div>
 
               <div class="chat-meta">
@@ -74,7 +76,7 @@
                   v-if="chat.status === 'in_progress'"
                   class="chat-status"
                 >
-                  Käsittelyssä
+                  {{ $t("professional.inProgress") }}
                 </div>
 
               </div>
@@ -91,7 +93,11 @@
           variant="neutral"
           @click="showClosed = !showClosed"
         >
-          {{ showClosed ? "Piilota käsitellyt" : `Näytä käsitellyt (${closedToday.length})` }}
+          {{
+            showClosed
+              ? $t("professional.hideClosed")
+              : $t("professional.showClosed", { count: closedToday.length })
+          }}
         </AppButton>
 
       </div>
@@ -99,7 +105,7 @@
       <div v-if="showClosed" class="section">
 
         <div class="section-header">
-          <span>KÄSITELTY TÄNÄÄN</span>
+          <span>{{ $t("professional.closedToday") }}</span>
         </div>
 
         <div class="chat-grid">
@@ -111,8 +117,8 @@
             @click="router.push(`/professional/chat/${chat.id}`)"
           >
             <div class="chat-body">
-              <b>Potilas #{{ chat.user_id }}</b>
-              <p>{{ chat.last_message ?? "Ei viestiä" }}</p>
+              <b>{{ $t("professional.patient") }} #{{ chat.user_id }}</b>
+              <p>{{ chat.last_message ?? "" }}</p>
             </div>
 
             <div class="time">
@@ -131,14 +137,14 @@
     <div v-if="showModal" class="modal-overlay">
       <div class="modal">
 
-        <h3>Chatin esikatselu</h3>
+        <h3>{{ $t("professional.chatPreview") }}</h3>
 
         <div class="preview-card">
 
           <div class="preview-header">
 
             <div class="preview-patient">
-              Potilas #{{ selectedChat?.user_id }}
+              {{ $t("professional.patient") }} #{{ selectedChat?.user_id }}
             </div>
 
             <div class="preview-time">
@@ -148,18 +154,18 @@
           </div>
 
           <div class="preview-message">
-            {{ selectedChat?.last_message || "Ei vielä viestejä" }}
+            {{ selectedChat?.last_message || "" }}
           </div>
 
         </div>
 
         <div class="modal-actions">
           <AppButton variant="primary" @click="claimChat">
-            Ota käsittelyyn
+            {{ $t("professional.claim") }}
           </AppButton>
 
           <AppButton variant="neutral" @click="closeModal">
-            Sulje
+            {{ $t("professional.close") }}
           </AppButton>
         </div>
 
@@ -181,6 +187,8 @@ import { useProfessionalChatStore } from "@/stores/professionalChatStore"
 import HeaderBar from "@/components/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
 import { useAuthStore } from "@/stores/authStore"
+import { useI18n } from "vue-i18n"
+const { locale } = useI18n()
 
 // käyttäjän sessio ja tiedot
 const authStore = useAuthStore()
@@ -211,12 +219,15 @@ const showModal = ref(false)
 
 // päivämäärä headeriin
 const formattedToday = computed(() => {
-  const today = new Date().toLocaleDateString("fi-FI", {
+  const lang = locale.value === "fi" ? "fi-FI" : "en-US"
+
+  const today = new Date().toLocaleDateString(lang, {
     weekday: "long",
     day: "numeric",
     month: "numeric",
     year: "numeric"
   })
+
   return today.charAt(0).toUpperCase() + today.slice(1)
 })
 
@@ -282,7 +293,9 @@ function openNext() {
 function formatTime(date) {
   if (!date) return ""
 
-  return new Date(date).toLocaleTimeString("fi-FI", {
+  const lang = locale.value === "fi" ? "fi-FI" : "en-US"
+
+  return new Date(date).toLocaleTimeString(lang, {
     hour: "2-digit",
     minute: "2-digit"
   })

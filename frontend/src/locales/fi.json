@@ -170,5 +170,38 @@
     "skip": "Ohita",
     "saveSuccess": "Esitiedot tallennettu!",
     "saveError": "Virhe tallennuksessa:"
-  }
+  },
+  "professional": {
+  "dashboardTitle": "AMMATTILAISEN TYÖPÖYTÄ",
+  "patient": "Potilas",
+  "queueTitle": "Päivän tehtäväjono",
+  "active": "AKTIIVISET CHATIT",
+  "empty": "Ei tapauksia tässä osiossa",
+  "openNext": "Avaa seuraava →",
+  "showClosed": "Näytä käsitellyt ({count})",
+  "hideClosed": "Piilota käsitellyt",
+  "inProgress": "Käsittelyssä",
+  "closedToday": "KÄSITELTY TÄNÄÄN",
+  "claim": "Ota käsittelyyn",
+  "close": "Sulje",
+  "back": "Palaa jonoon",
+  "aiReply": "AI:N VASTAUSEHDOTUS",
+  "showSources": "Näytä lähteet",
+  "hideSources": "Piilota lähteet",
+  "edit": "Muokkaa viestiä",
+  "returnToQueue": "Palauta jonoon",
+  "closeChat": "Päätä keskustelu",
+  "patientInfo": "Potilaan tiedot",
+  "age": "Ikä:",
+  "height": "Pituus:",
+  "weight": "Paino:",
+  "conditions": "Perussairaudet:",
+  "summary": "AI-kooste:",
+  "inQueue": "JONOSSA",
+  "done": "VALMIS",
+  "chatPreview": "Chatin esikatselu",
+  "sources": "VIITTAUKSET",
+  "writeMessage": "Kirjoita viesti"
+}
+
 }

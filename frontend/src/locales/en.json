@@ -171,5 +171,37 @@
     "skip": "Skip",
     "saveSuccess": "Preliminary information saved!",
     "saveError": "Error saving preliminary information:"
-  }
+  },
+  "professional": {
+    "dashboardTitle": "PROFESSIONAL DASHBOARD",
+    "patient": "Patient",
+    "queueTitle": "Today's queue",
+    "active": "ACTIVE CHATS",
+    "empty": "No cases in this section",
+    "openNext": "Open next →",
+    "showClosed": "Show handled ({count})",
+    "hideClosed": "Hide handled",
+    "inProgress": "In progress",
+    "closedToday": "HANDLED TODAY",
+    "claim": "Claim",
+    "close": "Close",
+    "back": "Back to queue",
+    "aiReply": "AI SUGGESTED REPLY",
+    "showSources": "Show sources",
+    "hideSources": "Hide sources",
+    "edit": "Edit message",
+    "returnToQueue": "Return to queue",
+    "closeChat": "Close chat",
+    "patientInfo": "Patient information",
+    "age": "Age:",
+    "height": "Height:",
+    "weight": "Weight:",
+    "conditions": "Conditions:",
+    "summary": "AI summary:",
+    "inQueue": "IN QUEUE",
+    "done": "DONE",
+    "chatPreview": "Chat preview",
+    "sources": "SOURCES",
+    "writeMessage": "Write a message"
+}
 }

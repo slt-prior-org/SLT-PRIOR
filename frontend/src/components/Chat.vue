@@ -222,6 +222,8 @@ export default {
     }
 
     onMounted(() => {
+      chatStore.resetTransientState()
+
       if (chatStore.activeChat) {
         connectWebsocket(chatStore.activeChat)
         welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length

@@ -32,7 +32,10 @@ export const useUserChatStore = defineStore("userChat", {
         sessionStorage.removeItem("userChat")
       }
     },
-
+    resetTransientState() {
+      this.isSending = false
+      this.isLoadingChat = false
+    },
     // Chatien haku ja alustaminen
     async initializeChats(force = false) {
       if (this.isLoaded && !force) return

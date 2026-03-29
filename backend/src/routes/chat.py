@@ -1,13 +1,15 @@
 from datetime import datetime
 from typing import Any, Dict, List
 
+import logging
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 
+from ai_model.summarizer import generate_summary_for_professional
 from ai_model import rag_cloud, utils
 from ai_model.classifier import classify_question, Classification as AiClassification
 from ai_model.emergency import detect_emergency
-from database.db import chats_collection, users_collection
+from database.db import chats_collection
 from database.models import (
     ChatDetailResponse,
     ChatStatus,
@@ -19,13 +21,14 @@ from database.models import (
 )
 from routes.auth import get_current_user
 from utils.chat_utils import (
-    get_chat_messages,
     get_chat_summaries,
     get_chats_with_messages,
     save_chat_message,
     touch_chat,
 )
+from src.websocket_manager import manager
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -94,17 +97,73 @@ async def send_message_to_chat(
     että chat kuuluu nykyiselle käyttäjälle.
     """
 
-    chat = await _get_owned_chat_or_404(chatId, current_user)
-    existing_messages = await get_chat_messages(chatId)
+    chats = await get_chats_with_messages({"_id": ObjectId(chatId)})
+    chat = chats[0]
+
+    professional_id = chat.get("assigned_professional_id")
+    chat_status = chat.get("status")
+    messages = chat.get("messages", [])
 
     conversation_history = [
         {"sender": message["sender"], "content": message["content"]}
-        for message in existing_messages
+        for message in messages
     ]
 
     user_message = body.message
     user_data = current_user
     logged_in = True
+
+    # Lähetetään viesti suoraan ammattilaiselle websocketin välityksellä, jos
+    # viestittely-yhteys ammattilaisen ja potilaan välillä on avoin -> ei tarvitse muodostaa
+    # botin vastausta. Samalla generoidaan ammattilaiselle draft-vastaus käyttäjän viestille.
+    if (professional_id and chat_status == ChatStatus.IN_PROGRESS):
+        try:
+            saved_user_message = await save_chat_message(
+                chatId,
+                SenderType.USER,
+                user_message,
+                classification=DbClassification.SAFE,
+            )
+            
+            messages.append(saved_user_message.model_dump())
+
+            summary_data = await generate_summary_for_professional(
+                messages=messages,
+                user_data=user_data
+            )
+
+            await chats_collection.update_one(
+                {"_id": ObjectId(chatId)},
+                {"$set": {
+                    "updated_at": datetime.utcnow(),
+                    "summary_cache": {
+                        "chat_summary": summary_data["chat_summary"],
+                        "draft_response": summary_data["draft_response"],
+                        "cached_at": datetime.utcnow(),
+                    }
+                }}
+            )
+
+            json_compatible_message = saved_user_message.model_dump(mode="json")
+
+            payload = {
+                "type": "new_user_message",
+                "message": json_compatible_message,
+                "sender": current_user["_id"],
+                "chatStatus": chat_status,
+                "draft": summary_data["draft_response"]
+            }
+            # lähetetään uusi viesti sekä draft response websocketilla ammattilaiselle
+            await manager.broadcast(f"chat:{chatId}", payload)
+
+        except Exception as e:
+            logger.error("Draft generation failed: %s", str(e))
+
+        return SendChatMessageResponse(
+            userMessage=saved_user_message,
+            botMessage=None,
+        )
+
 
     emergency = detect_emergency(user_message)
     if emergency:

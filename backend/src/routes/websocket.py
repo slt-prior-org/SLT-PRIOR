@@ -41,11 +41,24 @@ async def chat_ws(websocket: WebSocket, chat_id: str):
     token = websocket.query_params.get("token")
     user = await verify_token(token)
 
+    if not user:
+        await websocket.close(code=1008)
+        return
+    
     chat = await get_chat(chat_id)
-    logger.info("chat:", chat)
-    logger.info("user:", user)
+    
+    if not chat:
+        await websocket.close(code=1008)
+        return
+    
+    logger.info("chat: %s", chat)
+    logger.info("user: %s", user)
 
-    if not chat or user["_id"] != chat["user_id"]:
+    user_id = str(user["_id"])
+    patient_id = str(chat["user_id"])
+    professional_id = str(chat.get("assigned_professional_id"))
+
+    if user_id != patient_id and user_id != professional_id:
         await websocket.close()
         return
 

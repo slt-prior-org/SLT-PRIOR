@@ -3,6 +3,12 @@ from database.db import chats_collection, messages_collection
 from database.models import Classification, MessageDetailResponse, SenderType
 from bson import ObjectId
 
+# --- WebSocket broadcast: convert datetime to JSON-serializable format --
+def serialize_datetime(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
+
 async def get_chat(chat_id: str):
     """
     Returns a single chat without messages.

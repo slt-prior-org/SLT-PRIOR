@@ -1,5 +1,16 @@
 <template>
-  <div :class="['message', fromClass, extraClass]">
+  <!-- System / info message -->
+  <div v-if="isInfo" class="system-wrapper">
+    <div class="system-divider">
+      <span>{{ t("chat.closed") }}</span>
+    </div>
+    <div class="system-message">
+      {{ $t("chat.closedDescription") }}
+    </div>
+  </div>
+
+  <!-- Normal chat message -->
+  <div v-else :class="['message', fromClass, extraClass]">
     <div class="bubble-wrapper">
       <span class="sender-label">
         {{ formattedSender }}
@@ -31,9 +42,15 @@ const props = defineProps({
   },
 })
 
+const isInfo = computed(() => {
+  return props.from === "info"
+})
+
 // Lasketaan CSS-luokka lähettäjän perusteella (self = käyttäjä, other = botti/muu)
 const fromClass = computed(() => {
   if (props.from === "self" || props.from === "user") return "self"
+  if (props.from === "professional") return "professional"
+  if (props.from === "info") return "info"
   return "other"
 })
 
@@ -53,7 +70,7 @@ const formattedSender = computed(() => {
 
   if (props.from === "professional") return t("sender.professional")
 
-  return props.from
+  return ""
 })
 </script>
 
@@ -168,5 +185,69 @@ const formattedSender = computed(() => {
 
 .message.other.emergency .bubble::after {
   background: #f8d7da;
+}
+
+/* Professional message */
+.message.professional {
+  justify-content: flex-start;
+}
+
+.message.professional .bubble {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.message.professional .bubble::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  background: #e8f5e9;
+  transform: rotate(45deg);
+}
+
+.message.professional .sender-label {
+  text-align: left;
+  padding-left: 8px;
+}
+
+/* System wrapper */
+.system-wrapper {
+  margin: 28px 0;
+}
+
+/* Divider line */
+.system-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.system-divider::before,
+.system-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #cbd5f5;
+}
+
+.system-divider span {
+  padding: 0 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* System message text */
+.system-message {
+  text-align: center;
+  font-size: 16px;
+  color: #475569;
+  line-height: 1.5;
+  max-width: 70%;
+  margin: 0 auto;
 }
 </style>

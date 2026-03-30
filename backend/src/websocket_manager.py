@@ -2,7 +2,6 @@ from fastapi import WebSocket
 import logging
 
 logger = logging.getLogger(__name__)
-from database.models import ChatStatus
 
 class ConnectionManager:
     """

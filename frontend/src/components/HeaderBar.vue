@@ -1,9 +1,108 @@
+<template>
+  <div v-if="loginNotification" class="login-toast">
+    <span class="toast-icon">✔️</span>
+    <span class="toast-text">{{ loginNotification }}</span>
+  </div>
+
+  <div class="header" :class="{ disabled: settingsOpen }">
+    <div class="left">
+      <div v-if="loggedIn" class="user">
+        <strong>{{ fullName }}</strong>
+        <small>{{ user?.role || "" }}</small>
+      </div>
+    </div>
+
+    <div class="center">
+      <img src="@/assets/new_logo.png" alt="HeartWise Logo" class="logo" />
+    </div>
+
+    <div class="right">
+      <div v-if="showCounts" class="counts">
+        <span class="badge">
+          {{ $t("professional.inQueue") }} {{ queueCount }}
+        </span>
+        <span class="badge light">
+          {{ $t("professional.done") }} {{ closedCount }}
+        </span>
+      </div>
+
+      <div v-if="showLanguageSwitcher" class="language-switcher">
+        <AppButton
+          :class="{ active: i18n.locale.value === 'en' }"
+          variant="neutral"
+          @click="switchLanguage('en')"
+        >
+          EN
+        </AppButton>
+        <AppButton
+          :class="{ active: i18n.locale.value === 'fi' }"
+          variant="neutral"
+          @click="switchLanguage('fi')"
+        >
+          FI
+        </AppButton>
+      </div>
+
+      <AppButton
+        v-if="loggedIn"
+        class="gear"
+        variant="neutral"
+        @click="toggleMenu"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path
+            d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5a7.9 7.9 0 0 0-.08-1.12l2.04-1.59-2-3.46-2.46.98a8.15 8.15 0 0 0-1.94-1.13L15.2 2h-4.4l-.36 2.81a8.15 8.15 0 0 0-1.94 1.13l-2.46-.98-2 3.46 2.04 1.59A7.9 7.9 0 0 0 6 12c0 .38.03.75.08 1.12l-2.04 1.59 2 3.46 2.46-.98c.6.48 1.25.86 1.94 1.13L10.8 22h4.4l.36-2.81a8.15 8.15 0 0 0 1.94-1.13l2.46.98 2-3.46-2.04-1.59c.05-.37.08-.74.08-1.12Z"
+            fill="currentColor"
+          />
+        </svg>
+      </AppButton>
+
+      <AppButton
+        v-else
+        class="login-btn"
+        size="lg"
+        variant="primary"
+        @click="openAuthModal('login')"
+      >
+        {{ $t("settings.login") }}
+      </AppButton>
+
+      <div v-if="menuOpen" class="menu">
+        <AppButton
+          v-for="item in dropdownItems"
+          :key="item.key"
+          class="menu-item"
+          variant="neutral"
+          @click="item.action()"
+        >
+          {{ $t(item.labelKey) }}
+        </AppButton>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="menuOpen" class="menu-backdrop" @click="menuOpen = false" />
+
+  <AuthModal
+    :show="showAuth"
+    @close="showAuth = false"
+    @login-success="handleLoginSuccess"
+  />
+
+  <SettingsModal
+    v-if="settingsOpen"
+    :initialSection="initialSettingsSection"
+    @close="settingsOpen = false"
+  />
+</template>
+
 <script setup>
 import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useI18n } from "vue-i18n"
 import SettingsModal from "./SettingsModal.vue"
 import AppButton from "@/components/ui/AppButton.vue"
+import AuthModal from "@/components/auth/AuthModal.vue"
 import { useAuthStore } from "@/stores/authStore"
 
 // Komponentin ottamat vastaanottamat tiedot
@@ -12,32 +111,33 @@ defineProps({
   closedCount: Number,
   showLanguageSwitcher: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showCounts: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 // Alustetaan kielituki ja käyttäjästore
 const auth = useAuthStore()
 const router = useRouter()
 const i18n = useI18n()
+const { t } = useI18n()
+
+const loginNotification = ref("")
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
 const loggedIn = computed(() => auth.isAuthenticated)
+const showAuth = ref(false)
 const user = computed(() => auth.user)
 
- // Yhdistetään etu- ja sukunimi, jos ne löytyvät
+// Yhdistetään etu- ja sukunimi, jos ne löytyvät
 const fullName = computed(() => {
   const u = user.value
   if (!u) return ""
 
-  const name = [u.first_name, u.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
+  const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim()
 
   return name || u.name || u.email || "..."
 })
@@ -56,6 +156,29 @@ function toggleMenu() {
   menuOpen.value = !menuOpen.value
 }
 
+// Funktio kirjautumis- ja rekisteröintimodaalin avaamiseen
+function openAuthModal(section) {
+  if (!loggedIn.value) {
+    showAuth.value = true
+    menuOpen.value = false
+    return
+  }
+
+  settingsOpen.value = true
+  initialSettingsSection.value = section
+  menuOpen.value = false
+}
+
+// Funktio kirjautumisen onnistumisilmoituksen näyttämiseen
+function handleLoginSuccess() {
+  showAuth.value = false
+  loginNotification.value = t("loginStatus.success")
+
+  setTimeout(() => {
+    loginNotification.value = ""
+  }, 4000)
+}
+
 // Funktio asetusikkunan avaamiseen tietystä osiosta
 function openSettings(section) {
   settingsOpen.value = true
@@ -67,15 +190,27 @@ function openSettings(section) {
 const dropdownItems = computed(() => {
   if (loggedIn.value) {
     return [
-      { key: "settings", labelKey: "settings.title", action: () => openSettings("personalInfo") },
+      {
+        key: "settings",
+        labelKey: "settings.title",
+        action: () => openSettings("personalInfo"),
+      },
       { key: "logout", labelKey: "logout", action: () => handleLoginLogout() },
     ]
   }
 
   // Kirjautumattomalle näytetään vain nämä
   return [
-    { key: "login", labelKey: "settings.login", action: () => openSettings("login") },
-    { key: "register", labelKey: "settings.register", action: () => openSettings("register") }
+    {
+      key: "login",
+      labelKey: "settings.login",
+      action: () => openSettings("login"),
+    },
+    {
+      key: "register",
+      labelKey: "settings.register",
+      action: () => openSettings("register"),
+    },
   ]
 })
 
@@ -95,104 +230,16 @@ async function handleLoginLogout() {
 }
 </script>
 
-<template>
-  <div class="header" :class="{ disabled: settingsOpen }">
-
-    <div class="left">
-      <div v-if="loggedIn" class="user">
-        <strong>{{ fullName }}</strong>
-        <small>{{ user?.role || "" }}</small>
-      </div>
-    </div>
-
-    <div class="center">
-      <img src="@/assets/new_logo.png" alt="HeartWise Logo" class="logo" />
-    </div>
-
-    <div class="right">
-
-      <div v-if="showCounts" class="counts">
-        <span class="badge">
-          {{ $t("professional.inQueue") }} {{ queueCount }}
-        </span>
-        <span class="badge light">
-          {{ $t("professional.done") }} {{ closedCount }}
-        </span>
-      </div>
-
-      <div v-if="showLanguageSwitcher" class="language-switcher">
-        <AppButton 
-          :class="{ active: i18n.locale.value === 'en' }" 
-          variant="neutral" 
-          @click="switchLanguage('en')"
-        >
-          EN
-        </AppButton>
-        <AppButton 
-          :class="{ active: i18n.locale.value === 'fi' }" 
-          variant="neutral"
-          @click="switchLanguage('fi')"
-        >
-          FI
-        </AppButton>
-      </div>
-
-      <AppButton v-if="loggedIn" class="gear" variant="neutral" @click="toggleMenu">
-        <svg
-          viewBox="0 0 24 24"
-          width="22"
-          height="22"
-          aria-hidden="true"
-        >
-          <path
-            d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5a7.9 7.9 0 0 0-.08-1.12l2.04-1.59-2-3.46-2.46.98a8.15 8.15 0 0 0-1.94-1.13L15.2 2h-4.4l-.36 2.81a8.15 8.15 0 0 0-1.94 1.13l-2.46-.98-2 3.46 2.04 1.59A7.9 7.9 0 0 0 6 12c0 .38.03.75.08 1.12l-2.04 1.59 2 3.46 2.46-.98c.6.48 1.25.86 1.94 1.13L10.8 22h4.4l.36-2.81a8.15 8.15 0 0 0 1.94-1.13l2.46.98 2-3.46-2.04-1.59c.05-.37.08-.74.08-1.12Z"
-            fill="currentColor"
-          />
-        </svg>
-      </AppButton>
-
-      <AppButton v-else class="login-btn" size= lg variant="primary" @click="openSettings('login')">
-        {{$t("settings.login")}}
-      </AppButton>
-
-      <div v-if="menuOpen" class="menu">
-        <AppButton
-          v-for="item in dropdownItems"
-          :key="item.key"
-          class="menu-item"
-          variant="neutral"
-          @click="item.action()"
-        >
-          {{ $t(item.labelKey) }}
-        </AppButton>
-      </div>
-    </div>
-
-  </div>
-
-  <div
-    v-if="menuOpen"
-    class="menu-backdrop"
-    @click="menuOpen = false"
-  />
-
-  <SettingsModal
-    v-if="settingsOpen"
-    :initialSection="initialSettingsSection"
-    @close="settingsOpen = false"
-  />
-</template>
-
 <style scoped>
 /* Yläpalkin asemointi ja ulkoasu */
 .header {
   position: relative;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: clamp(10px, 1.2vw, 16px) clamp(16px, 2vw, 28px);
-  background:white;
-  border-bottom:1px solid #eee;
+  background: white;
+  border-bottom: 1px solid #eee;
   z-index: 1002;
   transition: opacity 0.2s;
 }
@@ -205,13 +252,13 @@ async function handleLoginLogout() {
 .left {
   position: absolute;
   left: clamp(12px, 2vw, 28px);
-  display:flex; 
-  align-items:center;
+  display: flex;
+  align-items: center;
 }
-.center { 
-  display:flex; 
-  gap:12px; 
-  align-items:center; 
+.center {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .logo {
@@ -221,28 +268,32 @@ async function handleLoginLogout() {
 }
 
 .badge {
-  background:#e8eefc;
-  color:#3a5bdc;
+  background: #e8eefc;
+  color: #3a5bdc;
   padding: clamp(2px, 0.5vw, 6px) clamp(6px, 1vw, 14px);
   font-size: clamp(13px, 0.7vw, 18px);
-  border-radius:20px;
+  border-radius: 20px;
 }
 
 .badge.light {
-  background:#eef1f6;
-  color:#5f6c7b;
+  background: #eef1f6;
+  color: #5f6c7b;
 }
 
 .right {
   position: absolute;
   right: clamp(12px, 2vw, 28px);
-  display:flex;
-  gap:16px;
-  align-items:center;
+  display: flex;
+  gap: 16px;
+  align-items: center;
   z-index: 1;
 }
 
-.user { display:flex; flex-direction:column; font-size:clamp(14px, 1vw, 18px); }
+.user {
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(14px, 1vw, 18px);
+}
 
 .auth-actions {
   display: flex;
@@ -287,7 +338,9 @@ async function handleLoginLogout() {
   font-weight: 600;
   padding: 10px 18px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
+  transition:
+    background 0.2s,
+    transform 0.15s;
 }
 
 .login-btn:hover {
@@ -335,5 +388,43 @@ async function handleLoginLogout() {
   position: fixed;
   inset: 0;
   z-index: 1000;
+}
+
+.login-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #dcfce7;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  z-index: 3000;
+  animation: toastEnter .25s ease;
+}
+
+.toast-icon {
+  font-size: 16px;
+}
+
+.toast-text {
+  line-height: 1.2;
+}
+
+@keyframes toastEnter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 </style>

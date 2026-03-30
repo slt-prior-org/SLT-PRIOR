@@ -4,7 +4,6 @@
   <HeaderBar
     :queueCount="waiting.length"
     :closedCount="closedToday.length"
-    :user="currentUser"
     :showLanguageSwitcher="true"
     :showCounts="true"
   />
@@ -195,8 +194,6 @@ const { locale } = useI18n()
 const authStore = useAuthStore()
 
 const chatStore = useProfessionalChatStore()
-
-const currentUser = computed(() => authStore.user)
 
 const activeChats = computed(() => {
   const userId = authStore.user?.id

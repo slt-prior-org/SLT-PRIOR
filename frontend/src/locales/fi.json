@@ -16,10 +16,20 @@
   "editMessage": "Muokkaa viestiä",
   "welcomeTitle": "Tervetuloa HeartWise-palveluun",
   "welcomeDescription": "HeartWise on sepelvaltimotautipotilaiden itsehoidon tueksi kehitetty keskustelupalvelu.",
+  "chat": {
+    "closed": "Keskustelu päätetty",
+    "closedDescription": "Keskustelu terveydenhuollon ammattilaisen kanssa on päätetty. Voit jatkaa keskustelua chatbotin kanssa."
+  },
+  "waitingProfessional": {
+    "messageSent": "Viesti lähetetty",
+    "waiting": "Odotetaan terveydenhuollon ammattilaisen vastausta",
+    "responseTime": "Tyypillinen vastausaika: 1–5 minuuttia"
+  },
   "chatbotHelpsTitle": "Chatbot auttaa",
-  "chatbotHelpsDesc": "Voit keskustella itsehoitoon liittyvissä asioissa ja chatbot vastaa hoitosuositusten perusteella. <b>Chatbot käyttää tekoälyä ja virheet ovat mahdollisia.</b>",
+  "chatbotHelpsDesc": "Voit keskustella itsehoitoon liittyvissä asioissa ja chatbot vastaa hoitosuositusten perusteella.",
+  "chatbotHelpsDescBold": "Chatbot käyttää tekoälyä ja virheet ovat mahdollisia.",
   "professionalSupportTitle": "Ammattilaisen tuki",
-  "professionalSupportDesc": "Keskustelu voidaan siirtää tarvittaessa tervedenhuollon ammattilaiselle arvioitavaksi.",
+  "professionalSupportDesc": "Keskustelu voidaan siirtää tarvittaessa terveydenhuollon ammattilaiselle arvioitavaksi.",
   "noDiagnosesTitle": "Ei diagnooseja",
   "noDiagnosesDesc": "Chatbot ei tee diagnooseja eikä hoitopäätöksiä. Kiireellisissä tapauksissa soita hätänumeroon 112.",
   "importantInfo": "Tärkeää tietoa",
@@ -34,7 +44,7 @@
   "logout": "Kirjaudu ulos",
   "user_saved": "Esitiedot tallennettu!",
   "user_id": "Käyttäjätunnuksesi on:",
-  "preliminaryForm":"Esitietolomake",
+  "preliminaryForm": "Esitietolomake",
   "welcomeMessage": "Hei, olen sydänterveytesi assistentti ja haluan auttaa sinua askarruttavissa asioissa ja edistää terveyttäsi. Aluksi haluaisin tietää muutamia esitietoja.",
   "fillForm": "Täytä esitietolomake",
   "returnLater": "Voit myös palata täydentämään esitietoja myöhemmin sivupaneelista.",

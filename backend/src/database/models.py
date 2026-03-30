@@ -153,6 +153,8 @@ class MessageDetailResponse(BaseModel):
     classification: Classification
     flagged_for_human: bool
     sources: List[SourceItem] = []
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

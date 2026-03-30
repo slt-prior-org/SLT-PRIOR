@@ -5,6 +5,7 @@ import {
   fetchAllUserChats,
   sendUserMessage,
   fetchChat,
+  updateChatStatus,
 } from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
@@ -215,7 +216,7 @@ export const useUserChatStore = defineStore("userChat", {
       }
     },
 
-    forwardToProfessional() {
+    async forwardToProfessional() {
       if (!this.activeChat) return
       const forwardMsg = {
         id: crypto.randomUUID(),
@@ -231,6 +232,7 @@ export const useUserChatStore = defineStore("userChat", {
       this.activeChat.messages.push(forwardMsg)
       this.activeChat.status = "waiting_for_professional"
       this.pendingConfirmationMessageId = null
+      await updateChatStatus(this.activeChat.id, "waiting_for_professional")
     },
 
     dismissConfirmation() {

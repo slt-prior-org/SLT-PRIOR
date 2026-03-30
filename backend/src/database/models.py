@@ -28,6 +28,7 @@ class SenderType(str, Enum):
     USER = "user"
     BOT = "bot"
     PROFESSIONAL = "professional"
+    INFO = "info"
 
 class Classification(str, Enum):
     SAFE = "safe"

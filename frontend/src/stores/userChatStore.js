@@ -34,7 +34,10 @@ export const useUserChatStore = defineStore("userChat", {
         sessionStorage.removeItem("userChat")
       }
     },
-
+    resetTransientState() {
+      this.isSending = false
+      this.isLoadingChat = false
+    },
     // Chatien haku ja alustaminen
     async initializeChats(force = false) {
       if (this.isLoaded && !force) return
@@ -96,8 +99,6 @@ export const useUserChatStore = defineStore("userChat", {
       }
     },
     updateChatStatus(status) {
-      this.activeChat.status = status
-
       // Päivitetään aktiivisen chatin status
       this.activeChat.status = status
 
@@ -114,7 +115,7 @@ export const useUserChatStore = defineStore("userChat", {
       if (this.isSending) return // Estää useat lähetykset
 
       if (
-        ["waiting_for_professional", "in_progress"].includes(
+        ["waiting_for_professional"].includes(
           this.activeChat.status,
         )
       ) {

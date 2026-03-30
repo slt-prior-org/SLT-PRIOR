@@ -21,8 +21,18 @@
   "editMessage": "Edit message",
   "welcomeTitle": "Welcome to HeartWise",
   "welcomeDescription": "HeartWise is a conversational service developed to support self-care for patients with coronary artery disease.",
+  "chat": {
+    "closed": "Chat closed",
+    "closedDescription": "The conversation with the healthcare professional has been closed. You can continue the discussion with the chatbot."
+  },
+  "waitingProfessional": {
+    "messageSent": "Message sent",
+    "waiting": "Waiting for a healthcare professional to reply...",
+    "responseTime": "Typical response time: 1–5 minutes"
+  },
   "chatbotHelpsTitle": "Chatbot helps",
-  "chatbotHelpsDesc": "You can chat about self-care topics, and the chatbot will respond based on care recommendations. <b>The chatbot uses AI and errors are possible.</b>",
+  "chatbotHelpsDesc": "You can chat about self-care topics, and the chatbot will respond based on care recommendations.",
+  "chatbotHelpsDescBold": "The chatbot uses AI and errors are possible.",
   "professionalSupportTitle": "Professional support",
   "professionalSupportDesc": "If needed, your conversation can be transferred to a healthcare professional for review.",
   "noDiagnosesTitle": "No diagnoses",

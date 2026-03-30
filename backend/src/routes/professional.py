@@ -18,17 +18,16 @@ Endpoints:
     POST /professional/chats/{chat_id}/messages
 """
 
-import json
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 from datetime import datetime
-from database.db import chats_collection, messages_collection, users_collection
+from database.db import chats_collection, users_collection
 from ai_model.summarizer import generate_summary_for_professional
 from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse, SmallChatResponse
 from .auth import get_current_user
-from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message
+from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message, save_chat_message
 from src.websocket_manager import manager
 
 router = APIRouter()
@@ -191,6 +190,31 @@ async def close_chat(id: str, current_user: Dict[str, Any] = Depends(get_current
     if result.matched_count == 0:
         raise HTTPException(404, "Chat not found")
 
+    message_text = (
+        "Keskustelu terveydenhuollon ammattilaisen kanssa on päätetty. "
+        "Voit jatkaa keskustelua chatbotin kanssa.\n\n"
+        "The conversation with the healthcare professional has been closed. "
+        "You can continue the discussion with the chatbot."
+    )
+
+    saved_message = await save_chat_message(
+            id,
+            SenderType.INFO,
+            message_text,
+            classification=Classification.SAFE,
+        )
+                
+    json_compatible_message = saved_message.model_dump(mode="json")
+
+    payload = {
+        "type": "close_chat",
+        "message": json_compatible_message,
+        "sender": current_user["_id"],
+        "chatStatus": ChatStatus.CLOSED,
+    }
+
+    await manager.broadcast(f"chat:{id}", payload)
+
     return {"status": "success", "message": "Chat closed"}
 
 
@@ -298,29 +322,22 @@ async def send_professional_message(id: str, body: ProfessionalMessageRequest, c
         raise HTTPException(400, "Invalid ObjectId")
 
     # Build the message document following the MessageModel structure
-    new_message = {
-        "sender": SenderType.PROFESSIONAL,
-        "content": body.message,
-        "classification": Classification.SAFE,
-        "flagged_for_human": False,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+    saved_message = await save_chat_message(
+        id,
+        SenderType.PROFESSIONAL,
+        body.message,
+        classification=Classification.SAFE,
+    )
+                
+    json_compatible_message = saved_message.model_dump(mode="json")
+
+    payload = {
+        "type": "new_professional_message",
+        "message": json_compatible_message,
+        "sender": professional_id,
+        "chatStatus": ChatStatus.IN_PROGRESS
     }
 
-    result = await messages_collection.insert_one(new_message)
-    new_message["_id"] = str(result.inserted_id)
+    await manager.broadcast(f"chat:{id}", payload)
 
-    normalized_message = normalize_message(new_message)
-
-    # --- WebSocket broadcast: convert datetime to JSON-serializable format --
-    def serialize_datetime(obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        raise TypeError(f"Type {type(obj)} not serializable")
-
-    json_compatible_message = json.loads(
-        json.dumps(normalized_message, default=serialize_datetime)
-    )
-
-    await manager.broadcast(f"chat:{id}", json_compatible_message)
-    return normalized_message
+    return saved_message

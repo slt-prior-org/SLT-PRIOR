@@ -113,7 +113,7 @@ async def send_message_to_chat(
             "content": message["content"],
             "classification": message.get("classification"),
         }
-        for message in existing_messages
+        for message in messages
     ]
 
     user_message = body.message

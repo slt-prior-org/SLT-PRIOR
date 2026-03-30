@@ -134,7 +134,10 @@ class ChatReplyResponse(BaseModel):
     classification: str
     sources: List[SourceItem] = []
     requires_professional: Optional[bool] = None
+    requires_confirmation: Optional[bool] = None
     classification_reasoning: Optional[str] = None
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
 
 class ChatSummaryItem(BaseModel):
     id: str
@@ -150,6 +153,8 @@ class MessageDetailResponse(BaseModel):
     classification: Classification
     flagged_for_human: bool
     sources: List[SourceItem] = []
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -157,6 +162,9 @@ class SendChatMessageResponse(BaseModel):
     userMessage: MessageDetailResponse
     botMessage: Optional[MessageDetailResponse] = None
     requires_professional: bool = False
+    requires_confirmation: bool = False
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
     classification_reasoning: Optional[str] = None
 
 class ChatDetailResponse(BaseModel):

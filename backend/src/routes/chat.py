@@ -1,12 +1,16 @@
 from datetime import datetime
 from typing import Any, Dict, List
 
+from langdetect import detect, LangDetectException
+
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from ai_model import rag_cloud, utils
 from ai_model.classifier import classify_question, Classification as AiClassification
 from ai_model.emergency import detect_emergency
+from ai_model.rag_cloud import get_guideline_excerpt, translate_excerpt
 from database.db import chats_collection, users_collection
 from database.models import (
     ChatDetailResponse,
@@ -138,37 +142,62 @@ async def send_message_to_chat(
     )
 
     if classification_result.classification == AiClassification.NEEDS_REVIEW:
-        safe_message = (
-            "Tämä aihe liittyy henkilökohtaiseen "
-            "terveysarviointiin, johon en voi antaa vastausta. Keskustelusi "
-            "on välitetty ammattilaiselle arvioitavaksi."
-            "<br><br>"
-            "This topic relates to a personal "
-            "health assessment that I cannot answer. Your conversation has been "
-            "forwarded to a professional for review."
+        try:
+            is_finnish = detect(user_message) == "fi"
+        except LangDetectException:
+            is_finnish = False
+        excerpt_query = (
+            f"{user_message} hoitosuositus suomalainen ohje"
+            if is_finnish
+            else f"{user_message} care guideline Finnish recommendation"
         )
+        excerpt_data = await get_guideline_excerpt(excerpt_query, score_threshold=0.60)
 
         saved_user_message = await save_chat_message(
             chatId,
             SenderType.USER,
             user_message,
             classification=DbClassification.NEEDS_REVIEW,
-            flagged_for_human=True,
+            flagged_for_human=not bool(excerpt_data),
         )
+
+        if excerpt_data:
+            try:
+                excerpt_is_finnish = detect(excerpt_data["text"]) == "fi"
+            except LangDetectException:
+                excerpt_is_finnish = False
+            if is_finnish and not excerpt_is_finnish:
+                excerpt_data["text"] = await translate_excerpt(excerpt_data["text"], target="fi")
+            elif not is_finnish and excerpt_is_finnish:
+                excerpt_data["text"] = await translate_excerpt(excerpt_data["text"], target="en")
+
         saved_bot_message = await save_chat_message(
             chatId,
             SenderType.BOT,
-            safe_message,
+            "",
             classification=DbClassification.NEEDS_REVIEW,
             sources=[],
+            guideline_excerpt=excerpt_data["text"] if excerpt_data else None,
+            guideline_source=excerpt_data["source"] if excerpt_data else None,
         )
-        await touch_chat(chatId, status=ChatStatus.WAITING)
-        return SendChatMessageResponse(
-            userMessage=saved_user_message,
-            botMessage=saved_bot_message,
-            requires_professional=True,
-            classification_reasoning=classification_result.reasoning,
-        )
+
+        if excerpt_data:
+            return SendChatMessageResponse(
+                userMessage=saved_user_message,
+                botMessage=saved_bot_message,
+                requires_confirmation=True,
+                guideline_excerpt=excerpt_data["text"],
+                guideline_source=excerpt_data["source"],
+                classification_reasoning=classification_result.reasoning,
+            )
+        else:
+            await touch_chat(chatId, status=ChatStatus.WAITING)
+            return SendChatMessageResponse(
+                userMessage=saved_user_message,
+                botMessage=saved_bot_message,
+                requires_professional=True,
+                classification_reasoning=classification_result.reasoning,
+            )
 
     if logged_in and user_data.get("patient_info"):
         patient_info = user_data["patient_info"]
@@ -232,3 +261,17 @@ async def get_chat_id(chatId: str, current_user: Dict[str, Any] = Depends(get_cu
         raise HTTPException(403, "Forbidden")
 
     return ChatDetailResponse(**chats[0])
+
+
+class ChatStatusUpdate(BaseModel):
+    status: ChatStatus
+
+
+@router.put("/{chatId}/status", status_code=204)
+async def update_chat_status(
+    chatId: str,
+    body: ChatStatusUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    await _get_owned_chat_or_404(chatId, current_user)
+    await touch_chat(chatId, status=body.status)

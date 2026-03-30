@@ -128,6 +128,15 @@
     "return": "Takaisin",
     "optional": "Kaikki kentät ovat valinnaisia"
   },
+  "guidelineExcerpt": "Hoitosuosituksesta",
+  "guidelineSource": "Lähde",
+  "guidelineFound": "Löysin aiheeseen liittyvän hoitosuosituksen.",
+  "forwardedToProfessional": "Tämä aihe liittyy henkilökohtaiseen terveysarviointiin, johon en voi antaa vastausta. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.",
+  "confirmationQuestion": "Auttoiko tämä hoitosuositus sinua?",
+  "confirmYes": "Kyllä, tämä auttoi",
+  "confirmNo": "Ei, tarvitsen lisäapua",
+  "confirmForwarded": "Ymmärretty. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.",
+  "emergencyMessage": "<strong>⚠️ Tämä vaikuttaa hätätilanteelta.</strong><br><br>Jos sinulla tai jollakin lähelläsi on henkeä uhkaava tilanne, <strong>soita hätänumeroon 112 välittömästi.</strong><br><br>Tämä chatbot ei voi antaa ensiapua eikä korvata hätäpalvelua.",
   "patientForm": {
     "title": "Esitietolomake",
     "weight": "Paino",

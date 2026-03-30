@@ -5,6 +5,7 @@ import {
   fetchAllUserChats,
   sendUserMessage,
   fetchChat,
+  updateChatStatus,
 } from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
@@ -14,6 +15,7 @@ export const useUserChatStore = defineStore("userChat", {
     isLoaded: false, // Onko chatit ladattu
     isSending: false, // Estää viestien spam/race condition
     isLoadingChat: false,
+    pendingConfirmationMessageId: null, // Seuraa odottavaa Kyllä/Ei-vahvistusta
   }),
 
   getters: {
@@ -119,6 +121,11 @@ export const useUserChatStore = defineStore("userChat", {
         throw new Error("Chat is locked") // Estää viestit tietyissä tiloissa
       }
 
+      // Käyttäjä jatkoi kirjoittamista → unohdetaan odottava vahvistus
+      if (this.pendingConfirmationMessageId) {
+        this.pendingConfirmationMessageId = null
+      }
+
       this.isSending = true
 
       const chat = this.activeChat
@@ -149,8 +156,15 @@ export const useUserChatStore = defineStore("userChat", {
           updated_at: userMessage.updated_at,
         }
 
-        const botMessage = data.botMessage ?? (
-          data.reply
+        const botMessage = data.botMessage
+          ? {
+              ...data.botMessage,
+              requires_confirmation: data.requires_confirmation ?? false,
+              requires_professional: data.requires_professional ?? false,
+              guideline_excerpt: data.guideline_excerpt ?? null,
+              guideline_source: data.guideline_source ?? null,
+            }
+          : data.reply
             ? {
                 id: crypto.randomUUID(),
                 sender: "bot",
@@ -162,7 +176,6 @@ export const useUserChatStore = defineStore("userChat", {
                 updated_at: new Date().toISOString(),
               }
             : null
-        )
 
         chat.messages = chat.messages.filter(
           (item) => item.id !== userMessage.id,
@@ -174,14 +187,18 @@ export const useUserChatStore = defineStore("userChat", {
         }
 
         if (
-          data.requires_professional ||
-          confirmedUserMessage.classification === "needs_review"
+          (data.requires_professional || confirmedUserMessage.classification === "needs_review")
+          && !data.requires_confirmation
         ) {
           this.updateChatStatus("waiting_for_professional")
         }
 
         if (confirmedUserMessage.classification === "emergency") {
           console.warn("Hätätilaviesti tunnistettu")
+        }
+
+        if (data.requires_confirmation && botMessage) {
+          this.pendingConfirmationMessageId = botMessage.id
         }
 
         chat.updated_at =
@@ -197,6 +214,29 @@ export const useUserChatStore = defineStore("userChat", {
       } finally {
         this.isSending = false
       }
+    },
+
+    async forwardToProfessional() {
+      if (!this.activeChat) return
+      const forwardMsg = {
+        id: crypto.randomUUID(),
+        sender: "bot",
+        content: "",
+        flagged_for_human: false,
+        classification: "needs_review",
+        requires_confirmation: false,
+        is_forward_confirmation: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      this.activeChat.messages.push(forwardMsg)
+      this.activeChat.status = "waiting_for_professional"
+      this.pendingConfirmationMessageId = null
+      await updateChatStatus(this.activeChat.id, "waiting_for_professional")
+    },
+
+    dismissConfirmation() {
+      this.pendingConfirmationMessageId = null
     },
   },
   persist: {

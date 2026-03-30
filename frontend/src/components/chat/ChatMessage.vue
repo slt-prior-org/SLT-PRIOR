@@ -16,7 +16,36 @@
         {{ formattedSender }}
       </span>
 
-      <div class="bubble" v-html="text" />
+      <div class="bubble">
+        <template v-if="requiresConfirmation || guidelineExcerpt">{{ $t('guidelineFound') }}</template>
+        <template v-else-if="requiresProfessional">{{ $t('forwardedToProfessional') }}</template>
+        <template v-else-if="isForwardConfirmation">{{ $t('confirmForwarded') }}</template>
+        <span v-else-if="isEmergency && fromClass === 'other'" v-html="$t('emergencyMessage')" />
+        <span v-else v-html="text" />
+      </div>
+      <div
+        v-if="guidelineExcerpt && fromClass === 'other'"
+        class="guideline-citation"
+        role="note"
+      >
+        <div class="citation-header">
+          <span class="citation-label">{{ $t('guidelineExcerpt') }}</span>
+        </div>
+        <blockquote class="citation-text">{{ guidelineExcerpt }}</blockquote>
+        <div class="citation-source">{{ $t('guidelineSource') }}: {{ guidelineSource }}</div>
+      </div>
+      <div
+        v-if="requiresConfirmation && !confirmationAnswered && fromClass === 'other'"
+        class="confirmation-buttons"
+      >
+        <p class="confirmation-question">{{ $t('confirmationQuestion') }}</p>
+        <button class="btn-yes" @click="$emit('confirm-helpful')">
+          {{ $t('confirmYes') }}
+        </button>
+        <button class="btn-no" @click="$emit('confirm-needs-forward')">
+          {{ $t('confirmNo') }}
+        </button>
+      </div>
 
       <!-- Toggle button -->
       <button
@@ -87,7 +116,37 @@ const props = defineProps({
     type: [String, Array, Object],
     default: "",
   },
+  guidelineExcerpt: {
+    type: String,
+    default: null,
+  },
+  guidelineSource: {
+    type: String,
+    default: null,
+  },
+  requiresConfirmation: {
+    type: Boolean,
+    default: false,
+  },
+  requiresProfessional: {
+    type: Boolean,
+    default: false,
+  },
+  isForwardConfirmation: {
+    type: Boolean,
+    default: false,
+  },
+  isEmergency: {
+    type: Boolean,
+    default: false,
+  },
+  confirmationAnswered: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['confirm-helpful', 'confirm-needs-forward'])
 
 const isInfo = computed(() => {
   return props.from === "info"
@@ -234,6 +293,49 @@ function formatPages(pages) {
   height: 12px;
   background: #16a34a;
   transform: rotate(45deg);
+}
+
+.guideline-citation {
+  margin-top: 10px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-left: 4px solid #16a34a;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  max-width: 95%;
+}
+.citation-header { color: #15803d; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+.citation-text { margin: 0 0 6px; font-style: italic; line-height: 1.6; color: #0f172a; }
+.citation-source { color: #64748b; font-size: 13px; }
+
+.confirmation-buttons {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.confirmation-question {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 4px;
+}
+.btn-yes, .btn-no {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.btn-yes {
+  background: #16a34a;
+  color: white;
+}
+.btn-no {
+  background: #f1f5f9;
+  color: #374151;
+  border: 1px solid #cbd5e1;
 }
 
 /* NEEDS REVIEW */

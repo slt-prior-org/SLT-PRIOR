@@ -98,11 +98,20 @@
         :key="message.id"
         :from="message.sender"
         :text="message.content"
+        :guideline-excerpt="message.guideline_excerpt"
+        :guideline-source="message.guideline_source"
+        :requires-confirmation="message.requires_confirmation ?? false"
+        :requires-professional="message.requires_professional ?? false"
+        :is-forward-confirmation="message.is_forward_confirmation ?? false"
+        :is-emergency="message.classification === 'emergency'"
+        :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
         :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'needs_review' && !message.requires_confirmation ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
+        @confirm-helpful="chatStore.dismissConfirmation()"
+        @confirm-needs-forward="chatStore.forwardToProfessional()"
       />
 
       <!-- Bot typing indicator -->

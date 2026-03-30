@@ -215,6 +215,8 @@ async def save_chat_message(
     classification: Classification = Classification.SAFE,
     flagged_for_human: bool = False,
     sources: list[dict] | None = None,
+    guideline_excerpt: str | None = None,
+    guideline_source: str | None = None,
 ) -> MessageDetailResponse:
     """
     Persists a single chat message into MongoDB and returns the normalized message.
@@ -231,6 +233,10 @@ async def save_chat_message(
         "created_at": now,
         "updated_at": now,
     }
+    if guideline_excerpt is not None:
+        new_message["guideline_excerpt"] = guideline_excerpt
+    if guideline_source is not None:
+        new_message["guideline_source"] = guideline_source
 
     result = await messages_collection.insert_one(new_message)
     new_message["_id"] = result.inserted_id

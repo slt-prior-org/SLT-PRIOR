@@ -20,3 +20,6 @@ export const addChat = async () => {
   const response = await api.post("/api/chat/chat") // Luo uuden chatin
   return response.data
 }
+
+export const updateChatStatus = (chatId, status) =>
+  api.put(`/api/chat/${chatId}/status`, { status })

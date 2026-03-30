@@ -26,6 +26,8 @@
               :key="i"
               :from="msg.sender"
               :text="msg.content"
+              :guideline-excerpt="msg.guideline_excerpt ?? null"
+              :guideline-source="msg.guideline_source ?? null"
             />
           </div>
 

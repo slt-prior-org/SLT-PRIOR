@@ -1,5 +1,5 @@
 import io
-from typing import List
+from typing import List, Tuple
 from google.cloud import storage
 from PyPDF2 import PdfReader
 from langchain_core.documents import Document

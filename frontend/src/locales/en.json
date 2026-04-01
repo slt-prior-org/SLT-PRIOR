@@ -241,5 +241,16 @@
     "received": "Received",
     "waiting": "Waiting",
     "medication": "Medication"
-}
+  },
+  "sidebar": {
+    "pastChats": "Past chats",
+    "closeSidebar": "Close sidebar",
+    "subtitle": "You can return to previous chats",
+    "newChat": "New chat",
+    "noChats": "No previous chats",
+    "defaultTitle": "New chat",
+    "footer": "Chats are stored securely and are only visible to you",
+    "delete": "Delete conversation"
+
+  }
 }

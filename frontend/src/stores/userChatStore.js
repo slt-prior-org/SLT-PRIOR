@@ -80,7 +80,22 @@ export const useUserChatStore = defineStore("userChat", {
         this.isLoadingChat = false
       }
     },
-    // Uuden chatin luonti
+    // Luodaan paikallinen draft-chat ilman backend-tallennusta
+    createDraftChat() {
+      const draftChat = {
+        id: crypto.randomUUID(),
+        status: "draft",
+        messages: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        isDraft: true,
+      }
+
+      this.activeChat = draftChat
+
+      return draftChat
+    },
+    // Luodaan chat backendissä
     async createChat() {
       try {
         const newChat = await addChat()
@@ -97,6 +112,31 @@ export const useUserChatStore = defineStore("userChat", {
         return this.activeChat
       } catch (error) {
         console.error("Failed to create chat:", error)
+        throw error
+      }
+    },
+    // Tallennetaan draft-chat backendiin
+    async saveDraftChat() {
+      if (!this.activeChat || !this.activeChat.isDraft) return
+
+      try {
+        const newChat = await addChat()
+
+        this.activeChat = {
+          ...newChat,
+          messages: [],
+        }
+
+        this.userChats.unshift({
+          id: newChat.id,
+          status: newChat.status,
+          created_at: newChat.created_at,
+          updated_at: newChat.updated_at,
+        })
+
+        return this.activeChat
+      } catch (error) {
+        console.error("Failed to save draft chat:", error)
         throw error
       }
     },
@@ -131,7 +171,19 @@ export const useUserChatStore = defineStore("userChat", {
 
       this.isSending = true
 
-      const chat = this.activeChat
+      let chat = this.activeChat
+
+      // Tallenna draft-chat backendiin ennen ensimmäisen viestin lähettämistä
+      if (chat.isDraft) {
+        try {
+          await this.saveDraftChat()
+          // Päivitä chat-viittaus saveDraftChatista, jossa ID muuttuu
+          chat = this.activeChat
+        } catch (error) {
+          this.isSending = false
+          throw error
+        }
+      }
 
       // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
       const userMessage = {
@@ -241,6 +293,22 @@ export const useUserChatStore = defineStore("userChat", {
 
     dismissConfirmation() {
       this.pendingConfirmationMessageId = null
+    },
+    async loadChatsWithMessages() {
+      if (this.userChats.length === 0) return
+
+      try {
+        // Hae full data kaikille chateille rinnakkain
+        const fullChats = await Promise.all(
+          this.userChats.map(chat => fetchChat(chat.id))
+        )
+        
+        // Korvaa userChats full-datalla
+        this.userChats = fullChats
+      } catch (error) {
+        console.error('Chatien full-datan lataaminen epäonnistui:', error)
+        throw error
+      }
     },
   },
   persist: {

@@ -240,6 +240,16 @@
   "received": "Saapunut",
   "waiting": "Odottaa",
   "medication": "Lääkitys"
-}
 
+},
+  "sidebar": {
+    "pastChats": "Aiemmat keskustelut",
+    "closeSidebar": "Sulje sivupalkki",
+    "subtitle": "Voit palata aiempiin keskusteluihin",
+    "newChat": "Uusi keskustelu",
+    "noChats": "Ei aikaisempia keskusteluja",
+    "footer": "Keskustelut tallennetaan turvallisesti ja ovat vain sinun nähtävissä",
+    "defaultTitle": "Uusi keskustelu",
+    "delete": "Poista keskustelu"
+  }
 }

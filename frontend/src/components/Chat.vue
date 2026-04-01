@@ -41,8 +41,9 @@
             <h3 class="card-title">
               {{ $t("chatbotHelpsTitle") }}
             </h3>
-            <p class="card-text"
-              v-html= "$t('chatbotHelpsDesc')">
+            <p class="card-text">
+              {{ $t("chatbotHelpsDesc") }}
+              <strong>{{ $t("chatbotHelpsDescBold") }}</strong>
             </p>
           </div>
 
@@ -97,10 +98,20 @@
         :key="message.id"
         :from="message.sender"
         :text="message.content"
+        :guideline-excerpt="message.guideline_excerpt"
+        :guideline-source="message.guideline_source"
+        :requires-confirmation="message.requires_confirmation ?? false"
+        :requires-professional="message.requires_professional ?? false"
+        :is-forward-confirmation="message.is_forward_confirmation ?? false"
+        :is-emergency="message.classification === 'emergency'"
+        :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
+        :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'needs_review' && !message.requires_confirmation ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
+        @confirm-helpful="chatStore.dismissConfirmation()"
+        @confirm-needs-forward="chatStore.forwardToProfessional()"
       />
 
       <!-- Bot typing indicator -->
@@ -109,14 +120,29 @@
         <span></span>
         <span></span>
       </div>
+
+      <!-- Waiting for professional reply -->
+      <div v-if="waitingForProfessional" class="professional-waiting">
+        <div class="sent-indicator">
+          ✓ {{ $t("waitingProfessional.messageSent") }}
+        </div>
+
+        <div class="waiting-text">
+          {{ $t("waitingProfessional.waiting") }}
+        </div>
+
+        <div class="response-time">
+          {{ $t("waitingProfessional.responseTime") }}
+        </div>
+      </div>
     </div>
 
-<div v-if="authStore.isAuthenticated" class="input-shell">
+    <div v-if="authStore.isAuthenticated" class="input-shell">
       <div class="chat-input-wrapper">
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="false" 
+          :input-disabled="false"
           :send-disabled="waitingForBot"
           :show-edit="false"
           :is-editing="false"
@@ -125,19 +151,19 @@
       </div>
     </div>
 
-   <div v-else class="input-shell auth-prompt-shell">
+    <div v-else class="input-shell auth-prompt-shell">
       <p class="auth-prompt-text">
         <a href="#" @click.prevent="$emit('open-login')">
-          {{ $t('settings.login') }}
-        </a> 
-        {{ $t('or') }} 
-        <a href="#" @click.prevent="$emit('open-register')">
-          {{ $t('settings.register') }}
+          {{ $t("settings.login") }}
         </a>
-        {{ $t('authPromptSuffix') }}
+        {{ $t("or") }}
+        <a href="#" @click.prevent="$emit('open-register')">
+          {{ $t("settings.register") }}
+        </a>
+        {{ $t("authPromptSuffix") }}
       </p>
     </div>
-  </div>  
+  </div>
 </template>
 
 <script>
@@ -169,6 +195,7 @@ export default {
     const messagesEl = ref(null)
     const newMessage = ref("")
     const waitingForBot = ref(false)
+    const waitingForProfessional = ref(false)
     const showForm = ref(false)
 
     const scrollToBottom = () => {
@@ -184,19 +211,33 @@ export default {
 
     const connectWebsocket = (chat) => {
       if (!chat) return
-      chatSocket.connect(chat.id, authStore.token, (message) => {
-        chat.messages.push(message)
-        chatStore.updateChatStatus("open")
-        scrollToBottom()
+      chatSocket.connect(chat.id, authStore.token, (data) => {
+        if (data.sender !== authStore.getCurrentUserID) {
+          chat.messages.push(data.message)
+
+          if (data.chatStatus !== chat.status) {
+            chatStore.updateChatStatus(data.chatStatus)
+          }
+
+          if (data.message?.sender === "professional") {
+            waitingForProfessional.value = false
+          }
+          if (data.chatStatus === "closed") {
+            waitingForProfessional.value = false
+          }
+          scrollToBottom()
+        }
       })
     }
 
     onMounted(() => {
+      chatStore.resetTransientState()
+
       if (chatStore.activeChat) {
         connectWebsocket(chatStore.activeChat)
         welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
         scrollToBottom()
-      } 
+      }
     })
 
     watch(
@@ -244,19 +285,26 @@ export default {
       if (!text.trim()) return
 
       newMessage.value = ""
-      waitingForBot.value = true
-      welcomeMessageDisplayed.value = false
 
       try {
+        const chat = chatStore.activeChat
         // Luo chat vain jos sitä ei ole
-        if (!chatStore.activeChat) {
+        if (!chat) {
           await chatStore.createChat()
         }
+
+        if (chat?.status === "in_progress") {
+          waitingForProfessional.value = true
+        } else {
+          waitingForBot.value = true
+        }
+
         await chatStore.addUserMessage(text.trim())
       } catch (error) {
         console.error("Send error:", error)
       } finally {
         waitingForBot.value = false
+        scrollToBottom()
       }
     }
 
@@ -268,6 +316,7 @@ export default {
       messagesEl,
       newMessage,
       waitingForBot,
+      waitingForProfessional,
       showForm,
       scrollToBottom,
       handleSendFromInputBar,
@@ -528,6 +577,29 @@ export default {
 
 .typing-indicator span:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+.professional-waiting {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.sent-indicator {
+  color: #16a34a;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.waiting-text {
+  font-weight: 500;
+}
+
+.response-time {
+  color: #64748b;
+  font-size: 13px;
 }
 
 @keyframes typing {

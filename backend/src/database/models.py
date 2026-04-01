@@ -28,6 +28,7 @@ class SenderType(str, Enum):
     USER = "user"
     BOT = "bot"
     PROFESSIONAL = "professional"
+    INFO = "info"
 
 class Classification(str, Enum):
     SAFE = "safe"
@@ -74,12 +75,19 @@ class ChatModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class SourceItem(BaseModel):
+    index: int
+    source: str
+    pages: List[int] = []
+    preview: Optional[str] = None
+
 class MessageModel(BaseModel):
     chat_id: str
     sender: SenderType
     content: str
     classification: Classification = Classification.SAFE
     flagged_for_human: bool = False
+    sources: List[SourceItem] = []
     created_at: datetime
     updated_at: datetime
 
@@ -124,6 +132,13 @@ class CheckSessionResponse(BaseModel):
 # Chat
 class ChatReplyResponse(BaseModel):
     reply: str
+    classification: str
+    sources: List[SourceItem] = []
+    requires_professional: Optional[bool] = None
+    requires_confirmation: Optional[bool] = None
+    classification_reasoning: Optional[str] = None
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
 
 class ChatSummaryItem(BaseModel):
     id: str
@@ -138,6 +153,9 @@ class MessageDetailResponse(BaseModel):
     content: str
     classification: Classification
     flagged_for_human: bool
+    sources: List[SourceItem] = []
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -145,6 +163,9 @@ class SendChatMessageResponse(BaseModel):
     userMessage: MessageDetailResponse
     botMessage: Optional[MessageDetailResponse] = None
     requires_professional: bool = False
+    requires_confirmation: bool = False
+    guideline_excerpt: Optional[str] = None
+    guideline_source: Optional[str] = None
     classification_reasoning: Optional[str] = None
 
 class ChatDetailResponse(BaseModel):

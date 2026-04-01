@@ -19,7 +19,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
     loading: {
       queues: false,
       chat: false,
-      claim: false, 
+      claim: false,
       close: false,
       send: false,
     },
@@ -33,9 +33,9 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
     getMyInProgressChats: (state) => {
       return (userId) =>
         state.queues.in_progress.filter(
-          (chat) => chat.assigned_professional_id === userId
+          (chat) => chat.assigned_professional_id === userId,
         )
-}
+    },
   },
 
   actions: {
@@ -60,7 +60,6 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
 
       try {
         this.loading.chat = true
-        this.activeChat = null
 
         const chat = await fetchChat(chatId)
         this.activeChat = chat
@@ -81,8 +80,16 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
       const chat = this.queues.waiting.find((c) => c.id === chatId)
       if (!chat) return
 
-      if (chat.assigned_professional_id) {
+      if (
+        chat.assigned_professional_id !== authStore.getCurrentUserID &&
+        chat.assigned_professional_id !== null
+      ) {
         console.log("Chat already assigned to another professional")
+        console.log(
+          "Chat assigned professional ID:",
+          chat.assigned_professional_id,
+        )
+        console.log("Current user ID:", authStore.getCurrentUserID)
         return
       }
 
@@ -140,11 +147,13 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
       }
     },
     async closeChat(chatId) {
+      console.log("Attempting to close chat with ID:", chatId)
       if (this.loading.close) return
 
       const authStore = useAuthStore()
 
       const chat = this.queues.in_progress.find((c) => c.id === chatId)
+      console.log("Found chat in in_progress queue:", chat)
       if (!chat) return
 
       if (chat.status !== "in_progress") {
@@ -161,6 +170,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         this.loading.close = true
 
         await close(chatId)
+        console.log("Chat closed successfully")
 
         chat.status = "closed"
 
@@ -180,7 +190,9 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         (c) => c.id !== chat.id,
       )
 
-      this.queues[toQueue].push(chat)
+      if (!this.queues[toQueue].some((c) => c.id === chat.id)) {
+        this.queues[toQueue].push(chat)
+      }
     },
     async sendProfessionalMessage(message) {
       if (this.loading.send) return

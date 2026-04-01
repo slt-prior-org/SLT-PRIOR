@@ -2,6 +2,24 @@ from datetime import datetime
 from database.db import chats_collection, messages_collection
 from database.models import Classification, MessageDetailResponse, SenderType
 from bson import ObjectId
+from typing import Iterable
+
+def _normalize_sources(sources):
+    if not isinstance(sources, Iterable) or isinstance(sources, (str, bytes, dict)):
+        return []
+    normalized = []
+    for item in sources:
+        if isinstance(item, dict):
+            normalized.append(item)
+    return normalized
+
+
+
+# --- WebSocket broadcast: convert datetime to JSON-serializable format --
+def serialize_datetime(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
 
 async def get_chat(chat_id: str):
     """
@@ -97,6 +115,7 @@ def _normalize_message_doc(message: dict) -> dict:
     normalized = dict(message)
     normalized["id"] = str(normalized.pop("_id"))
     normalized["chat_id"] = str(normalized["chat_id"])
+    normalized["sources"] = _normalize_sources(normalized.get("sources", []))
     return normalized
 
 async def get_chat_summaries(filter_query: dict):
@@ -170,7 +189,13 @@ async def get_chats_with_messages(filter_query: dict):
 
     cursor = await chats_collection.aggregate(pipeline)
 
-    return await cursor.to_list(None)
+    chats = await cursor.to_list(None)
+    for chat in chats:
+        chat["messages"] = [
+            {**message, "sources": _normalize_sources(message.get("sources", []))}
+            for message in chat.get("messages", [])
+        ]
+    return chats
 
 
 async def get_chat_messages(chat_id: str | ObjectId) -> list[dict]:
@@ -189,6 +214,9 @@ async def save_chat_message(
     content: str,
     classification: Classification = Classification.SAFE,
     flagged_for_human: bool = False,
+    sources: list[dict] | None = None,
+    guideline_excerpt: str | None = None,
+    guideline_source: str | None = None,
 ) -> MessageDetailResponse:
     """
     Persists a single chat message into MongoDB and returns the normalized message.
@@ -201,9 +229,14 @@ async def save_chat_message(
         "content": content,
         "classification": classification,
         "flagged_for_human": flagged_for_human,
+        "sources": _normalize_sources(sources or []),
         "created_at": now,
         "updated_at": now,
     }
+    if guideline_excerpt is not None:
+        new_message["guideline_excerpt"] = guideline_excerpt
+    if guideline_source is not None:
+        new_message["guideline_source"] = guideline_source
 
     result = await messages_collection.insert_one(new_message)
     new_message["_id"] = result.inserted_id

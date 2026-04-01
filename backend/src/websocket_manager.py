@@ -36,8 +36,11 @@ class ConnectionManager:
         await websocket.accept()
         self.rooms.setdefault(room, []).append(websocket)
 
-        logger.info(f"WebSocket connected to room '{room}'. Total connections: {len(self.rooms[room])}")
-
+        logger.info(
+            "WebSocket connected to room '%s'. Total connections: %s",
+            room,
+            len(self.rooms[room])
+        )
     def disconnect(self, websocket: WebSocket, room: str):
         """
         Removes a WebSocket connection from a room.
@@ -53,17 +56,29 @@ class ConnectionManager:
                 del self.rooms[room]
                 logger.info(f"Room '{room}' removed (no active connections)")
 
-    async def broadcast(self, room: str, message: dict):
+    async def broadcast(self, room: str, payload: dict):
         """
         Sends a JSON message to all connections in a specific room.
         """
         connections = self.rooms.get(room, [])
-        logger.info(f"Broadcasting message '{message}' to room '{room}' ({len(connections)} connections)")
-        
+        logger.info(
+            "Broadcasting message '%s' to room '%s' (%s connections)",
+            payload.get("message"),
+            room,
+            len(connections)
+        )
+
+        if payload.get("draft"):
+            logger.info("Draft response included in payload: %s", payload['draft'])
+
         for connection in connections:
             try:
-                await connection.send_json(message)
+                await connection.send_json(payload)
             except Exception as e:
-                logger.error(f"Error sending message to WebSocket in room '{room}': {e}")
+                logger.error(
+                    "Error sending message to WebSocket in room '%s': %s",
+                    room,
+                    e
+                )
 
 manager = ConnectionManager()

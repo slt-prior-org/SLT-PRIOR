@@ -16,10 +16,20 @@
   "editMessage": "Muokkaa viestiä",
   "welcomeTitle": "Tervetuloa HeartWise-palveluun",
   "welcomeDescription": "HeartWise on sepelvaltimotautipotilaiden itsehoidon tueksi kehitetty keskustelupalvelu.",
+  "chat": {
+    "closed": "Keskustelu päätetty",
+    "closedDescription": "Keskustelu terveydenhuollon ammattilaisen kanssa on päätetty. Voit jatkaa keskustelua chatbotin kanssa."
+  },
+  "waitingProfessional": {
+    "messageSent": "Viesti lähetetty",
+    "waiting": "Odotetaan terveydenhuollon ammattilaisen vastausta",
+    "responseTime": "Tyypillinen vastausaika: 1–5 minuuttia"
+  },
   "chatbotHelpsTitle": "Chatbot auttaa",
-  "chatbotHelpsDesc": "Voit keskustella itsehoitoon liittyvissä asioissa ja chatbot vastaa hoitosuositusten perusteella. <b>Chatbot käyttää tekoälyä ja virheet ovat mahdollisia.</b>",
+  "chatbotHelpsDesc": "Voit keskustella itsehoitoon liittyvissä asioissa ja chatbot vastaa hoitosuositusten perusteella.",
+  "chatbotHelpsDescBold": "Chatbot käyttää tekoälyä ja virheet ovat mahdollisia.",
   "professionalSupportTitle": "Ammattilaisen tuki",
-  "professionalSupportDesc": "Keskustelu voidaan siirtää tarvittaessa tervedenhuollon ammattilaiselle arvioitavaksi.",
+  "professionalSupportDesc": "Keskustelu voidaan siirtää tarvittaessa terveydenhuollon ammattilaiselle arvioitavaksi.",
   "noDiagnosesTitle": "Ei diagnooseja",
   "noDiagnosesDesc": "Chatbot ei tee diagnooseja eikä hoitopäätöksiä. Kiireellisissä tapauksissa soita hätänumeroon 112.",
   "importantInfo": "Tärkeää tietoa",
@@ -34,7 +44,7 @@
   "logout": "Kirjaudu ulos",
   "user_saved": "Esitiedot tallennettu!",
   "user_id": "Käyttäjätunnuksesi on:",
-  "preliminaryForm":"Esitietolomake",
+  "preliminaryForm": "Esitietolomake",
   "welcomeMessage": "Hei, olen sydänterveytesi assistentti ja haluan auttaa sinua askarruttavissa asioissa ja edistää terveyttäsi. Aluksi haluaisin tietää muutamia esitietoja.",
   "fillForm": "Täytä esitietolomake",
   "returnLater": "Voit myös palata täydentämään esitietoja myöhemmin sivupaneelista.",
@@ -128,6 +138,15 @@
     "return": "Takaisin",
     "optional": "Kaikki kentät ovat valinnaisia"
   },
+  "guidelineExcerpt": "Hoitosuosituksesta",
+  "guidelineSource": "Lähde",
+  "guidelineFound": "Löysin aiheeseen liittyvän hoitosuosituksen.",
+  "forwardedToProfessional": "Tämä aihe liittyy henkilökohtaiseen terveysarviointiin, johon en voi antaa vastausta. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.",
+  "confirmationQuestion": "Auttoiko tämä hoitosuositus sinua?",
+  "confirmYes": "Kyllä, tämä auttoi",
+  "confirmNo": "Ei, tarvitsen lisäapua",
+  "confirmForwarded": "Ymmärretty. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.",
+  "emergencyMessage": "<strong>⚠️ Tämä vaikuttaa hätätilanteelta.</strong><br><br>Jos sinulla tai jollakin lähelläsi on henkeä uhkaava tilanne, <strong>soita hätänumeroon 112 välittömästi.</strong><br><br>Tämä chatbot ei voi antaa ensiapua eikä korvata hätäpalvelua.",
   "patientForm": {
     "title": "Esitietolomake",
     "weight": "Paino",

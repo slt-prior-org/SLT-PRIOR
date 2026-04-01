@@ -84,6 +84,7 @@ const formattedSummary = computed(() => {
 
   height: 100%;
   overflow-y: auto;
+
 }
 
 /* CARD */
@@ -92,7 +93,6 @@ const formattedSummary = computed(() => {
   border-radius: 18px;
   padding: 16px 18px;
   border: 1px solid #e5e7eb;
-
   box-shadow: 0 6px 20px rgba(0,0,0,0.04);
 }
 

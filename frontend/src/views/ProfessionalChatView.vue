@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-
     <HeaderBar
       :queueCount="waiting.length"
       :closedCount="closedToday.length"
@@ -12,7 +11,6 @@
     <div v-if="chatStore.loading.chat">Loading...</div>
 
     <div v-else class="chat-container">
-
       <div class="top-bar">
         <AppButton variant="neutral" @click="goBack">
           {{ $t("professional.back") }}
@@ -30,6 +28,8 @@
               :key="i"
               :from="msg.sender"
               :text="msg.content"
+              :guideline-excerpt="msg.guideline_excerpt ?? null"
+              :guideline-source="msg.guideline_source ?? null"
             />
           </div>
 
@@ -62,7 +62,6 @@
           </div>
 
           <div v-if="!isClosed" class="custom-input">
-
             <textarea
               v-model="editedReply"
               :disabled="!isEditing"
@@ -100,10 +99,8 @@
                 {{ $t('professional.closeChat') }}
               </AppButton>
             </div>
-
-          </div> <!-- custom-input -->
-
-        </div> <!-- conversation-card -->
+          </div>
+        </div>
 
         <!-- SIDEBAR -->
         <PatientCard
@@ -112,16 +109,14 @@
           :summary="chat.chat_summary"
         />
 
-      </div> <!-- layout -->
+      </div>
+    </div>
 
-    </div> <!-- chat-container -->
-
-  </div> <!-- page -->
+  </div>
 </template>
 
 <script setup>
-
-import { ref, onMounted, computed } from "vue"
+import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import HeaderBar from "@/components/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
@@ -129,6 +124,7 @@ import ChatMessage from "@/components/chat/ChatMessage.vue"
 import PatientCard from "@/components/PatientCard.vue"
 import { useAuthStore } from "@/stores/authStore"
 import { useProfessionalChatStore } from "@/stores/professionalChatStore"
+import { chatSocket } from "@/services/chatSocket"
 
 const route = useRoute()
 const router = useRouter()
@@ -169,12 +165,35 @@ onMounted(async () => {
 
     await chatStore.openChat(chatId)
 
-    editedReply.value = chatStore.activeChat?.draft_response || ""
+    editedReply.value = (chatStore.activeChat?.draft_response || "")
+    .replace(/<br\s*\/?>/gi, "\n")
 
+    connectWebsocket(chat.value)
   } catch (e) {
     console.error(e)
   }
 })
+
+onUnmounted(() => {
+  chatSocket.disconnect()
+})
+
+function connectWebsocket(chat) {
+  if (!chat) return
+
+  chatSocket.connect(chat.id, authStore.token, (data) => {
+    console.log("Received websocket message:", data)
+    if (data.sender !== authStore.getCurrentUserID) {
+      // lisää uusi viesti chattiin
+      chat.messages.push(data.message)
+      // päivitä AI:n ehdotus vastauksesta
+      if (data.type === "new_user_message" && data.draft) {
+        chat.draft_response = data.draft
+        editedReply.value = data.draft
+      }
+    }
+  })
+}
 
 // lähettää ammattilaisen viestin
 async function sendReply() {
@@ -182,12 +201,12 @@ async function sendReply() {
   if (!currentUser.value) return
 
   try {
-  await chatStore.sendProfessionalMessage(editedReply.value)
+    await chatStore.sendProfessionalMessage(editedReply.value)
 
-  editedReply.value = ""
-} catch (e) {
-  console.error(e)
-}
+    editedReply.value = ""
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 // palauttaa chatin jonoon
@@ -207,7 +226,6 @@ async function returnToQueue() {
 
 // sulkee keskustelun
 async function closeChat() {
-
   try {
     const chatId = chat.value.id || chat.value._id
     await chatStore.closeChat(chatId)
@@ -224,36 +242,44 @@ function goBack() {
 </script>
 
 <style scoped>
-
-.page{
-  height:100vh;
-  display:flex;
-  overflow:hidden;
-  flex-direction:column;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+.page {
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    "Noto Sans",
+    "Liberation Sans",
+    sans-serif;
 }
 
 /* chat-näkymän pääcontainer */
-.chat-container{
-  flex:1;
-  min-height:0;
-  background:#e3f2fd;
+.chat-container {
+  flex: 1;
+  min-height: 0;
+  background: #e3f2fd;
   padding: clamp(16px, 2vw, 40px);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  position:relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
 }
 
 /* chat + sidebar layout */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(200px, 17vw, 400px);
+  grid-template-columns: minmax(0, 1fr) clamp(200px, 19vw, 600px);
   gap: clamp(24px, 4vw, 120px);
   width: min(2000px, 70vw);
   margin-left: clamp(40px, 20vw, 700px);
   min-height: 0;
-  height:100%;
+  height: 100%;
 }
 
 .chat-messages {
@@ -265,35 +291,35 @@ function goBack() {
 }
 
 /* keskustelukortti */
-.conversation-card{
-  display:flex;
-  flex-direction:column;
+.conversation-card {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   width: clamp(600px, 50vw, 1400px);
   min-height: 0;
-  
-  margin-left:auto;
+
+  margin-left: auto;
 }
 
 /* tekstilaatikon header */
-.reply-header{
-  padding:0 28px 8px 28px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-top:12px;
+.reply-header {
+  padding: 0 28px 8px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
 }
 
-.reply-label{
-  font-size:13px;
-  color:#7a869a;
-  font-weight:600;
-  margin-left:4px;
+.reply-label {
+  font-size: 13px;
+  color: #7a869a;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
-.divider{
-  height:1px;
-  background:#e6eaf0;
+.divider {
+  height: 1px;
+  background: #e6eaf0;
 }
 
 /* CHAT INPUT AREA */
@@ -306,16 +332,20 @@ function goBack() {
 }
 
 .custom-input textarea {
-  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: clamp(12px, 1vw, 18px);
   width: 100%;
   border-radius: 16px;
   border: 1px solid #e0e4ea;
   padding: 14px;
-  min-height: 100px; 
+  min-height: 100px;
   background: #f0f7fc;
   box-sizing: border-box;
-  resize: vertical;  
+  resize: vertical;
 }
 
 .buttons {
@@ -325,31 +355,31 @@ function goBack() {
 }
 
 /* SOURCES */
-.sources-panel{
-  background:#f8fafc;
-  border:1px solid #dbeafe;
-  border-radius:16px;
+.sources-panel {
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
 
-  padding:16px 20px;
-  margin:12px 28px 16px 28px;
+  padding: 16px 20px;
+  margin: 12px 28px 16px 28px;
 }
 
-.sources-title{
-  font-size:13px;
-  font-weight:600;
-  color:#64748b;
-  margin-bottom:8px;
+.sources-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
 }
 
-.sources-list{
-  margin:0;
-  padding-left:18px;
-  font-size:14px;
-  color:#334155;
+.sources-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: #334155;
 }
 
-.sources-list li{
-  margin-bottom:6px;
+.sources-list li {
+  margin-bottom: 6px;
 }
 
 .top-bar {
@@ -365,5 +395,4 @@ function goBack() {
 .push-right {
   margin-left: auto;
 }
-
 </style>

@@ -201,16 +201,21 @@
   "returnToQueue": "Palauta jonoon",
   "closeChat": "Päätä keskustelu",
   "patientInfo": "Potilaan tiedot",
-  "age": "Ikä:",
-  "height": "Pituus:",
-  "weight": "Paino:",
-  "conditions": "Perussairaudet:",
-  "summary": "AI-kooste:",
+  "age": "Ikä",
+  "height": "Pituus",
+  "weight": "Paino",
+  "conditions": "Perussairaudet",
+  "summary": "AI-kooste",
   "inQueue": "JONOSSA",
   "done": "VALMIS",
   "chatPreview": "Chatin esikatselu",
   "sources": "VIITTAUKSET",
-  "writeMessage": "Kirjoita viesti"
+  "writeMessage": "Kirjoita viesti",
+  "lastMessage": "Viimeisin viesti",
+  "status": "Status",
+  "received": "Saapunut",
+  "waiting": "Odottaa",
+  "medication": "Lääkitys"
 }
 
 }

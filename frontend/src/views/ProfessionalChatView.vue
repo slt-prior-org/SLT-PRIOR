@@ -3,7 +3,8 @@
     <HeaderBar
       :queueCount="waiting.length"
       :closedCount="closedToday.length"
-      :showLanguageSwitcher="false"
+      :user="currentUser"
+      :showLanguageSwitcher="true"
       :showCounts="true"
     />
 
@@ -17,9 +18,10 @@
       </div>
 
       <div class="layout">
-        <!-- Koko chat -->
+
+        <!-- CHAT -->
         <div class="conversation-card">
-          <!-- Viestihistoria -->
+
           <div v-if="chat && chat.messages" class="chat-messages">
             <ChatMessage
               v-for="(msg, i) in chat.messages"
@@ -33,9 +35,7 @@
 
           <div v-if="!isClosed" class="divider"></div>
 
-          <!-- Vastausosio -->
           <div class="reply-header">
-
             <div class="reply-label">
               {{ $t("professional.aiReply") }}
             </div>
@@ -49,9 +49,7 @@
             </AppButton>
           </div>
 
-          <!-- Lähteet -->
           <div v-if="showSources" class="sources-panel">
-
             <div class="sources-title">
               {{ $t("professional.sources") }}
             </div>
@@ -80,10 +78,7 @@
                 {{ $t('send') }}
               </AppButton>
 
-              <AppButton
-                variant="neutral"
-                @click="toggleEdit"
-              >
+              <AppButton variant="neutral" @click="toggleEdit">
                 {{ isEditing ? $t('professional.done') : $t('professional.edit') }}
               </AppButton>
 
@@ -107,22 +102,16 @@
           </div>
         </div>
 
-        <!-- Potilaan tiedot -->
-        <div class="sidebar" v-if="chat?.patient_context">
-          <h3>{{ $t('professional.patientInfo') }}</h3>
+        <!-- SIDEBAR -->
+        <PatientCard
+          v-if="chat?.patient_context"
+          :patient="chat.patient_context"
+          :summary="chat.chat_summary"
+        />
 
-          <p><strong>{{ $t('professional.age') }}</strong> {{ chat.patient_context.age }}</p>
-          <p><strong>{{ $t('professional.height') }}</strong> {{ chat.patient_context.height }}</p>
-          <p><strong>{{ $t('professional.weight') }}</strong> {{ chat.patient_context.weight }}</p>
-
-          <h4>{{ $t('professional.conditions') }}</h4>
-          <p>{{ chat.patient_context.conditions?.join(", ") }}</p>
-
-          <h4>{{ $t('professional.summary') }}</h4>
-          <div v-html="formattedSummary"></div>
-        </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -132,6 +121,7 @@ import { useRoute, useRouter } from "vue-router"
 import HeaderBar from "@/components/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
 import ChatMessage from "@/components/chat/ChatMessage.vue"
+import PatientCard from "@/components/PatientCard.vue"
 import { useAuthStore } from "@/stores/authStore"
 import { useProfessionalChatStore } from "@/stores/professionalChatStore"
 import { chatSocket } from "@/services/chatSocket"
@@ -144,14 +134,6 @@ const chatId = route.params.id
 
 const authStore = useAuthStore()
 const chatStore = useProfessionalChatStore()
-
-const formattedSummary = computed(() => {
-  if (!chat.value?.chat_summary) return ""
-
-  return chat.value.chat_summary
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\n/g, "<br>")
-})
 
 const currentUser = computed(() => authStore.user)
 
@@ -183,7 +165,8 @@ onMounted(async () => {
 
     await chatStore.openChat(chatId)
 
-    editedReply.value = chatStore.activeChat?.draft_response || ""
+    editedReply.value = (chatStore.activeChat?.draft_response || "")
+    .replace(/<br\s*\/?>/gi, "\n")
 
     connectWebsocket(chat.value)
   } catch (e) {
@@ -291,7 +274,7 @@ function goBack() {
 /* chat + sidebar layout */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(200px, 17vw, 400px);
+  grid-template-columns: minmax(0, 1fr) clamp(200px, 19vw, 600px);
   gap: clamp(24px, 4vw, 120px);
   width: min(2000px, 70vw);
   margin-left: clamp(40px, 20vw, 700px);
@@ -337,49 +320,6 @@ function goBack() {
 .divider {
   height: 1px;
   background: #e6eaf0;
-}
-
-/* Potilastiedot-kortti */
-.sidebar {
-  background: white;
-  border-radius: 24px;
-  padding: clamp(16px, 2vw, 32px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-
-  height: 100%;
-  min-height: 0;
-
-  overflow-y: auto;
-  width: 100%;
-}
-
-.sidebar h3 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.sidebar h4 {
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 12px;
-  margin-bottom: 2px;
-}
-
-.sidebar p {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #2b2f36;
-}
-
-.sidebar p strong {
-  display: inline-block;
-  min-width: 70px;
-  font-weight: 600;
 }
 
 /* CHAT INPUT AREA */

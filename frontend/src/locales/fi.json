@@ -3,6 +3,13 @@
     "title": "Tervetuloa",
     "subtitle": "Kirjaudu sisään tai luo uusi käyttäjätili"
   },
+  "healthProfile": {
+    "close": "Sulje",
+    "save": "Tallenna profiili"
+  },
+  "healthProfileStatus": {
+    "success": "Terveysprofiili tallennettu onnistuneesti!"
+  },
   "fin": "Suomi",
   "eng": "Englanti",
   "prompt": "Kirjoita kysymyksesi tähän...",
@@ -59,7 +66,8 @@
     "login": "Kirjaudu sisään",
     "register": "Rekisteröidy",
     "accessibility": "Saavutettavuus",
-    "analytics": "Analytiikka"
+    "analytics": "Analytiikka",
+    "editHealthProfile": "Muokkaa terveysprofiilia"
   },
   "modifyPersonalInfo": {
     "requiredFields": "Paino ja pituus ovat pakollisia kenttiä",
@@ -131,6 +139,9 @@
     "logIn": "Kirjaudu sisään",
     "Logout": "Kirjaudu ulos"
   },
+  "registerStatus": {
+    "success": "Rekisteröityminen onnistui!"
+  },
   "register": {
     "title": "Rekisteröidy",
     "firstName": "Etunimi",
@@ -138,7 +149,7 @@
     "email": "sähköposti",
     "password": "Salasana",
     "register": "Rekisteröidy",
-    "continue": "Jatka",
+    "continue": "Seuraava",
     "return": "Takaisin",
     "optional": "Kaikki kentät ovat valinnaisia"
   },
@@ -153,15 +164,22 @@
   "emergencyMessage": "<strong>⚠️ Tämä vaikuttaa hätätilanteelta.</strong><br><br>Jos sinulla tai jollakin lähelläsi on henkeä uhkaava tilanne, <strong>soita hätänumeroon 112 välittömästi.</strong><br><br>Tämä chatbot ei voi antaa ensiapua eikä korvata hätäpalvelua.",
   "patientForm": {
     "title": "Esitietolomake",
+    "healthProfile": "Terveysprofiili",
+    "updateHealthInfo": "Päivitä terveystietosi alla olevaan lomakkeeseen",
+    "finishRegistration": "Viimeistele rekisteröintyminen",
+    "description": "Täyttämällä terveysprofiilisi autat tekoälyä antamaan tarkempia ja yksilöllisempiä vastauksia.",
+    "optional": "Kaikki kentät ovat valinnaisia.",
     "weight": "Paino",
     "height": "Pituus",
     "age": "Ikä",
+    "years": "vuotta",
     "conditions": "Sairaudet",
     "conditionsPlaceholder": "Erottele pilkuilla (esim. Diabetes, Verenpainetauti)",
     "avgBloodPressure": "Keskiverenpaine",
     "riskFactors": "Riskitekijät",
     "riskFactorsPlaceholder": "Erottele pilkuilla (esim. Tupakointi, Periytyvä)",
     "alcoholUse": "Alkoholin käyttö",
+    "alcoholUsePlaceholder": "Valitse alkoholin käyttö",
     "alcoholNone": "Ei lainkaan",
     "alcoholRare": "Harvoin",
     "alcoholMonthly": "Kuukausittain",
@@ -170,6 +188,7 @@
     "allergies": "Allergiat",
     "allergiesPlaceholder": "Erottele pilkuilla (esim. Penisilliini, Pähkinät)",
     "activity": "Liikunta",
+    "activityPlaceholder": "Valitse aktiivisuustaso",
     "activityNone": "Ei liikuntaa",
     "activityLight": "Kevyt liikunta",
     "activityModerate": "Keskiraskas liikunta",
@@ -179,8 +198,9 @@
     "medicationsPlaceholder": "Erottele pilkuilla (esim. Metformiini, Lisiinopriili)",
     "heartProcedures": "Sydäntoimenpiteet",
     "heartProceduresPlaceholder": "Erottele pilkuilla (esim. Angioplastia, Ohitusleikkaus)",
-    "save": "Tallenna",
-    "skip": "Ohita",
+    "save": "Tallenna profiili",
+    "back": "Takaisin",
+    "skip": "Ohita toistaiseksi",
     "saveSuccess": "Esitiedot tallennettu!",
     "saveError": "Virhe tallennuksessa:"
   },

@@ -81,7 +81,7 @@ const handleLogin = async () => {
 .auth-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 5px;
 }
 
 .form-group {

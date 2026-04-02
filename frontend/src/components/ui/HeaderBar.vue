@@ -1,10 +1,19 @@
 <template>
-  <div v-if="loginNotification" class="login-toast">
+  <div
+    v-if="
+      loginNotification || registerNotification || profileUpdateNotification
+    "
+    class="login-toast"
+  >
     <span class="toast-icon">✔️</span>
-    <span class="toast-text">{{ loginNotification }}</span>
+    <span class="toast-text">
+      {{
+        loginNotification || registerNotification || profileUpdateNotification
+      }}
+    </span>
   </div>
 
-  <div class="header" :class="{ disabled: settingsOpen }">
+  <div class="header">
     <div class="left">
       <div v-if="loggedIn" class="user">
         <strong>{{ fullName }}</strong>
@@ -67,17 +76,11 @@
         {{ $t("settings.login") }}
       </AppButton>
 
-      <div v-if="menuOpen" class="menu">
-        <AppButton
-          v-for="item in dropdownItems"
-          :key="item.key"
-          class="menu-item"
-          variant="neutral"
-          @click="item.action()"
-        >
-          {{ $t(item.labelKey) }}
-        </AppButton>
-      </div>
+      <SettingsDropdownMenu
+        v-if="menuOpen"
+        :items="dropdownItems"
+        @close="menuOpen = false"
+      />
     </div>
   </div>
 
@@ -87,12 +90,13 @@
     :show="showAuth"
     @close="showAuth = false"
     @login-success="handleLoginSuccess"
+    @register-success="handleRegisterSuccess"
   />
 
-  <SettingsModal
-    v-if="settingsOpen"
-    :initialSection="initialSettingsSection"
-    @close="settingsOpen = false"
+  <HealthProfileModal
+    v-if="healthProfileOpen"
+    @close="healthProfileOpen = false"
+    @profile-update-success="handleProfileUpdateSuccess"
   />
 </template>
 
@@ -100,9 +104,11 @@
 import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useI18n } from "vue-i18n"
-import SettingsModal from "./SettingsModal.vue"
-import AppButton from "@/components/ui/AppButton.vue"
-import AuthModal from "@/components/auth/AuthModal.vue"
+import AppButton from "./AppButton.vue"
+import AuthModal from "../auth/AuthModal.vue"
+import SettingsDropdownMenu from "../settings/SettingsDropdownMenu.vue"
+import HealthProfileModal from "../settings/HealthProfileModal.vue"
+
 import { useAuthStore } from "@/stores/authStore"
 
 // Komponentin ottamat vastaanottamat tiedot
@@ -126,6 +132,8 @@ const i18n = useI18n()
 const { t } = useI18n()
 
 const loginNotification = ref("")
+const registerNotification = ref("")
+const profileUpdateNotification = ref("")
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
 const loggedIn = computed(() => auth.isAuthenticated)
@@ -149,7 +157,7 @@ function switchLanguage(lang) {
 
 // Valikkojen ja modaalien näkyvyyden hallinta
 const menuOpen = ref(false)
-const settingsOpen = ref(false)
+const healthProfileOpen = ref(false)
 const initialSettingsSection = ref("personalInfo")
 
 function toggleMenu() {
@@ -164,7 +172,6 @@ function openAuthModal(section) {
     return
   }
 
-  settingsOpen.value = true
   initialSettingsSection.value = section
   menuOpen.value = false
 }
@@ -179,54 +186,54 @@ function handleLoginSuccess() {
   }, 4000)
 }
 
-// Funktio asetusikkunan avaamiseen tietystä osiosta
-function openSettings(section) {
-  settingsOpen.value = true
-  initialSettingsSection.value = section
+// Funktio rekisteröitymisen onnistumisilmoituksen näyttämiseen
+function handleRegisterSuccess() {
+  showAuth.value = false
+  registerNotification.value = t("registerStatus.success")
+
+  setTimeout(() => {
+    registerNotification.value = ""
+  }, 4000)
+}
+
+// Funktio onnistuneen profiilipäivityksen ilmoituksen näyttämiseen
+function handleProfileUpdateSuccess() {
+  profileUpdateNotification.value = t("healthProfileStatus.success")
+
+  setTimeout(() => {
+    profileUpdateNotification.value = ""
+  }, 4000)
+}
+
+function openHealthProfile() {
   menuOpen.value = false
+  healthProfileOpen.value = true
 }
 
 // Lasketaan pudotusvalikon kohteet kirjautumistilan mukaan
 const dropdownItems = computed(() => {
-  if (loggedIn.value) {
-    return [
-      {
-        key: "settings",
-        labelKey: "settings.title",
-        action: () => openSettings("personalInfo"),
-      },
-      { key: "logout", labelKey: "logout", action: () => handleLoginLogout() },
-    ]
-  }
-
-  // Kirjautumattomalle näytetään vain nämä
   return [
     {
-      key: "login",
-      labelKey: "settings.login",
-      action: () => openSettings("login"),
+      key: "edit-health-profile",
+      labelKey: "settings.editHealthProfile",
+      action: () => openHealthProfile(),
     },
     {
-      key: "register",
-      labelKey: "settings.register",
-      action: () => openSettings("register"),
+      key: "logout",
+      labelKey: "logout",
+      action: handleLogout,
     },
   ]
 })
 
-// Kirjautumisen ja uloskirjautumisen hallinta
-async function handleLoginLogout() {
-  if (loggedIn.value) {
-    try {
-      await auth.logout()
-      router.push("/")
-    } catch (error) {
-      console.error("Uloskirjautumisvirhe:", error)
-    }
-  } else {
-    openSettings("login")
+// Uloskirjautumisen hallinta
+async function handleLogout() {
+  try {
+    await auth.logout()
+    router.push("/")
+  } catch (err) {
+    console.error(err)
   }
-  menuOpen.value = false
 }
 </script>
 
@@ -404,9 +411,9 @@ async function handleLoginLogout() {
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   z-index: 3000;
-  animation: toastEnter .25s ease;
+  animation: toastEnter 0.25s ease;
 }
 
 .toast-icon {

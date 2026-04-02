@@ -12,30 +12,19 @@
         @open-register="openSettings('register')"
       />
     </main>
-    <SettingsModal
-      v-if="settingsOpen"
-      :initialSection="initialSettingsSection"
-      @close="settingsOpen = false"
-    />
   </div>
 </template>
   
 <script setup>
 import { ref } from "vue";
-import HeaderBar from "@/components/HeaderBar.vue";
-import Chat from "@/components/Chat.vue";
-import SettingsModal from "@/components/SettingsModal.vue";
+import HeaderBar from "@/components/ui/HeaderBar.vue";
+import Chat from "@/components/chat/Chat.vue";
 
 // Lomakkeen näkyvyyden tila
 const showForm = ref(false);
 // Vakioarvot jonojen laskureille (voidaan dynaamistaa myöhemmin)
 const queueCount = 0;
 const closedCount = 0;
-
-// Funktio potilaslomakkeen avaamiseksi
-//const openPatientForm = () => {
-//  showForm.value = true;
-//};
 
 // Modalin tilan hallinta
 const settingsOpen = ref(false);

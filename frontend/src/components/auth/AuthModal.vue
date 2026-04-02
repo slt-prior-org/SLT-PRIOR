@@ -32,7 +32,11 @@
           @login-success="$emit('login-success')"
         />
 
-        <UserRegister v-if="activeTab === 'register'" @close="close" />
+        <UserRegister
+          v-if="activeTab === 'register'"
+          @close="close"
+          @register-success="$emit('register-success')"
+        />
       </div>
     </div>
   </div>
@@ -52,7 +56,7 @@ export default {
     show: Boolean,
   },
 
-  emits: ["close", "login-success"],
+  emits: ["close", "login-success", "register-success"],
 
   data() {
     return {

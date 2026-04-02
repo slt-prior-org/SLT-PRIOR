@@ -1,7 +1,5 @@
 <template>
   <div class="chat-container">
-    <!-- Esitietolomake-modal -->
-    <PatientForm v-if="showForm" @close="closePatientForm" />
 
     <div
       class="messages"
@@ -167,9 +165,8 @@
 </template>
 
 <script>
-import PatientForm from "./PatientForm.vue"
-import ChatMessage from "./chat/ChatMessage.vue"
-import ChatInputBar from "./chat/ChatInputBar.vue"
+import ChatMessage from "./ChatMessage.vue"
+import ChatInputBar from "./ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
@@ -178,7 +175,7 @@ import { chatSocket } from "@/services/chatSocket"
 
 export default {
   name: "ChatComponent",
-  components: { PatientForm, ChatMessage, ChatInputBar },
+  components: { ChatMessage, ChatInputBar },
 
   props: {
     externalShowForm: Boolean,
@@ -186,7 +183,7 @@ export default {
 
   emits: ["update:externalShowForm", "open-login", "open-register"],
 
-  setup(props, { emit }) {
+  setup(props) {
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
@@ -270,16 +267,6 @@ export default {
       },
     )
 
-    const openPatientForm = () => {
-      showForm.value = true
-      emit("update:externalShowForm", true)
-    }
-
-    const closePatientForm = () => {
-      showForm.value = false
-      emit("update:externalShowForm", false)
-    }
-
     const handleSendFromInputBar = async (text) => {
       if (!authStore.isAuthenticated) return
       if (!text.trim()) return
@@ -320,8 +307,6 @@ export default {
       showForm,
       scrollToBottom,
       handleSendFromInputBar,
-      openPatientForm,
-      closePatientForm,
     }
   },
 

@@ -226,15 +226,20 @@
     "returnToQueue": "Return to queue",
     "closeChat": "Close chat",
     "patientInfo": "Patient information",
-    "age": "Age:",
-    "height": "Height:",
-    "weight": "Weight:",
-    "conditions": "Conditions:",
-    "summary": "AI summary:",
+    "age": "Age",
+    "height": "Height",
+    "weight": "Weight",
+    "conditions": "Conditions",
+    "summary": "AI summary",
     "inQueue": "IN QUEUE",
     "done": "DONE",
     "chatPreview": "Chat preview",
     "sources": "SOURCES",
-    "writeMessage": "Write a message"
-  }
+    "writeMessage": "Write a message",
+    "lastMessage": "Last message",
+    "status": "Status",
+    "received": "Received",
+    "waiting": "Waiting",
+    "medication": "Medication"
+}
 }

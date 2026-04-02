@@ -46,8 +46,8 @@ class ChatStatus(str, Enum):
 Base models
 """
 class BloodPressure(BaseModel):
-    systolic: int = Field(..., ge=50, le=300, description="mmHg")
-    diastolic: int = Field(..., ge=30, le=200, description="mmHg")
+    systolic: Optional[int] = Field(..., ge=50, le=300, description="mmHg")
+    diastolic: Optional[int] = Field(..., ge=30, le=200, description="mmHg")
 
 class PatientInfo(BaseModel):
     weight: Optional[float] = None

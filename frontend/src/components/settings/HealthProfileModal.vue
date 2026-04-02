@@ -89,6 +89,11 @@ function fromList(value) {
   return value
 }
 
+function parseNumber(value) {
+  const n = Number(value)
+  return !value || isNaN(n) ? null : n
+}
+
 async function saveProfile() {
   loading.value = true
 
@@ -102,18 +107,21 @@ async function saveProfile() {
       medications: toList(patientData.value.medications),
       heart_procedures: toList(patientData.value.heart_procedures),
 
-      avg_blood_pressure: {
-        systolic: patientData.value.avg_bp_systolic,
-        diastolic: patientData.value.avg_bp_diastolic,
-      },
+      weight: parseNumber(patientData.value.weight),
+      height: parseNumber(patientData.value.height),
+      age: parseNumber(patientData.value.age),
     }
+
+    const systolic = parseNumber(patientData.value.avg_bp_systolic)
+    const diastolic = parseNumber(patientData.value.avg_bp_diastolic)
+    payload.avg_blood_pressure =
+      systolic !== null && diastolic !== null ? { systolic, diastolic } : null
 
     delete payload.avg_bp_systolic
     delete payload.avg_bp_diastolic
 
     await auth.updateProfile({ patient_info: payload })
     emit("profile-update-success")
-
     close()
   } catch (err) {
     console.error("Profile update failed", err)

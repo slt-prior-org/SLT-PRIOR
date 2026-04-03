@@ -11,7 +11,7 @@
         <span class="plus-icon">+</span> {{$t('sidebar.newChat')}}
       </button>
 
-      <div class="chats-container">
+      <div class="chats-container" ref="chatsContainer">
         <ul v-if="groupedChats.length > 0" class="chats-list">
           <li
             v-for="chat in groupedChats"
@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import { ref, watch } from 'vue'
+
 export default {
   name: 'ChatHistorySidebar',
 
@@ -53,6 +55,32 @@ export default {
     activeChatId: {
       type: [String, Number],
       required: false
+    }
+  },
+
+  setup(props) {
+    const chatsContainer = ref(null)
+    const scrollToTop = () => {
+      if (chatsContainer.value) {
+        chatsContainer.value.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      }
+    }
+
+    // Scroll to top when chat history is updated
+    watch(
+      () => props.chatHistory,
+      () => {
+        scrollToTop()
+      },
+      { deep: true }
+    )
+
+    return {
+      chatsContainer,
+      scrollToTop
     }
   },
 
@@ -123,7 +151,7 @@ export default {
 
       if (dateLocal.getTime() === yesterdayLocal.getTime()) {
         return (
-          'Eilen klo ' +
+          this.$t('sidebar.yesterdayAt') +
           date.toLocaleTimeString('fi-FI', {
             hour: '2-digit',
             minute: '2-digit'

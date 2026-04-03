@@ -250,7 +250,13 @@
     "noChats": "No previous chats",
     "defaultTitle": "New chat",
     "footer": "Chats are stored securely and are only visible to you",
-    "delete": "Delete conversation"
-
-  }
+    "delete": "Delete conversation",
+    "yesterdayAt": "Yesterday at"
+  },
+    "writeMessage": "Write a message",
+    "lastMessage": "Last message",
+    "status": "Status",
+    "received": "Received",
+    "waiting": "Waiting",
+    "medication": "Medication"
 }

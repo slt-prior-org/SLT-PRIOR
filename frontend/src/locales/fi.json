@@ -134,7 +134,7 @@
   "login": {
     "title": "Kirjaudu sisään",
     "username": "Syötä käyttäjä ID",
-    "email": "sähköposti",
+    "email": "Sähköposti",
     "password": "Salasana",
     "logIn": "Kirjaudu sisään",
     "Logout": "Kirjaudu ulos"
@@ -146,7 +146,7 @@
     "title": "Rekisteröidy",
     "firstName": "Etunimi",
     "lastName": "Sukunimi",
-    "email": "sähköposti",
+    "email": "Sähköposti",
     "password": "Salasana",
     "register": "Rekisteröidy",
     "continue": "Seuraava",

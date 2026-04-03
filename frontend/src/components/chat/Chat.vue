@@ -151,14 +151,14 @@
 
     <div v-else class="input-shell auth-prompt-shell">
       <p class="auth-prompt-text">
-        <a href="#" @click.prevent="$emit('open-login')">
-          {{ $t("settings.login") }}
+        <a href="#" @click.prevent="triggerAuthModal('login')">
+          {{ $t('settings.login') }}
         </a>
-        {{ $t("or") }}
-        <a href="#" @click.prevent="$emit('open-register')">
-          {{ $t("settings.register") }}
+        {{ $t('or') }}
+        <a href="#" @click.prevent="triggerAuthModal('register')">
+          {{ $t('settings.register') }}
         </a>
-        {{ $t("authPromptSuffix") }}
+        {{ $t('authPromptSuffix') }}
       </p>
     </div>
   </div>
@@ -181,9 +181,12 @@ export default {
     externalShowForm: Boolean,
   },
 
-  emits: ["update:externalShowForm", "open-login", "open-register"],
+  emits: ["update:externalShowForm", "trigger-auth-modal"],
 
-  setup(props) {
+  setup(props, { emit }) {
+        function triggerAuthModal(tab) {
+          emit('trigger-auth-modal', tab)
+        }
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
@@ -307,6 +310,7 @@ export default {
       showForm,
       scrollToBottom,
       handleSendFromInputBar,
+      triggerAuthModal,
     }
   },
 

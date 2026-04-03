@@ -54,13 +54,28 @@ export default {
 
   props: {
     show: Boolean,
+    initialTab: {
+      type: String,
+      default: 'login',
+    },
   },
 
   emits: ["close", "login-success", "register-success"],
 
   data() {
     return {
-      activeTab: "login",
+      activeTab: this.initialTab || 'login',
+    }
+  },
+
+  watch: {
+    initialTab(newTab) {
+      this.activeTab = newTab || 'login';
+    },
+    show(val) {
+      if (val) {
+        this.activeTab = this.initialTab || 'login';
+      }
     }
   },
 

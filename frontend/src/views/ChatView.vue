@@ -8,8 +8,12 @@
       <Chat
         :external-show-form="showForm"
         @update:external-show-form="showForm = $event"
-        @open-login="openSettings('login')"
-        @open-register="openSettings('register')"
+        @trigger-auth-modal="openAuthModal"
+      />
+      <AuthModal
+        :show="showAuthModal"
+        :initial-tab="activeAuthTab"
+        @close="showAuthModal = false"
       />
     </main>
   </div>
@@ -19,23 +23,19 @@
 import { ref } from "vue";
 import HeaderBar from "@/components/ui/HeaderBar.vue";
 import Chat from "@/components/chat/Chat.vue";
+import AuthModal from "@/components/auth/AuthModal.vue";
 
-// Lomakkeen näkyvyyden tila
 const showForm = ref(false);
-// Vakioarvot jonojen laskureille (voidaan dynaamistaa myöhemmin)
 const queueCount = 0;
 const closedCount = 0;
 
-// Modalin tilan hallinta
-const settingsOpen = ref(false);
-const initialSettingsSection = ref("personalInfo");
+const showAuthModal = ref(false);
+const activeAuthTab = ref("login");
 
-// TÄMÄ FUNKTIO PUUTTUI TAI OLI VIRHEELLINEN
-const openSettings = (section) => {
-  console.log("Availlaan osiota:", section); // Lisää tämä testiksi konsoliin
-  initialSettingsSection.value = section;
-  settingsOpen.value = true;
-};
+function openAuthModal(tab = "login") {
+  activeAuthTab.value = tab;
+  showAuthModal.value = true;
+}
 </script>
   
 <style scoped>

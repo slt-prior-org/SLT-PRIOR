@@ -11,6 +11,7 @@
         <ChatHistorySidebar
           v-if="sidebarOpen && isAuthenticated && isPatient"
           :chat-history="chatStore.getUserChats"
+          :active-chat-id="chatStore.getActiveChat?.id"
           @select-chat="handleSelectChat"
           @start-new-chat="handleStartNewChat"
           @close-sidebar="sidebarOpen = false"

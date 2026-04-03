@@ -1,32 +1,30 @@
 <template>
-  <div class="chat-history-overlay">
-    <div class="chat-history-sidebar">
+  <div class="chat-history-overlay" @click="closeSidebar">
+    <div class="chat-history-sidebar" @click.stop>
 
-      <!-- Sivupalkin otsikko ja sulje-painike -->
       <div class="sidebar-header">
         <h3>{{$t('sidebar.pastChats')}}</h3>
         <button class="close-btn" @click="closeSidebar">X</button>
       </div>
 
-      <!-- Uusi keskustelu -painike -->
       <button class="new-chat-btn" @click="startNewChat">
         <span class="plus-icon">+</span> {{$t('sidebar.newChat')}}
       </button>
 
-      <!-- Chat-historian lista -->
       <div class="chats-container">
         <ul v-if="groupedChats.length > 0" class="chats-list">
           <li
             v-for="chat in groupedChats"
             :key="chat.id"
             class="chat-item"
+            :class="{ 'active-chat': chat.id === activeChatId }"
             @click="selectChatAndClose(chat)"
           >
             <span class="chat-title" :title="chat.lastMessage">
               {{ chat.lastMessage || $t('sidebar.defaultTitle') }}
             </span>
             <span class="chat-date">
-              {{ formatDate(chat.created_at) }}
+              {{ formatDate(chat.lastMessageDate) }}
             </span>
           </li>
         </ul>
@@ -35,25 +33,26 @@
         </div>
       </div>
 
-      <!-- Sivupalkin alatunniste -->
-      <div class="sidebar-footer">
-        {{$t('sidebar.footer')}}
-      </div>
+          <div class="sidebar-footer">
+            {{$t('sidebar.footer')}}
+          </div>
 
     </div>
   </div>
 </template>
 
 <script>
-// Chat-historiasivupalkin päälogiikka
 export default {
   name: 'ChatHistorySidebar',
 
-  // Chat-historia prop
   props: {
     chatHistory: {
       type: Array,
       required: true
+    },
+    activeChatId: {
+      type: [String, Number],
+      required: false
     }
   },
 
@@ -69,36 +68,35 @@ export default {
             // Etsi viimeisin käyttäjän viesti
             const lastUserMsg = messages.find(m => m.sender === 'user')
             const messageText = lastUserMsg?.content || messages[0]?.content || this.$t('sidebar.defaultTitle')
+            
+            // Käytä viimeisin viestin aikaa tai chatin updated_at
+            const lastMessageDate = messages[0]?.created_at || chat.updated_at || chat.created_at
 
             return {
             id: chat.id,
             lastMessage: messageText,
-            created_at: chat.created_at || messages[0]?.created_at,
+            lastMessageDate: lastMessageDate,
             }
         })
         .sort((a, b) => {
-            return new Date(b.created_at) - new Date(a.created_at)
+            return new Date(b.lastMessageDate) - new Date(a.lastMessageDate)
         })
     }
   },
 
   methods: {
-    // Emitoi valitun chatin vanhemmalle
     selectChat(chat) {
       this.$emit('select-chat', chat);
     },
 
-    // Valitse chat ja sulje sivupalkki
     selectChatAndClose(chat) {
       this.selectChat(chat);
     },
 
-    // Aloita uusi keskustelu
     startNewChat() {
       this.$emit('start-new-chat');
     },
 
-    // Sulje sivupalkki
     closeSidebar() {
       this.$emit('close-sidebar');
     },
@@ -106,21 +104,31 @@ export default {
     // Päivämäärän muotoilu (tänään, eilen, muuten pvm)
     formatDate(dateString) {
       if (!dateString) return '';
-
-      const date = new Date(dateString);
+      const correctedDateString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+      const date = new Date(correctedDateString);
       const today = new Date();
       const yesterday = new Date();
       yesterday.setDate(today.getDate() - 1);
 
-      if (date.toDateString() === today.toDateString()) {
+      const dateLocal = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const yesterdayLocal = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+      if (dateLocal.getTime() === todayLocal.getTime()) {
         return date.toLocaleTimeString('fi-FI', {
           hour: '2-digit',
           minute: '2-digit'
         });
       }
 
-      if (date.toDateString() === yesterday.toDateString()) {
-        return 'Eilen';
+      if (dateLocal.getTime() === yesterdayLocal.getTime()) {
+        return (
+          'Eilen klo ' +
+          date.toLocaleTimeString('fi-FI', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        );
       }
 
       return date.toLocaleDateString('fi-FI', {
@@ -341,6 +349,10 @@ export default {
   border-left-color: #1d4ed8;
 }
 
+.chat-item.active-chat {
+  background: #e5e7eb;
+}
+
 .chat-title {
   display: block;
   font-size: 14px;
@@ -364,5 +376,38 @@ export default {
   text-align: center;
   color: #94a3b8;
   font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .chat-history-overlay {
+    background-color: rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .chat-history-sidebar {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-history-sidebar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .sidebar-header {
+    padding: 16px 0 0 16px;
+  }
+
+  .new-chat-btn {
+    margin: 0 16px 16px 16px;
+    width: calc(100% - 32px);
+  }
+
+  .chats-container {
+    padding: 4px;
+  }
 }
 </style>

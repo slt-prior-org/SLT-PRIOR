@@ -196,7 +196,14 @@ export const useUserChatStore = defineStore("userChat", {
         updated_at: new Date().toISOString(),
       }
 
+
       chat.messages.push(userMessage)
+      // Päivitä userChats-listan messages myös
+      const chatIndex = this.userChats.findIndex(c => c.id === chat.id)
+      if (chatIndex !== -1) {
+        if (!this.userChats[chatIndex].messages) this.userChats[chatIndex].messages = []
+        this.userChats[chatIndex].messages.push(userMessage)
+      }
 
       try {
         const data = await sendUserMessage(chat.id, message)
@@ -233,13 +240,22 @@ export const useUserChatStore = defineStore("userChat", {
               }
             : null
 
+
         chat.messages = chat.messages.filter(
           (item) => item.id !== userMessage.id,
         )
         chat.messages.push(confirmedUserMessage)
+        // Päivitä userChats-listan messages myös
+        if (chatIndex !== -1) {
+          this.userChats[chatIndex].messages = chat.messages.slice()
+        }
 
         if (botMessage) {
           chat.messages.push(botMessage)
+          // Päivitä userChats-listan messages myös
+          if (chatIndex !== -1) {
+            this.userChats[chatIndex].messages = chat.messages.slice()
+          }
         }
 
         if (
@@ -261,6 +277,11 @@ export const useUserChatStore = defineStore("userChat", {
           botMessage?.updated_at ||
           confirmedUserMessage.updated_at ||
           chat.updated_at
+        
+        // Päivitä userChats-listan updated_at myös
+        if (chatIndex !== -1) {
+          this.userChats[chatIndex].updated_at = chat.updated_at
+        }
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)
         chat.messages = chat.messages.filter(
@@ -298,7 +319,7 @@ export const useUserChatStore = defineStore("userChat", {
       if (this.userChats.length === 0) return
 
       try {
-        // Hae full data kaikille chateille rinnakkain
+        // Hae data kaikille chateille
         const fullChats = await Promise.all(
           this.userChats.map(chat => fetchChat(chat.id))
         )

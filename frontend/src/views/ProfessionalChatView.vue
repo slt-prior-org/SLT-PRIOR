@@ -118,7 +118,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import HeaderBar from "@/components/HeaderBar.vue"
+import HeaderBar from "@/components/ui/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
 import ChatMessage from "@/components/chat/ChatMessage.vue"
 import PatientCard from "@/components/PatientCard.vue"

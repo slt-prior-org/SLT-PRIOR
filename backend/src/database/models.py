@@ -46,21 +46,21 @@ class ChatStatus(str, Enum):
 Base models
 """
 class BloodPressure(BaseModel):
-    systolic: int = Field(..., ge=50, le=300, description="mmHg")
-    diastolic: int = Field(..., ge=30, le=200, description="mmHg")
+    systolic: Optional[int] = Field(..., ge=50, le=300, description="mmHg")
+    diastolic: Optional[int] = Field(..., ge=30, le=200, description="mmHg")
 
 class PatientInfo(BaseModel):
     weight: Optional[float] = None
     height: Optional[float] = None
     age: Optional[int] = None
-    conditions: List[str] = []
+    conditions: Optional[List[str]] = None
     avg_blood_pressure: Optional[BloodPressure] = None
-    risk_factors: List[str] = []
+    risk_factors: Optional[List[str]] = None
     alcohol_use: Optional[AlcoholUse] = None
-    allergies: List[str] = []
+    allergies: Optional[List[str]] = None
     activity: Optional[ActivityLevel] = None
-    medications: List[str] = []
-    heart_procedures: List[str] = []
+    medications: Optional[List[str]] = None
+    heart_procedures: Optional[List[str]] = None
 
 class UserModel(BaseModel):
     email: str

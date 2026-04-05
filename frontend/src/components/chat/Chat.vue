@@ -1,7 +1,5 @@
 <template>
   <div class="chat-container">
-    <!-- Esitietolomake-modal -->
-    <PatientForm v-if="showForm" @close="closePatientForm" />
 
     <div
       class="messages"
@@ -154,23 +152,22 @@
 
     <div v-else class="input-shell auth-prompt-shell">
       <p class="auth-prompt-text">
-        <a href="#" @click.prevent="$emit('open-login')">
-          {{ $t("settings.login") }}
+        <a href="#" @click.prevent="triggerAuthModal('login')">
+          {{ $t('settings.login') }}
         </a>
-        {{ $t("or") }}
-        <a href="#" @click.prevent="$emit('open-register')">
-          {{ $t("settings.register") }}
+        {{ $t('or') }}
+        <a href="#" @click.prevent="triggerAuthModal('register')">
+          {{ $t('settings.register') }}
         </a>
-        {{ $t("authPromptSuffix") }}
+        {{ $t('authPromptSuffix') }}
       </p>
     </div>
   </div>
 </template>
 
 <script>
-import PatientForm from "./PatientForm.vue"
-import ChatMessage from "./chat/ChatMessage.vue"
-import ChatInputBar from "./chat/ChatInputBar.vue"
+import ChatMessage from "./ChatMessage.vue"
+import ChatInputBar from "./ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
@@ -179,15 +176,18 @@ import { chatSocket } from "@/services/chatSocket"
 
 export default {
   name: "ChatComponent",
-  components: { PatientForm, ChatMessage, ChatInputBar },
+  components: { ChatMessage, ChatInputBar },
 
   props: {
     externalShowForm: Boolean,
   },
 
-  emits: ["update:externalShowForm", "open-login", "open-register"],
+  emits: ["update:externalShowForm", "trigger-auth-modal"],
 
   setup(props, { emit }) {
+        function triggerAuthModal(tab) {
+          emit('trigger-auth-modal', tab)
+        }
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
@@ -271,16 +271,6 @@ export default {
       },
     )
 
-    const openPatientForm = () => {
-      showForm.value = true
-      emit("update:externalShowForm", true)
-    }
-
-    const closePatientForm = () => {
-      showForm.value = false
-      emit("update:externalShowForm", false)
-    }
-
     const handleSendFromInputBar = async (text) => {
       if (!authStore.isAuthenticated) return
       if (!text.trim()) return
@@ -321,8 +311,7 @@ export default {
       showForm,
       scrollToBottom,
       handleSendFromInputBar,
-      openPatientForm,
-      closePatientForm,
+      triggerAuthModal,
     }
   },
 

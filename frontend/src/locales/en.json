@@ -1,4 +1,15 @@
 {
+  "auth": {
+    "title": "Welcome",
+    "subtitle": "Sign in to your account or create a new one"
+  },
+  "healthProfile": {
+    "close": "Close",
+    "save": "Save profile"
+  },
+  "healthProfileStatus": {
+    "success": "Health profile saved successfully!"
+  },
   "fin": "Finnish",
   "eng": "English",
   "prompt": "Write your question here...",
@@ -56,7 +67,8 @@
     "login": "Login",
     "register": "Register",
     "accessibility": "Accessibility",
-    "analytics": "Analytics & Insights"
+    "analytics": "Analytics & Insights",
+    "editHealthProfile": "Edit health profile"
   },
   "modifyPersonalInfo": {
     "requiredFields": "Weight and height are required fields",
@@ -128,6 +140,9 @@
     "logIn": "Log In",
     "Logout": "Logout"
   },
+  "registerStatus": {
+    "success": "Registration successful!"
+  },
   "register": {
     "title": "Register",
     "firstName": "Enter first name",
@@ -150,15 +165,22 @@
   "emergencyMessage": "<strong>⚠️ This appears to be an emergency situation.</strong><br><br>If you or someone near you is in a life-threatening situation, <strong>call the emergency number 112 immediately.</strong><br><br>This chatbot cannot provide first aid or replace emergency services.",
   "patientForm": {
     "title": "Preliminary Form",
+    "healthProfile": "Health profile",
+    "updateHealthInfo": "Update your health information in the form below",
+    "finishRegistration": "Complete your registration",
+    "description": "By filling in your health profile, you help the AI provide more accurate and personalized answers.",
+    "optional": "All fields are optional.",
     "weight": "Weight",
     "height": "Height",
     "age": "Age",
+    "years": "years",
     "conditions": "Medical Conditions",
     "conditionsPlaceholder": "Separate with commas (e.g. Diabetes, Hypertension)",
     "avgBloodPressure": "Average Blood Pressure",
     "riskFactors": "Risk Factors",
     "riskFactorsPlaceholder": "Separate with commas (e.g. Smoking, Family history)",
     "alcoholUse": "Alcohol Use",
+    "alcoholUsePlaceholder": "Select alcohol consumption",
     "alcoholNone": "None",
     "alcoholRare": "Rare",
     "alcoholMonthly": "Monthly",
@@ -167,6 +189,7 @@
     "allergies": "Allergies",
     "allergiesPlaceholder": "Separate with commas (e.g. Penicillin, Nuts)",
     "activity": "Physical Activity",
+    "activityPlaceholder": "Select activity level",
     "activityNone": "None",
     "activityLight": "Light",
     "activityModerate": "Moderate",
@@ -176,8 +199,9 @@
     "medicationsPlaceholder": "Separate with commas (e.g. Metformin, Lisinopril)",
     "heartProcedures": "Heart Procedures",
     "heartProceduresPlaceholder": "Separate with commas (e.g. Angioplasty, Bypass)",
-    "save": "Save",
-    "skip": "Skip",
+    "save": "Save profile",
+    "back": "Back",
+    "skip": "Skip for now",
     "saveSuccess": "Preliminary information saved!",
     "saveError": "Error saving preliminary information:"
   },
@@ -202,15 +226,20 @@
     "returnToQueue": "Return to queue",
     "closeChat": "Close chat",
     "patientInfo": "Patient information",
-    "age": "Age:",
-    "height": "Height:",
-    "weight": "Weight:",
-    "conditions": "Conditions:",
-    "summary": "AI summary:",
+    "age": "Age",
+    "height": "Height",
+    "weight": "Weight",
+    "conditions": "Conditions",
+    "summary": "AI summary",
     "inQueue": "IN QUEUE",
     "done": "DONE",
     "chatPreview": "Chat preview",
     "sources": "SOURCES",
-    "writeMessage": "Write a message"
+    "writeMessage": "Write a message",
+    "lastMessage": "Last message",
+    "status": "Status",
+    "received": "Received",
+    "waiting": "Waiting",
+    "medication": "Medication"
 }
 }

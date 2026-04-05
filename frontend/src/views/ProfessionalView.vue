@@ -134,47 +134,12 @@
     </div>
 
     <!-- Esikatselumodal odottaville chateille -->
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal">
-
-        <h3>{{ $t("professional.chatPreview") }}</h3>
-
-        <div class="preview-card">
-
-          <div class="preview-header">
-
-            <div class="preview-patient">
-              {{ $t("professional.patient") }} #{{ selectedChat?.user_id }}
-            </div>
-
-            <div class="preview-time">
-              {{ formatTime(selectedChat?.updated_at) }}
-            </div>
-
-          </div>
-
-          <div class="preview-message">
-            {{ selectedChat?.last_message || "" }}
-          </div>
-
-        </div>
-
-        <div class="modal-actions">
-          <AppButton variant="primary" @click="claimChat">
-            {{ $t("professional.claim") }}
-          </AppButton>
-
-          <AppButton variant="neutral" @click="closeModal">
-            {{ $t("professional.close") }}
-          </AppButton>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="dashboard-footer">
-      <img src="@/assets/newlogo.png" alt="Logo" class="footer-logo">
-    </div>
+    <ChatPreviewModal
+      v-if="showModal"
+      :chat="selectedChat"
+      @close="closeModal"
+      @claim="claimChat"
+    />
 
   </div>
 
@@ -184,8 +149,9 @@
 import { ref, onMounted, onUnmounted, computed } from "vue"
 import { useRouter } from "vue-router"
 import { useProfessionalChatStore } from "@/stores/professionalChatStore"
-import HeaderBar from "@/components/HeaderBar.vue"
+import HeaderBar from "@/components/ui/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
+import ChatPreviewModal from "@/components/ChatPreviewModal.vue"
 import { useAuthStore } from "@/stores/authStore"
 import { useI18n } from "vue-i18n"
 const { locale } = useI18n()
@@ -325,7 +291,7 @@ function formatTime(date) {
 }
 
 .workspace-label{
-  font-size:14px;
+  font-size:18px;
   letter-spacing:.08em;
   color:#666666;
   font-weight:600;
@@ -335,7 +301,7 @@ function formatTime(date) {
   background:white;
   padding:10px 16px;
   border-radius:10px;
-  font-size:13px;
+  font-size:15px;
   color:#404040;
   box-shadow:0 4px 12px rgba(0,0,0,0.05);
 }
@@ -376,7 +342,7 @@ function formatTime(date) {
   display:flex;
   align-items:center;
   justify-content:space-between;
-  font-size:12px;
+  font-size:clamp(13px, 0.7vw, 18px);
   color:#6b7a90;
   margin-bottom:14px;
 }
@@ -402,7 +368,7 @@ function formatTime(date) {
   flex-direction:column;
   gap:12px;
 
-  max-height: clamp(200px, 40vh, 600px);
+  max-height: clamp(200px, 45vh, 700px);
   overflow-y:auto;
 }
 
@@ -413,7 +379,7 @@ function formatTime(date) {
   width:100%;
   gap:14px;
   background:white;
-  padding:14px 16px;
+  padding:clamp(11px, 0.8vw, 24px);
   border-radius:18px;
   border:1px solid #e5e7eb;
   box-shadow:none;
@@ -436,19 +402,19 @@ function formatTime(date) {
 }
 
 .chat-body p{
-  font-size:13px;
+  font-size:clamp(13px, 0.7vw, 18px);
   color:#404040;
   margin-top:2px;
 }
 
 .chat-body b{
-  font-size:13px;
+  font-size:clamp(13px, 0.7vw, 18px);
   color:#262626;
   margin-top:2px;
 }
 
 .chat-status{
-  font-size:11px;
+  font-size:clamp(11px, 0.55vw, 18px);
   font-weight:600;
   color:#2563eb;
   background:#eff6ff;
@@ -468,37 +434,12 @@ function formatTime(date) {
 }
 
 .time{
-  font-size:12px;
+  font-size:clamp(11px, 0.6vw, 18px);
   color:#7a869a;
 }
 
 .chat-card.closed{
   opacity:.6;
-}
-
-/* chatin esikatselumodal */
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.modal {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  width: 360px;
-}
-
-.modal-actions {
-  margin-top: 20px;
-  display: flex;
-  gap: 12px;
 }
 
 .dashboard-footer{

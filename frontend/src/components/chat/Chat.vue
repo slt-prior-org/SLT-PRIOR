@@ -199,6 +199,18 @@ export default {
     const waitingForProfessional = ref(false)
     const showForm = ref(false)
 
+    const syncWaitingIndicators = (chat) => {
+      if (!authStore.isAuthenticated || !chat) {
+        waitingForBot.value = false
+        waitingForProfessional.value = false
+        return
+      }
+
+      if (!["waiting_for_professional", "in_progress"].includes(chat.status)) {
+        waitingForProfessional.value = false
+      }
+    }
+
     const scrollToBottom = () => {
       nextTick(() => {
         if (messagesEl.value) {
@@ -233,6 +245,7 @@ export default {
 
     onMounted(() => {
       chatStore.resetTransientState()
+      syncWaitingIndicators(chatStore.activeChat)
 
       if (chatStore.activeChat) {
         connectWebsocket(chatStore.activeChat)
@@ -245,9 +258,11 @@ export default {
       () => chatStore.activeChat,
       (newChat) => {
         if (!newChat) {
+          syncWaitingIndicators(null)
           welcomeMessageDisplayed.value = true
           return
         }
+        syncWaitingIndicators(newChat)
         connectWebsocket(newChat)
         welcomeMessageDisplayed.value = !newChat.messages?.length
         scrollToBottom()
@@ -262,6 +277,24 @@ export default {
         scrollToBottom()
       },
       { deep: true },
+    )
+
+    watch(
+      () => chatStore.activeChat?.status,
+      () => {
+        syncWaitingIndicators(chatStore.activeChat)
+      },
+      { immediate: true },
+    )
+
+    watch(
+      () => authStore.isAuthenticated,
+      (isAuthenticated) => {
+        if (!isAuthenticated) {
+          syncWaitingIndicators(null)
+        }
+      },
+      { immediate: true },
     )
 
     watch(

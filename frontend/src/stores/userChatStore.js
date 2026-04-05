@@ -30,6 +30,7 @@ export const useUserChatStore = defineStore("userChat", {
       this.isLoaded = false // Resetoi lataustilan
       this.isSending = false
       this.isLoadingChat = false
+      this.pendingConfirmationMessageId = null
       if (sessionStorage.getItem("userChat")) {
         sessionStorage.removeItem("userChat")
       }
@@ -37,6 +38,7 @@ export const useUserChatStore = defineStore("userChat", {
     resetTransientState() {
       this.isSending = false
       this.isLoadingChat = false
+      this.pendingConfirmationMessageId = null
     },
     // Chatien haku ja alustaminen
     async initializeChats(force = false) {

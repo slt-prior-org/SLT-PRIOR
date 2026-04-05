@@ -30,6 +30,7 @@
               :text="msg.content"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"
+              :guideline-source-url="msg.guideline_source_url ?? null"
             />
           </div>
 

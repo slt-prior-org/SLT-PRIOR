@@ -164,6 +164,7 @@ export const useUserChatStore = defineStore("userChat", {
               requires_professional: data.requires_professional ?? false,
               guideline_excerpt: data.guideline_excerpt ?? null,
               guideline_source: data.guideline_source ?? null,
+              guideline_source_url: data.guideline_source_url ?? null,
             }
           : data.reply
             ? {

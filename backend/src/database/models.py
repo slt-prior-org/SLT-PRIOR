@@ -156,6 +156,7 @@ class MessageDetailResponse(BaseModel):
     sources: List[SourceItem] = []
     guideline_excerpt: Optional[str] = None
     guideline_source: Optional[str] = None
+    guideline_source_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -166,6 +167,7 @@ class SendChatMessageResponse(BaseModel):
     requires_confirmation: bool = False
     guideline_excerpt: Optional[str] = None
     guideline_source: Optional[str] = None
+    guideline_source_url: Optional[str] = None
     classification_reasoning: Optional[str] = None
 
 class ChatDetailResponse(BaseModel):

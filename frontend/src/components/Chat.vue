@@ -100,6 +100,7 @@
         :text="message.content"
         :guideline-excerpt="message.guideline_excerpt"
         :guideline-source="message.guideline_source"
+        :guideline-source-url="message.guideline_source_url ?? null"
         :requires-confirmation="message.requires_confirmation ?? false"
         :requires-professional="message.requires_professional ?? false"
         :is-forward-confirmation="message.is_forward_confirmation ?? false"

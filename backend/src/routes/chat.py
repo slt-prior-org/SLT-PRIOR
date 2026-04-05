@@ -211,6 +211,12 @@ async def send_message_to_chat(
         )
         excerpt_data = await get_guideline_excerpt(excerpt_query, score_threshold=0.60)
 
+        guideline_source_url = (
+            f"/api/guidelines/pdf/{excerpt_data['source']}"
+            if excerpt_data
+            else None
+        )
+
         saved_user_message = await save_chat_message(
             chatId,
             SenderType.USER,
@@ -237,6 +243,7 @@ async def send_message_to_chat(
             sources=[],
             guideline_excerpt=excerpt_data["text"] if excerpt_data else None,
             guideline_source=excerpt_data["source"] if excerpt_data else None,
+            guideline_source_url=guideline_source_url,
         )
 
         if excerpt_data:
@@ -246,6 +253,7 @@ async def send_message_to_chat(
                 requires_confirmation=True,
                 guideline_excerpt=excerpt_data["text"],
                 guideline_source=excerpt_data["source"],
+                guideline_source_url=guideline_source_url,
                 classification_reasoning=classification_result.reasoning,
             )
         else:

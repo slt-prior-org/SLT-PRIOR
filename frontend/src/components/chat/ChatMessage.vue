@@ -32,7 +32,13 @@
           <span class="citation-label">{{ $t('guidelineExcerpt') }}</span>
         </div>
         <blockquote class="citation-text">{{ guidelineExcerpt }}</blockquote>
-        <div class="citation-source">{{ $t('guidelineSource') }}: {{ guidelineSource }}</div>
+        <div class="citation-source">
+          {{ $t('guidelineSource') }}:
+          <button v-if="guidelineSourceUrl" class="citation-source-link" @click="openPdf">
+            {{ guidelineSource }}
+          </button>
+          <span v-else>{{ guidelineSource }}</span>
+        </div>
       </div>
       <div
         v-if="requiresConfirmation && !confirmationAnswered && fromClass === 'other'"
@@ -94,6 +100,7 @@
 <script setup>
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
+import { api } from "@/services/api"
 
 const { t } = useI18n()
 const showSources = ref(false);
@@ -124,6 +131,10 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  guidelineSourceUrl: {
+    type: String,
+    default: null,
+  },
   requiresConfirmation: {
     type: Boolean,
     default: false,
@@ -147,6 +158,17 @@ const props = defineProps({
 })
 
 defineEmits(['confirm-helpful', 'confirm-needs-forward'])
+
+async function openPdf() {
+  if (!props.guidelineSourceUrl) return
+  try {
+    const response = await api.get(props.guidelineSourceUrl, { responseType: "blob" })
+    const url = URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }))
+    window.open(url, "_blank", "noopener,noreferrer")
+  } catch (e) {
+    console.error("Failed to open PDF:", e)
+  }
+}
 
 const isInfo = computed(() => {
   return props.from === "info"
@@ -308,6 +330,18 @@ function formatPages(pages) {
 .citation-header { color: #15803d; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
 .citation-text { margin: 0 0 6px; font-style: italic; line-height: 1.6; color: #0f172a; }
 .citation-source { color: #64748b; font-size: 13px; }
+.citation-source-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #15803d;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.citation-source-link:hover {
+  color: #166534;
+}
 
 .confirmation-buttons {
   margin-top: 12px;

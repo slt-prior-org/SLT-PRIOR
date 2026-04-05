@@ -7,6 +7,7 @@ from routes.professional import router as professional_router
 from routes.chat import router as chat_router
 from routes.auth import router as auth_router
 from routes.websocket import router as websocket_router
+from routes.guidelines import router as guidelines_router
 
 app = FastAPI()
 
@@ -57,4 +58,10 @@ app.include_router(
 app.include_router(
     websocket_router,
     tags=["websocket"]
+)
+
+app.include_router(
+    guidelines_router,
+    prefix="/api/guidelines",
+    tags=["guidelines"]
 )

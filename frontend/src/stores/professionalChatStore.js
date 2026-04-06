@@ -62,7 +62,18 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         this.loading.chat = true
 
         const chat = await fetchChat(chatId)
-        this.activeChat = chat
+        this.activeChat = {
+          ...chat,
+          messages: (chat.messages || []).map((msg) => ({
+            ...msg,
+            sources:
+              msg.sources ||
+              [],
+          })),
+          draft_sources:
+            chat.draft_sources ||
+            [],
+        }
       } catch (error) {
         console.error("Failed to fetch chat:", error)
       } finally {
@@ -206,7 +217,14 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         const savedMessage = await addProfessionalMessage(chat.id, { message })
 
         if (!chat.messages) chat.messages = []
-        chat.messages.push(savedMessage)
+        chat.messages.push({
+          ...savedMessage,
+          sources:
+            savedMessage.sources ||
+            savedMessage.message_sources ||
+            savedMessage.references ||
+            [],
+        })
       } catch (error) {
         console.error("Failed to send professional message:", error)
       } finally {

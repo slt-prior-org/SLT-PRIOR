@@ -85,7 +85,7 @@ async def generate_summary_for_professional(
         user_data: Potilaan taustatiedot (MongoDB-dokumentti tai None).
 
     Returns:
-        dict: patient_context, chat_summary, draft_response, requires_approval
+        dict: patient_context, chat_summary, draft_response, requires_approval, draft_sources
     """
     patient_context = _format_user_data(user_data)
     history_text = _format_history(messages)
@@ -107,6 +107,7 @@ async def generate_summary_for_professional(
 
     # Haetaan viimeinen potilaan viesti ja generoidaan draft RAG-vastauksella
     draft_response = ""
+    draft_sources = []
     last_human_msg = ""
     for msg in reversed(messages):
         sender = msg.get("sender") or msg.get("type", "")
@@ -125,15 +126,19 @@ async def generate_summary_for_professional(
             draft_prompt = last_human_msg
         try:
             from ai_model import rag_cloud, utils
-            raw_draft = await rag_cloud.generate_draft_response(draft_prompt)
+            draft_result = await rag_cloud.get_rag_response(draft_prompt)
+            raw_draft = draft_result.get("answer", "")
+            draft_sources = draft_result.get("sources", [])
             draft_response = utils.formatGeminiResponse(raw_draft)
         except Exception as e:
             logger.error(f"Draft response generation failed: {e}")
             draft_response = ""
+            draft_sources = []
 
     return {
         "patient_context": patient_context,
         "chat_summary": chat_summary,
         "draft_response": draft_response,
+        "draft_sources": draft_sources,
         "requires_approval": True,
     }

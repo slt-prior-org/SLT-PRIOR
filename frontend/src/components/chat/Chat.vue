@@ -224,6 +224,8 @@ export default {
 
     const connectWebsocket = (chat) => {
       if (!chat) return
+      // Älä yhdistä websocketia draft-chateille
+      if (chat.isDraft) return
       chatSocket.connect(chat.id, authStore.token, (data) => {
         if (data.sender !== authStore.getCurrentUserID) {
           chat.messages.push(data.message)
@@ -312,9 +314,12 @@ export default {
 
       try {
         const chat = chatStore.activeChat
-        // Luo chat vain jos sitä ei ole
-        if (!chat) {
-          await chatStore.createChat()
+        // Luo chat vain jos sitä ei ole, tai se on draft
+        if (!chat || chat.isDraft) {
+          if (!chat) {
+            chatStore.createDraftChat()
+          }
+          // Jos chat on draft, se tallennetaan kun addUserMessage kutsutaan
         }
 
         if (chat?.status === "in_progress") {

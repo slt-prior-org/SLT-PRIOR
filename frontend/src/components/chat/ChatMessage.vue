@@ -1,11 +1,57 @@
 <template>
-  <div :class="['message', fromClass, extraClass]">
+  <!-- System / info message -->
+  <div v-if="isInfo" class="system-wrapper">
+    <div class="system-divider">
+      <span>{{ t("chat.closed") }}</span>
+    </div>
+    <div class="system-message">
+      {{ $t("chat.closedDescription") }}
+    </div>
+  </div>
+
+  <!-- Normal chat message -->
+  <div v-else :class="['message', fromClass, extraClass]">
     <div class="bubble-wrapper">
       <span class="sender-label">
         {{ formattedSender }}
       </span>
 
-      <div class="bubble" v-html="text" />
+      <div class="bubble">
+        <template v-if="requiresConfirmation || guidelineExcerpt">{{ $t('guidelineFound') }}</template>
+        <template v-else-if="requiresProfessional">{{ $t('forwardedToProfessional') }}</template>
+        <template v-else-if="isForwardConfirmation">{{ $t('confirmForwarded') }}</template>
+        <span v-else-if="isEmergency && fromClass === 'other'" v-html="$t('emergencyMessage')" />
+        <span v-else v-html="text" />
+      </div>
+      <div
+        v-if="guidelineExcerpt && fromClass === 'other'"
+        class="guideline-citation"
+        role="note"
+      >
+        <div class="citation-header">
+          <span class="citation-label">{{ $t('guidelineExcerpt') }}</span>
+        </div>
+        <blockquote class="citation-text">{{ guidelineExcerpt }}</blockquote>
+        <div class="citation-source">
+          {{ $t('guidelineSource') }}:
+          <button v-if="guidelineSourceUrl" class="citation-source-link" @click="openPdf">
+            {{ guidelineSource }}
+          </button>
+          <span v-else>{{ guidelineSource }}</span>
+        </div>
+      </div>
+      <div
+        v-if="requiresConfirmation && !confirmationAnswered && fromClass === 'other'"
+        class="confirmation-buttons"
+      >
+        <p class="confirmation-question">{{ $t('confirmationQuestion') }}</p>
+        <button class="btn-yes" @click="$emit('confirm-helpful')">
+          {{ $t('confirmYes') }}
+        </button>
+        <button class="btn-no" @click="$emit('confirm-needs-forward')">
+          {{ $t('confirmNo') }}
+        </button>
+      </div>
 
       <!-- Toggle button -->
       <button
@@ -54,6 +100,7 @@
 <script setup>
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
+import { api } from "@/services/api"
 
 const { t } = useI18n()
 const showSources = ref(false);
@@ -76,11 +123,62 @@ const props = defineProps({
     type: [String, Array, Object],
     default: "",
   },
+  guidelineExcerpt: {
+    type: String,
+    default: null,
+  },
+  guidelineSource: {
+    type: String,
+    default: null,
+  },
+  guidelineSourceUrl: {
+    type: String,
+    default: null,
+  },
+  requiresConfirmation: {
+    type: Boolean,
+    default: false,
+  },
+  requiresProfessional: {
+    type: Boolean,
+    default: false,
+  },
+  isForwardConfirmation: {
+    type: Boolean,
+    default: false,
+  },
+  isEmergency: {
+    type: Boolean,
+    default: false,
+  },
+  confirmationAnswered: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+defineEmits(['confirm-helpful', 'confirm-needs-forward'])
+
+async function openPdf() {
+  if (!props.guidelineSourceUrl) return
+  try {
+    const response = await api.get(props.guidelineSourceUrl, { responseType: "blob" })
+    const url = URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }))
+    window.open(url, "_blank", "noopener,noreferrer")
+  } catch (e) {
+    console.error("Failed to open PDF:", e)
+  }
+}
+
+const isInfo = computed(() => {
+  return props.from === "info"
 })
 
 // Lasketaan CSS-luokka lähettäjän perusteella (self = käyttäjä, other = botti/muu)
 const fromClass = computed(() => {
   if (props.from === "self" || props.from === "user") return "self"
+  if (props.from === "professional") return "professional"
+  if (props.from === "info") return "info"
   return "other"
 })
 
@@ -100,7 +198,7 @@ const formattedSender = computed(() => {
 
   if (props.from === "professional") return t("sender.professional")
 
-  return props.from
+  return ""
 })
 
 const normalizedSources = computed(() => {
@@ -219,6 +317,61 @@ function formatPages(pages) {
   transform: rotate(45deg);
 }
 
+.guideline-citation {
+  margin-top: 10px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-left: 4px solid #16a34a;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  max-width: 95%;
+}
+.citation-header { color: #15803d; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+.citation-text { margin: 0 0 6px; font-style: italic; line-height: 1.6; color: #0f172a; }
+.citation-source { color: #64748b; font-size: 13px; }
+.citation-source-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #15803d;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.citation-source-link:hover {
+  color: #166534;
+}
+
+.confirmation-buttons {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.confirmation-question {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 4px;
+}
+.btn-yes, .btn-no {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.btn-yes {
+  background: #16a34a;
+  color: white;
+}
+.btn-no {
+  background: #f1f5f9;
+  color: #374151;
+  border: 1px solid #cbd5e1;
+}
+
 /* NEEDS REVIEW */
 .message.other.needs-review .bubble {
   background: #fff3cd;
@@ -303,4 +456,68 @@ function formatPages(pages) {
 }
 
 
+
+/* Professional message */
+.message.professional {
+  justify-content: flex-start;
+}
+
+.message.professional .bubble {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.message.professional .bubble::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  background: #e8f5e9;
+  transform: rotate(45deg);
+}
+
+.message.professional .sender-label {
+  text-align: left;
+  padding-left: 8px;
+}
+
+/* System wrapper */
+.system-wrapper {
+  margin: 28px 0;
+}
+
+/* Divider line */
+.system-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.system-divider::before,
+.system-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #cbd5f5;
+}
+
+.system-divider span {
+  padding: 0 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* System message text */
+.system-message {
+  text-align: center;
+  font-size: 16px;
+  color: #475569;
+  line-height: 1.5;
+  max-width: 70%;
+  margin: 0 auto;
+}
 </style>

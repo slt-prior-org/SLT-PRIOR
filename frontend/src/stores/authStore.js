@@ -36,7 +36,6 @@ export const useAuthStore = defineStore("auth", {
         // Alustetaan käyttäjän chat historia
         const chatStore = useUserChatStore()
         await chatStore.initializeChats()
-
       } catch (error) {
         console.error("Registration failed:", error)
         throw error
@@ -59,7 +58,6 @@ export const useAuthStore = defineStore("auth", {
         // Alustetaan käyttäjän chat historia
         const chatStore = useUserChatStore()
         await chatStore.initializeChats()
-
       } catch (error) {
         console.error("Login failed:", error)
         throw error

@@ -1,7 +1,5 @@
 <template>
   <div class="chat-container">
-    <!-- Esitietolomake-modal -->
-    <PatientForm v-if="showForm" @close="closePatientForm" />
 
     <div
       class="messages"
@@ -41,8 +39,9 @@
             <h3 class="card-title">
               {{ $t("chatbotHelpsTitle") }}
             </h3>
-            <p class="card-text"
-              v-html= "$t('chatbotHelpsDesc')">
+            <p class="card-text">
+              {{ $t("chatbotHelpsDesc") }}
+              <strong>{{ $t("chatbotHelpsDescBold") }}</strong>
             </p>
           </div>
 
@@ -97,11 +96,21 @@
         :key="message.id"
         :from="message.sender"
         :text="message.content"
+        :guideline-excerpt="message.guideline_excerpt"
+        :guideline-source="message.guideline_source"
+        :guideline-source-url="message.guideline_source_url ?? null"
+        :requires-confirmation="message.requires_confirmation ?? false"
+        :requires-professional="message.requires_professional ?? false"
+        :is-forward-confirmation="message.is_forward_confirmation ?? false"
+        :is-emergency="message.classification === 'emergency'"
+        :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
         :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'needs_review' ? 'needs-review' : '',
+          message.classification === 'needs_review' && !message.requires_confirmation ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
+        @confirm-helpful="chatStore.dismissConfirmation()"
+        @confirm-needs-forward="chatStore.forwardToProfessional()"
       />
 
       <!-- Bot typing indicator -->
@@ -110,14 +119,29 @@
         <span></span>
         <span></span>
       </div>
+
+      <!-- Waiting for professional reply -->
+      <div v-if="waitingForProfessional" class="professional-waiting">
+        <div class="sent-indicator">
+          ✓ {{ $t("waitingProfessional.messageSent") }}
+        </div>
+
+        <div class="waiting-text">
+          {{ $t("waitingProfessional.waiting") }}
+        </div>
+
+        <div class="response-time">
+          {{ $t("waitingProfessional.responseTime") }}
+        </div>
+      </div>
     </div>
 
-<div v-if="authStore.isAuthenticated" class="input-shell">
+    <div v-if="authStore.isAuthenticated" class="input-shell">
       <div class="chat-input-wrapper">
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="false" 
+          :input-disabled="false"
           :send-disabled="waitingForBot"
           :show-edit="false"
           :is-editing="false"
@@ -126,25 +150,24 @@
       </div>
     </div>
 
-   <div v-else class="input-shell auth-prompt-shell">
+    <div v-else class="input-shell auth-prompt-shell">
       <p class="auth-prompt-text">
-        <a href="#" @click.prevent="$emit('open-login')">
+        <a href="#" @click.prevent="triggerAuthModal('login')">
           {{ $t('settings.login') }}
-        </a> 
-        {{ $t('or') }} 
-        <a href="#" @click.prevent="$emit('open-register')">
+        </a>
+        {{ $t('or') }}
+        <a href="#" @click.prevent="triggerAuthModal('register')">
           {{ $t('settings.register') }}
         </a>
         {{ $t('authPromptSuffix') }}
       </p>
     </div>
-  </div>  
+  </div>
 </template>
 
 <script>
-import PatientForm from "./PatientForm.vue"
-import ChatMessage from "./chat/ChatMessage.vue"
-import ChatInputBar from "./chat/ChatInputBar.vue"
+import ChatMessage from "./ChatMessage.vue"
+import ChatInputBar from "./ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
@@ -153,15 +176,18 @@ import { chatSocket } from "@/services/chatSocket"
 
 export default {
   name: "ChatComponent",
-  components: { PatientForm, ChatMessage, ChatInputBar },
+  components: { ChatMessage, ChatInputBar },
 
   props: {
     externalShowForm: Boolean,
   },
 
-  emits: ["update:externalShowForm", "open-login", "open-register"],
+  emits: ["update:externalShowForm", "trigger-auth-modal"],
 
   setup(props, { emit }) {
+        function triggerAuthModal(tab) {
+          emit('trigger-auth-modal', tab)
+        }
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
@@ -170,7 +196,20 @@ export default {
     const messagesEl = ref(null)
     const newMessage = ref("")
     const waitingForBot = ref(false)
+    const waitingForProfessional = ref(false)
     const showForm = ref(false)
+
+    const syncWaitingIndicators = (chat) => {
+      if (!authStore.isAuthenticated || !chat) {
+        waitingForBot.value = false
+        waitingForProfessional.value = false
+        return
+      }
+
+      if (!["waiting_for_professional", "in_progress"].includes(chat.status)) {
+        waitingForProfessional.value = false
+      }
+    }
 
     const scrollToBottom = () => {
       nextTick(() => {
@@ -185,28 +224,47 @@ export default {
 
     const connectWebsocket = (chat) => {
       if (!chat) return
-      chatSocket.connect(chat.id, authStore.token, (message) => {
-        chat.messages.push(message)
-        chatStore.updateChatStatus("open")
-        scrollToBottom()
+      // Älä yhdistä websocketia draft-chateille
+      if (chat.isDraft) return
+      chatSocket.connect(chat.id, authStore.token, (data) => {
+        if (data.sender !== authStore.getCurrentUserID) {
+          chat.messages.push(data.message)
+
+          if (data.chatStatus !== chat.status) {
+            chatStore.updateChatStatus(data.chatStatus)
+          }
+
+          if (data.message?.sender === "professional") {
+            waitingForProfessional.value = false
+          }
+          if (data.chatStatus === "closed") {
+            waitingForProfessional.value = false
+          }
+          scrollToBottom()
+        }
       })
     }
 
     onMounted(() => {
+      chatStore.resetTransientState()
+      syncWaitingIndicators(chatStore.activeChat)
+
       if (chatStore.activeChat) {
         connectWebsocket(chatStore.activeChat)
         welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
         scrollToBottom()
-      } 
+      }
     })
 
     watch(
       () => chatStore.activeChat,
       (newChat) => {
         if (!newChat) {
+          syncWaitingIndicators(null)
           welcomeMessageDisplayed.value = true
           return
         }
+        syncWaitingIndicators(newChat)
         connectWebsocket(newChat)
         welcomeMessageDisplayed.value = !newChat.messages?.length
         scrollToBottom()
@@ -224,35 +282,52 @@ export default {
     )
 
     watch(
+      () => chatStore.activeChat?.status,
+      () => {
+        syncWaitingIndicators(chatStore.activeChat)
+      },
+      { immediate: true },
+    )
+
+    watch(
+      () => authStore.isAuthenticated,
+      (isAuthenticated) => {
+        if (!isAuthenticated) {
+          syncWaitingIndicators(null)
+        }
+      },
+      { immediate: true },
+    )
+
+    watch(
       () => props.externalShowForm,
       (val) => {
         showForm.value = val
       },
     )
 
-    const openPatientForm = () => {
-      showForm.value = true
-      emit("update:externalShowForm", true)
-    }
-
-    const closePatientForm = () => {
-      showForm.value = false
-      emit("update:externalShowForm", false)
-    }
-
     const handleSendFromInputBar = async (text) => {
       if (!authStore.isAuthenticated) return
       if (!text.trim()) return
 
       newMessage.value = ""
-      waitingForBot.value = true
-      welcomeMessageDisplayed.value = false
 
       try {
-        // Luo chat vain jos sitä ei ole
-        if (!chatStore.activeChat) {
-          await chatStore.createChat()
+        const chat = chatStore.activeChat
+        // Luo chat vain jos sitä ei ole, tai se on draft
+        if (!chat || chat.isDraft) {
+          if (!chat) {
+            chatStore.createDraftChat()
+          }
+          // Jos chat on draft, se tallennetaan kun addUserMessage kutsutaan
         }
+
+        if (chat?.status === "in_progress") {
+          waitingForProfessional.value = true
+        } else {
+          waitingForBot.value = true
+        }
+
         await chatStore.addUserMessage(text.trim())
       } catch (error) {
         console.error("Send error:", error)
@@ -270,11 +345,11 @@ export default {
       messagesEl,
       newMessage,
       waitingForBot,
+      waitingForProfessional,
       showForm,
       scrollToBottom,
       handleSendFromInputBar,
-      openPatientForm,
-      closePatientForm,
+      triggerAuthModal,
     }
   },
 
@@ -530,6 +605,29 @@ export default {
 
 .typing-indicator span:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+.professional-waiting {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.sent-indicator {
+  color: #16a34a;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.waiting-text {
+  font-weight: 500;
+}
+
+.response-time {
+  color: #64748b;
+  font-size: 13px;
 }
 
 @keyframes typing {

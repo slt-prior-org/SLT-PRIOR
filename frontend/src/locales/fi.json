@@ -240,7 +240,9 @@
   "status": "Status",
   "received": "Saapunut",
   "waiting": "Odottaa",
-  "medication": "Lääkitys"
+  "medication": "Lääkitys",
+  "confirmCloseText": "Haluatko varmasti päättää keskustelun?",
+  "cancel": "Peruuta"
 
 },
   "sidebar": {

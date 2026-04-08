@@ -240,7 +240,9 @@
     "status": "Status",
     "received": "Received",
     "waiting": "Waiting",
-    "medication": "Medication"
+    "medication": "Medication",
+    "confirmCloseText": "Are you sure you want to end the conversation?",
+    "cancel": "Cancel"
   },
   "sidebar": {
     "pastChats": "Past chats",

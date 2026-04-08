@@ -104,7 +104,7 @@
               <AppButton
                 v-if="!isClosed"
                 variant="danger"
-                @click="closeChat"
+                @click="showCloseConfirm = true"
               >
                 {{ $t('professional.closeChat') }}
               </AppButton>
@@ -121,8 +121,34 @@
 
       </div>
     </div>
+        <!-- CLOSE CONFIRM MODAL -->
+      <div v-if="showCloseConfirm"
+      class="modal-overlay"
+      @click.self="showCloseConfirm = false"
+      >
+        <div class="modal">
 
+          <p class="modal-text">
+            {{ $t("professional.confirmCloseText") }}
+          </p>
+
+          <div class="modal-actions">
+            <AppButton variant="neutral" @click="showCloseConfirm = false">
+              {{ $t("professional.cancel") }}
+            </AppButton>
+
+            <AppButton
+              variant="danger"
+              @click="showCloseConfirm = false; closeChat()"
+            >
+              {{ $t("professional.closeChat") }}
+            </AppButton>
+          </div>
+
+        </div>
+      </div>
   </div>
+
 </template>
 
 <script setup>
@@ -148,6 +174,7 @@ const chatStore = useProfessionalChatStore()
 const currentUser = computed(() => authStore.user)
 
 const messagesContainer = ref(null)
+const showCloseConfirm = ref(false)
 
 const chat = computed(() => chatStore.activeChat)
 const editedReply = ref("")
@@ -428,5 +455,41 @@ function goBack() {
 
 .push-right {
   margin-left: auto;
+}
+
+/* CLOSE CONFIRM MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 400px;
+  max-width: 95%;
+  padding: 24px;
+
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+}
+
+.modal-text {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 24px;
 }
 </style>

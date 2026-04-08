@@ -12,7 +12,7 @@
   <!-- Normal chat message -->
   <div v-else :class="['message', fromClass, extraClass]">
     <div class="bubble-wrapper">
-      <span class="sender-label">
+      <span v-if="showLabel && formattedSender" class="sender-label">
         {{ formattedSender }}
       </span>
 
@@ -111,6 +111,18 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  side: {
+    type: String,
+    default: null, // "left" | "right"
+  },
+  senderType: {
+    type: String,
+    default: null,
+  },
+  showLabel: {
+    type: Boolean,
+    default: true,
+  },
   text: {
     type: String,
     default: "",
@@ -176,6 +188,9 @@ const isInfo = computed(() => {
 
 // Lasketaan CSS-luokka lähettäjän perusteella (self = käyttäjä, other = botti/muu)
 const fromClass = computed(() => {
+  if (props.side === "right") return "self"
+  if (props.side === "left") return "other"
+
   if (props.from === "self" || props.from === "user") return "self"
   if (props.from === "professional") return "professional"
   if (props.from === "info") return "info"
@@ -184,6 +199,10 @@ const fromClass = computed(() => {
 
 // Muotoillaan lähettäjän nimi käännösten perusteella
 const formattedSender = computed(() => {
+  if (props.senderType) {
+    return t(`sender.${props.senderType}`)
+  }
+
   if (props.from === "self" || props.from === "user") {
     return t("sender.customer")
   }
@@ -258,7 +277,6 @@ function formatPages(pages) {
 .message.self .sender-label {
   text-align: right;
   padding-right: 8px;
-  display: none; /* Piilotetaan oma nimi tilan säästämiseksi */
 }
 
 .message.other .sender-label {

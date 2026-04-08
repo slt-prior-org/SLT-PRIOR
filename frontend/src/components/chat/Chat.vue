@@ -95,6 +95,7 @@
         v-for="message in messages"
         :key="message.id"
         :from="message.sender"
+        :showLabel="message.sender !== 'user'"
         :text="message.content"
         :guideline-excerpt="message.guideline_excerpt"
         :guideline-source="message.guideline_source"

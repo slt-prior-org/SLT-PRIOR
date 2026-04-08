@@ -22,11 +22,20 @@
         <!-- CHAT -->
         <div class="conversation-card">
 
-          <div v-if="chat && chat.messages" class="chat-messages">
+          <div 
+            v-if="chat && chat.messages" 
+            class="chat-messages"
+            ref="messagesContainer"
+            >
             <ChatMessage
-              v-for="(msg, i) in chat.messages"
-              :key="i"
-              :from="msg.sender"
+              v-for="msg in chat.messages.filter(m => m.sender !== 'info')"
+              :key="msg.id"
+              :showLabel="true"
+              :side="msg.sender === 'user' ? 'left' : 'right'"
+              :senderType="
+                msg.sender === 'user'
+                  ? 'customer'
+                  : msg.sender"
               :text="msg.content"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"
@@ -36,7 +45,7 @@
 
           <div v-if="!isClosed" class="divider"></div>
 
-          <div class="reply-header">
+          <div v-if="!isClosed" class="reply-header">
             <div class="reply-label">
               {{ $t("professional.aiReply") }}
             </div>
@@ -50,7 +59,7 @@
             </AppButton>
           </div>
 
-          <div v-if="showSources" class="sources-panel">
+          <div v-if="showSources && !isClosed" class="sources-panel">
             <div class="sources-title">
               {{ $t("professional.sources") }}
             </div>
@@ -117,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue"
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import HeaderBar from "@/components/ui/HeaderBar.vue"
 import AppButton from "@/components/ui/AppButton.vue"
@@ -138,6 +147,8 @@ const chatStore = useProfessionalChatStore()
 
 const currentUser = computed(() => authStore.user)
 
+const messagesContainer = ref(null)
+
 const chat = computed(() => chatStore.activeChat)
 const editedReply = ref("")
 
@@ -157,6 +168,23 @@ function toggleEdit() {
   isEditing.value = !isEditing.value
 }
 
+function scrollToBottom() {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
+
+watch(
+  () => chat.value?.messages?.length,
+  () => {
+    nextTick(() => {
+      setTimeout(scrollToBottom, 0)
+    })
+  }
+)
+
 // hakee chatin ja jonot backendista
 onMounted(async () => {
   try {
@@ -167,9 +195,14 @@ onMounted(async () => {
     await chatStore.openChat(chatId)
 
     editedReply.value = (chatStore.activeChat?.draft_response || "")
-    .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
 
     connectWebsocket(chat.value)
+
+    nextTick(() => {
+      setTimeout(scrollToBottom, 0)
+    })
+
   } catch (e) {
     console.error(e)
   }

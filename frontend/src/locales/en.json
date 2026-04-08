@@ -251,7 +251,9 @@
     "defaultTitle": "New chat",
     "footer": "Chats are stored securely and are only visible to you",
     "delete": "Delete conversation",
-    "yesterdayAt": "Yesterday at"
+    "yesterdayAt": "Yesterday at",
+    "editTitle": "Rename",
+    "titlePlaceholder": "Chat title..."
   },
     "writeMessage": "Write a message",
     "lastMessage": "Last message",

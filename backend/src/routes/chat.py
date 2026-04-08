@@ -360,3 +360,17 @@ async def update_chat_status(
 ):
     await _get_owned_chat_or_404(chatId, current_user)
     await touch_chat(chatId, status=body.status)
+
+
+class ChatTitleUpdate(BaseModel):
+    title: str
+
+
+@router.put("/{chatId}/title", status_code=204)
+async def update_chat_title(
+    chatId: str,
+    body: ChatTitleUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    await _get_owned_chat_or_404(chatId, current_user)
+    await set_chat_title(chatId, body.title.strip()[:80])

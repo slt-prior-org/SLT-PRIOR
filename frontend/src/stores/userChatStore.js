@@ -6,6 +6,7 @@ import {
   sendUserMessage,
   fetchChat,
   updateChatStatus,
+  updateChatTitle,
 } from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
@@ -338,6 +339,16 @@ export const useUserChatStore = defineStore("userChat", {
 
     dismissConfirmation() {
       this.pendingConfirmationMessageId = null
+    },
+    async updateChatTitle(chatId, title) {
+      await updateChatTitle(chatId, title)
+      const idx = this.userChats.findIndex(c => c.id === chatId)
+      if (idx !== -1) {
+        this.userChats[idx] = { ...this.userChats[idx], title }
+      }
+      if (this.activeChat?.id === chatId) {
+        this.activeChat = { ...this.activeChat, title }
+      }
     },
     async loadChatsWithMessages() {
       if (this.userChats.length === 0) return

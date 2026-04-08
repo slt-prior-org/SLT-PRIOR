@@ -23,3 +23,6 @@ export const addChat = async () => {
 
 export const updateChatStatus = (chatId, status) =>
   api.put(`/api/chat/${chatId}/status`, { status })
+
+export const updateChatTitle = (chatId, title) =>
+  api.put(`/api/chat/${chatId}/title`, { title })

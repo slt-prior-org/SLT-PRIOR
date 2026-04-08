@@ -17,12 +17,36 @@
             v-for="chat in groupedChats"
             :key="chat.id"
             class="chat-item"
-            :class="{ 'active-chat': chat.id === activeChatId }"
-            @click="selectChatAndClose(chat)"
+            :class="{ 'active-chat': chat.id === activeChatId, 'editing': editingChatId === chat.id }"
+            @click="editingChatId !== chat.id && selectChatAndClose(chat)"
           >
-            <span class="chat-title" :title="chat.lastMessage">
-              {{ chat.lastMessage || $t('sidebar.defaultTitle') }}
-            </span>
+            <div class="chat-title-row">
+              <span v-if="editingChatId !== chat.id" class="chat-title" :title="chat.lastMessage">
+                {{ chat.lastMessage || $t('sidebar.defaultTitle') }}
+              </span>
+              <input
+                v-else
+                ref="titleInputRef"
+                class="chat-title-input"
+                v-model="editingTitle"
+                :placeholder="$t('sidebar.titlePlaceholder')"
+                @keydown.enter.prevent="saveTitle(chat.id)"
+                @keydown.escape.prevent="cancelEdit"
+                @blur="saveTitle(chat.id)"
+                @click.stop
+              />
+              <button
+                v-if="editingChatId !== chat.id"
+                class="edit-title-btn"
+                :title="$t('sidebar.editTitle')"
+                @click.stop="startEdit(chat, $event)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            </div>
             <span class="chat-date">
               {{ formatDate(chat.lastMessageDate) }}
             </span>
@@ -42,7 +66,8 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
+import { useUserChatStore } from '@/stores/userChatStore'
 
 export default {
   name: 'ChatHistorySidebar',
@@ -81,6 +106,13 @@ export default {
     return {
       chatsContainer,
       scrollToTop
+    }
+  },
+
+  data() {
+    return {
+      editingChatId: null,
+      editingTitle: '',
     }
   },
 
@@ -128,6 +160,29 @@ export default {
 
     closeSidebar() {
       this.$emit('close-sidebar');
+    },
+
+    startEdit(chat, event) {
+      event.stopPropagation()
+      this.editingChatId = chat.id
+      this.editingTitle = chat.lastMessage
+      nextTick(() => {
+        const input = this.$refs.titleInputRef?.[0]
+        if (input) input.focus()
+      })
+    },
+
+    async saveTitle(chatId) {
+      const trimmed = this.editingTitle.trim()
+      if (trimmed) {
+        const chatStore = useUserChatStore()
+        await chatStore.updateChatTitle(chatId, trimmed)
+      }
+      this.editingChatId = null
+    },
+
+    cancelEdit() {
+      this.editingChatId = null
     },
 
     // Päivämäärän muotoilu (tänään, eilen, muuten pvm)
@@ -382,16 +437,64 @@ export default {
   background: #e5e7eb;
 }
 
+.chat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
 .chat-title {
-  display: block;
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 500;
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-word;
   line-height: 1.3;
+}
+
+.edit-title-btn {
+  flex-shrink: 0;
+  opacity: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 3px;
+  color: #94a3b8;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.chat-item:hover .edit-title-btn {
+  opacity: 1;
+}
+
+.edit-title-btn:hover {
+  color: #2563eb;
+}
+
+.chat-title-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: white;
+  outline: none;
+  line-height: 1.3;
+}
+
+.chat-item.editing {
+  cursor: default;
 }
 
 .chat-date {

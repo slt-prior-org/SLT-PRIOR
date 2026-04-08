@@ -211,8 +211,11 @@ export default {
 }
 
 .auth-button {
-  margin-top: 6px;
+  margin-top: 8px;
   width: 100%;
+  padding: 12px 20px !important;
+  font-size: 15px !important;
+  border-radius: 10px !important;
 }
 
 .auth-error {

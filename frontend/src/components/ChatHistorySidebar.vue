@@ -4,7 +4,7 @@
 
       <div class="sidebar-header">
         <h3>{{$t('sidebar.pastChats')}}</h3>
-        <button class="close-btn" @click="closeSidebar">X</button>
+        <button class="close-btn" @click="closeSidebar">✕</button>
       </div>
 
       <button class="new-chat-btn" @click="startNewChat">
@@ -238,11 +238,11 @@ export default {
 }
 
 .sidebar-header {
+  position: relative;
   padding: 20px 0 0 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  min-height: 56px;
 }
 
 .sidebar-header h3 {
@@ -254,43 +254,66 @@ export default {
 }
 
 .close-btn {
-  background: none;
+  position: absolute;
+  right: 16px;
+  top: 16px;
   border: none;
+  background: #eef2f8;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
-  color: #2d445a;
-  padding: 0 20px 0 0;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
-  flex-shrink: 0;
+  transition: all 0.2s ease;
+  color: #1d1d1d;
+  outline: none;
+  z-index: 2;
 }
 
 .close-btn:hover {
-  color: #0f172a;
+  background: #e3e8f3;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
 }
 
 .new-chat-btn {
   margin: 0 20px 20px 20px;
   padding: 14px 0;
   width: calc(100% - 40px);
-  background: #2563eb;
-  color: #fff;
+  background: #1264a3;
+  color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.08);
-  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(18, 100, 163, 0.2);
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .new-chat-btn:hover {
-  background: #1d4ed8;
+  background: #0f5791;
+  box-shadow: 0 4px 12px rgba(18, 100, 163, 0.3);
+}
+
+.new-chat-btn:active {
+  background: #0d4570;
+}
+
+.new-chat-btn:focus-visible {
+  outline: 2px solid #0f5791;
+  outline-offset: 2px;
 }
 
 .plus-icon {

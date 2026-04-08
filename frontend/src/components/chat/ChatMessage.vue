@@ -333,14 +333,25 @@ function formatPages(pages) {
 .citation-source-link {
   background: none;
   border: none;
-  padding: 0;
+  padding: 2px 4px;
   color: #15803d;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
+  transition: all 0.2s ease;
+  outline: none;
+  border-radius: 4px;
 }
+
 .citation-source-link:hover {
   color: #166534;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.citation-source-link:focus-visible {
+  outline: 2px solid #15803d;
+  outline-offset: 1px;
 }
 
 .confirmation-buttons {
@@ -355,21 +366,49 @@ function formatPages(pages) {
   margin: 0 0 4px;
 }
 .btn-yes, .btn-no {
-  padding: 8px 20px;
-  border-radius: 20px;
+  padding: 10px 20px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  transition: all 0.2s ease;
+  outline: none;
 }
+
+.btn-yes:focus-visible,
+.btn-no:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
+}
+
 .btn-yes {
   background: #16a34a;
   color: white;
 }
+
+.btn-yes:hover {
+  background: #15803d;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.btn-yes:active {
+  background: #166534;
+}
+
 .btn-no {
-  background: #f1f5f9;
-  color: #374151;
-  border: 1px solid #cbd5e1;
+  background: #eef2f8;
+  color: #1d1d1d;
+  border: 1px solid #d0d5e5;
+}
+
+.btn-no:hover {
+  background: #e3e8f3;
+  border-color: #bcc4d5;
+}
+
+.btn-no:active {
+  background: #d8dce9;
 }
 
 /* NEEDS REVIEW */
@@ -400,17 +439,31 @@ function formatPages(pages) {
   margin-top: 10px;
 }
 .sources-toggle {
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
-  border-radius: 9999px;
-  padding: 6px 12px;
+  border: 1px solid #d0d5e5;
+  background: #eef2f8;
+  color: #1d1d1d;
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   margin-top: 10px;
+  transition: all 0.2s ease;
+  outline: none;
 }
+
+.sources-toggle:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
+}
+
 .sources-toggle:hover {
-  background: #f8fafc;
+  background: #e3e8f3;
+  border-color: #bcc4d5;
+}
+
+.sources-toggle:active {
+  background: #d8dce9;
 }
 
 /* Lähdelistan tyyli: tausta, reunus ja sisennys */

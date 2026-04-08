@@ -58,7 +58,8 @@
   "preliminaryForm": "Esitietolomake",
   "welcomeMessage": "Hei, olen sydänterveytesi assistentti ja haluan auttaa sinua askarruttavissa asioissa ja edistää terveyttäsi. Aluksi haluaisin tietää muutamia esitietoja.",
   "fillForm": "Täytä esitietolomake",
-  "returnLater": "Voit myös palata täydentämään esitietoja myöhemmin sivupaneelista.",
+  "returnLater": "Voit myös palata täydentämään esitietoja myöhemmin sivupaneelista.",  
+  
   "settings": {
     "title": "Asetukset",
     "personalInfo": "Henkilötiedot",
@@ -240,6 +241,17 @@
   "received": "Saapunut",
   "waiting": "Odottaa",
   "medication": "Lääkitys"
-}
 
+},
+  "sidebar": {
+    "pastChats": "Aiemmat keskustelut",
+    "closeSidebar": "Sulje sivupalkki",
+    "subtitle": "Voit palata aiempiin keskusteluihin",
+    "newChat": "Uusi keskustelu",
+    "noChats": "Ei aikaisempia keskusteluja",
+    "footer": "Keskustelut tallennetaan turvallisesti ja ovat vain sinun nähtävissä",
+    "defaultTitle": "Uusi keskustelu",
+    "delete": "Poista keskustelu",
+    "yesterdayAt": "Eilen klo"
+  }
 }

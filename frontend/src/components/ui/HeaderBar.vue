@@ -1,21 +1,25 @@
 <template>
-  <div
-    v-if="
-      loginNotification || registerNotification || profileUpdateNotification
-    "
-    class="login-toast"
-  >
-    <span class="toast-icon">✔️</span>
-    <span class="toast-text">
-      {{
+  <header class="header">
+    <div
+      v-if="
         loginNotification || registerNotification || profileUpdateNotification
-      }}
-    </span>
-  </div>
+      "
+      class="login-toast"
+    >
+      <span class="toast-icon">✔️</span>
+      <span class="toast-text">
+        {{
+          loginNotification || registerNotification || profileUpdateNotification
+        }}
+      </span>
+    </div>
 
-  <div class="header">
-    <div class="left">
-      <div v-if="loggedIn" class="user">
+    <AppButton :class="{ 'sidebar-toggle': true, 'hidden': sidebarOpen || !isPatient }" variant="neutral" @click="toggleSidebar">
+      <svg width="24" height="24" viewBox="0 0 24 24"><rect y="4" width="24" height="2" rx="1"/><rect y="11" width="24" height="2" rx="1"/><rect y="18" width="24" height="2" rx="1"/></svg>
+    </AppButton>
+
+    <div class="left" :style="{ left: sidebarOpen ? '280px' : 'clamp(12px, 2vw, 28px)' }">
+      <div v-if="loggedIn" class="user" :style="{ marginLeft: (isPatient && !sidebarOpen) ? '80px' : '20px' }">
         <strong>{{ fullName }}</strong>
         <small>{{ user?.role || "" }}</small>
       </div>
@@ -82,9 +86,7 @@
         @close="menuOpen = false"
       />
     </div>
-  </div>
-
-  <div v-if="menuOpen" class="menu-backdrop" @click="menuOpen = false" />
+  </header>
 
   <AuthModal
     :show="showAuth"
@@ -115,6 +117,7 @@ import { useAuthStore } from "@/stores/authStore"
 defineProps({
   queueCount: Number,
   closedCount: Number,
+  sidebarOpen: Boolean,
   showLanguageSwitcher: {
     type: Boolean,
     default: true,
@@ -124,6 +127,8 @@ defineProps({
     default: false,
   },
 })
+
+const emit = defineEmits(['sidebar-toggle'])
 
 // Alustetaan kielituki ja käyttäjästore
 const auth = useAuthStore()
@@ -137,6 +142,7 @@ const profileUpdateNotification = ref("")
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
 const loggedIn = computed(() => auth.isAuthenticated)
+const isPatient = computed(() => auth.isPatient)
 const showAuth = ref(false)
 const user = computed(() => auth.user)
 
@@ -149,6 +155,11 @@ const fullName = computed(() => {
 
   return name || u.name || u.email || "..."
 })
+
+// Funktio sivupalkin kytkelemiseen
+function toggleSidebar() {
+  emit('sidebar-toggle')
+}
 
 // Funktio sovelluksen kielen vaihtamiseen
 function switchLanguage(lang) {
@@ -221,7 +232,7 @@ const dropdownItems = computed(() => {
     {
       key: "logout",
       labelKey: "logout",
-      action: handleLogout,
+      action: () => handleLogout(),
     },
   ]
 })
@@ -259,8 +270,22 @@ async function handleLogout() {
 .left {
   position: absolute;
   left: clamp(12px, 2vw, 28px);
-  display: flex;
-  align-items: center;
+  display:flex; 
+  align-items:center;
+  transition: left 0.3s ease-out;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  left: clamp(12px, 2vw, 28px);
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+  z-index: 1001;
+}
+
+.sidebar-toggle.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .center {
   display: flex;
@@ -296,10 +321,11 @@ async function handleLogout() {
   z-index: 1;
 }
 
-.user {
-  display: flex;
-  flex-direction: column;
-  font-size: clamp(14px, 1vw, 18px);
+.user { 
+  display:flex; 
+  flex-direction:column; 
+  font-size:clamp(14px, 1vw, 18px);
+  transition: margin-left 0.3s ease-out;
 }
 
 .auth-actions {
@@ -388,13 +414,6 @@ async function handleLogout() {
 
 .menu-item:hover {
   background: #f1f5f9;
-}
-
-/* Taustan himmennys valikon ollessa auki */
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
 }
 
 .login-toast {

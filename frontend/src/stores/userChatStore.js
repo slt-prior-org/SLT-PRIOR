@@ -69,10 +69,42 @@ export const useUserChatStore = defineStore("userChat", {
 
       try {
         const chat = await fetchChat(chatId)
+        const messages = chat.messages || []
+
+        // Jos chat odottaa ammattilaista ja sisältää käypähoidon ohjeen mutta ei
+        // vahvistusviestiä, lisätään se synteettisesti (ei tallennu DB:hen).
+        // Ehto: guideline-viesti on viimeinen viesti jota ei seuraa käyttäjäviesti
+        // (eli käyttäjä klikkasi "Ei" eikä jatkanut kirjoittamista)
+        const hasForwardConfirmation = messages.some(m => m.is_forward_confirmation)
+        const guidelineMsgIdx = [...messages].map((m, i) => ({ m, i }))
+          .filter(({ m }) => m.guideline_excerpt && m.sender === 'bot')
+          .map(({ i }) => i)
+          .at(-1) // viimeisen guideline-viestin indeksi
+        const guidelineMsg = guidelineMsgIdx !== undefined ? messages[guidelineMsgIdx] : null
+        const noUserMsgAfterGuideline = guidelineMsg &&
+          !messages.slice(guidelineMsgIdx + 1).some(m => m.sender === 'user')
+        if (
+          chat.status === 'waiting_for_professional' &&
+          guidelineMsg &&
+          noUserMsgAfterGuideline &&
+          !hasForwardConfirmation
+        ) {
+          messages.push({
+            id: 'forward-confirmation-' + chatId,
+            sender: 'bot',
+            content: '',
+            classification: 'needs_review',
+            is_forward_confirmation: true,
+            flagged_for_human: false,
+            sources: [],
+            created_at: guidelineMsg.created_at,
+            updated_at: guidelineMsg.updated_at,
+          })
+        }
 
         this.activeChat = {
           ...chat,
-          messages: chat.messages || [],
+          messages,
         }
       } catch (error) {
         console.error("Failed to load chat:", error)

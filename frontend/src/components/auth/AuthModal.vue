@@ -169,7 +169,7 @@ export default {
 
 .auth-subtitle {
   font-size: 14px;
-  color: #64748b;
+  color: #2d445a;
   margin: 0;
 }
 
@@ -190,7 +190,7 @@ export default {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  color: #1d3548;
   cursor: pointer;
   transition: all 0.15s ease;
 }

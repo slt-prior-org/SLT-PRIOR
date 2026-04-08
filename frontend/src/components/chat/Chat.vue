@@ -446,7 +446,7 @@ export default {
 .welcome-subtitle {
   margin: 0 auto;
   max-width: 640px;
-  color: #475569;
+  color: #445164;
   font-size: 18px;
   line-height: 1.6;
 }
@@ -495,7 +495,7 @@ export default {
   margin: 0;
   font-size: 18px;
   line-height: 1.55;
-  color: #475569;
+  color: #1d2e3e;
 }
 
 .welcome-alert {
@@ -562,7 +562,7 @@ export default {
 
 .auth-prompt-text {
   font-size: 18px;
-  color: #475569;
+  color: #1d2e3e;
   margin: 0;
   max-width: 600px;
   line-height: 1.6;
@@ -594,7 +594,7 @@ export default {
 .typing-indicator span {
   width: 8px;
   height: 8px;
-  background: #64748b;
+  background: #2d445a;
   border-radius: 50%;
   animation: typing 1.2s infinite ease-in-out;
 }
@@ -626,7 +626,7 @@ export default {
 }
 
 .response-time {
-  color: #64748b;
+  color: #2d445a;
   font-size: 13px;
 }
 

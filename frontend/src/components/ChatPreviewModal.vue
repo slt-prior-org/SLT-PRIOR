@@ -128,7 +128,7 @@ function formatTime(date) {
   border: none;
   font-size: 18px;
   cursor: pointer;
-  color: #64748b;
+  color: #2d445a;
 }
 
 /* SECTION */

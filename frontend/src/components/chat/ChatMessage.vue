@@ -252,7 +252,7 @@ function formatPages(pages) {
 .sender-label {
   display: block;
   font-size: 12px;
-  color: #64748b;
+  color: #2d445a;
   margin: 0 0 6px;
 }
 .message.self .sender-label {
@@ -329,7 +329,7 @@ function formatPages(pages) {
 }
 .citation-header { color: #15803d; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
 .citation-text { margin: 0 0 6px; font-style: italic; line-height: 1.6; color: #0f172a; }
-.citation-source { color: #64748b; font-size: 13px; }
+.citation-source { color: #2d445a; font-size: 13px; }
 .citation-source-link {
   background: none;
   border: none;
@@ -375,7 +375,7 @@ function formatPages(pages) {
 /* NEEDS REVIEW */
 .message.other.needs-review .bubble {
   background: #fff3cd;
-  color: #856404;
+  color: #6b4803;
   border: 1px solid #ffc107;
 }
 
@@ -445,7 +445,7 @@ function formatPages(pages) {
 .source-preview {
   margin-top: 4px;
   font-size: 12px;
-  color: #475569;
+  color: #1d2e3e;
   line-height: 1.45;
 }
 
@@ -494,7 +494,7 @@ function formatPages(pages) {
   align-items: center;
   text-align: center;
   font-size: 13px;
-  color: #64748b;
+  color: #2d445a;
   margin-bottom: 10px;
 }
 
@@ -515,7 +515,7 @@ function formatPages(pages) {
 .system-message {
   text-align: center;
   font-size: 16px;
-  color: #475569;
+  color: #1d2e3e;
   line-height: 1.5;
   max-width: 70%;
   margin: 0 auto;

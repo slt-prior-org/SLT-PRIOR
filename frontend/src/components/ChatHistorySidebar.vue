@@ -257,7 +257,7 @@ export default {
   background: none;
   border: none;
   cursor: pointer;
-  color: #64748b;
+  color: #2d445a;
   padding: 0 20px 0 0;
   display: flex;
   align-items: center;
@@ -340,7 +340,7 @@ export default {
   margin: 0 0 0 0;
   padding: 18px 20px 16px 20px;
   font-size: 14px;
-  color: #64748b;
+  color: #2d445a;
   text-align: left;
   background: #f8fafc;
   border-top: 1px solid #e5e7eb;

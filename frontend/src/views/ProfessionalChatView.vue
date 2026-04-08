@@ -368,7 +368,7 @@ function goBack() {
 .sources-title {
   font-size: 13px;
   font-weight: 600;
-  color: #64748b;
+  color: #2d445a;
   margin-bottom: 8px;
 }
 

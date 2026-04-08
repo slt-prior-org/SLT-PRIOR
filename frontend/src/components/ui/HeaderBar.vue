@@ -353,9 +353,9 @@ async function handleLogout() {
 }
 
 .language-switcher button.active {
-  background: #3a5bdc;
+  background: #2548D4;
   color: white;
-  border-color: #3a5bdc;
+  border-color: #2548D4;
 }
 
 .language-switcher button:hover:not(.active) {
@@ -364,7 +364,7 @@ async function handleLogout() {
 
 /* Asetusrattaan tyylit ja animaatiot */
 .login-btn {
-  background: #3a5bdc;
+  background: #2548D4;
   color: white;
   border: none;
   border-radius: 8px;

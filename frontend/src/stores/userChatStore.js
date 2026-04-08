@@ -103,6 +103,7 @@ export const useUserChatStore = defineStore("userChat", {
         this.userChats.unshift({
           id: newChat.id,
           status: newChat.status,
+          title: newChat.title ?? null,
           created_at: newChat.created_at,
           updated_at: newChat.updated_at,
         })
@@ -130,6 +131,7 @@ export const useUserChatStore = defineStore("userChat", {
         this.userChats.unshift({
           id: newChat.id,
           status: newChat.status,
+          title: newChat.title ?? null,
           created_at: newChat.created_at,
           updated_at: newChat.updated_at,
         })
@@ -184,6 +186,9 @@ export const useUserChatStore = defineStore("userChat", {
           throw error
         }
       }
+
+      // Seurataan onko kyseessä ensimmäinen viesti (title-päivitystä varten)
+      const wasFirstMessage = chat.messages.length === 0
 
       // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
       const userMessage = {
@@ -290,6 +295,25 @@ export const useUserChatStore = defineStore("userChat", {
         throw error
       } finally {
         this.isSending = false
+      }
+
+      // Haetaan AI-generoitu title ensimmäisen viestin jälkeen viiveellä
+      if (wasFirstMessage) {
+        const chatIdForRefresh = chat.id
+        setTimeout(async () => {
+          try {
+            const updated = await fetchChat(chatIdForRefresh)
+            if (updated.title) {
+              const idx = this.userChats.findIndex(c => c.id === chatIdForRefresh)
+              if (idx !== -1) {
+                this.userChats[idx] = { ...this.userChats[idx], title: updated.title }
+              }
+              if (this.activeChat?.id === chatIdForRefresh) {
+                this.activeChat = { ...this.activeChat, title: updated.title }
+              }
+            }
+          } catch (e) { /* ignore */ }
+        }, 5000)
       }
     },
 

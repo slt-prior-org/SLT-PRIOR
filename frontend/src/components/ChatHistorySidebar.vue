@@ -93,16 +93,17 @@ export default {
             (a, b) => new Date(b.created_at) - new Date(a.created_at)
             )
 
-            // Etsi viimeisin käyttäjän viesti
+            // Etsi viimeisin käyttäjän viesti (fallback jos AI-otsikkoa ei ole)
             const lastUserMsg = messages.find(m => m.sender === 'user')
-            const messageText = lastUserMsg?.content || messages[0]?.content || this.$t('sidebar.defaultTitle')
-            
+            const fallback = lastUserMsg?.content || messages[0]?.content || this.$t('sidebar.defaultTitle')
+            const displayTitle = chat.title || fallback
+
             // Käytä viimeisin viestin aikaa tai chatin updated_at
             const lastMessageDate = messages[0]?.created_at || chat.updated_at || chat.created_at
 
             return {
             id: chat.id,
-            lastMessage: messageText,
+            lastMessage: displayTitle,
             lastMessageDate: lastMessageDate,
             }
         })

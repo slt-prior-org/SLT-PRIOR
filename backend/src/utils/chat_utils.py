@@ -132,6 +132,7 @@ async def get_chat_summaries(filter_query: dict):
                 "status": 1,
                 "created_at": 1,
                 "updated_at": 1,
+                "title": 1,
                 "_id": 0,
             }
         },
@@ -246,6 +247,18 @@ async def save_chat_message(
 
     normalized = _normalize_message_doc(new_message)
     return MessageDetailResponse(**normalized)
+
+
+async def set_chat_title(chat_id: str | ObjectId, title: str) -> None:
+    """
+    Persists an AI-generated title to the chat document.
+    Does not touch updated_at so sidebar sort order is unaffected.
+    """
+    chat_object_id = ObjectId(chat_id) if isinstance(chat_id, str) else chat_id
+    await chats_collection.update_one(
+        {"_id": chat_object_id},
+        {"$set": {"title": title}},
+    )
 
 
 async def touch_chat(chat_id: str | ObjectId, *, status=None) -> None:

@@ -23,6 +23,10 @@
     "bot": "Bot",
     "professional": "Professional"
   },
+  "roles": {
+    "patient": "Patient",
+    "professional": "Professional"
+  },
   "or": "or",
   "authPromptSuffix": "to get information based on regulations and a professional-verified answer if needed.",
   "editMessage": "Edit message",
@@ -37,6 +41,7 @@
     "waiting": "Waiting for a healthcare professional to reply...",
     "responseTime": "Typical response time: 1–5 minutes"
   },
+  "disclaimer": "Demo / research prototype. This service is not an official healthcare service or a medical device.",
   "chatbotHelpsTitle": "Chatbot helps",
   "chatbotHelpsDesc": "You can chat about self-care topics, and the chatbot will respond based on care recommendations.",
   "chatbotHelpsDescBold": "The chatbot uses AI and errors are possible.",

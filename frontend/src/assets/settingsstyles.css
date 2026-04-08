@@ -132,21 +132,45 @@ select.modern-input,
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 1.75rem;
+  padding: 12px 20px;
   font-size: 1rem;
   font-weight: 500;
   color: white;
   background-color: var(--primary);
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   margin: 0 auto;
+  border-radius: 10px;
+  outline: none;
 }
 
-.modern-submit-btn:hover, 
-.settings-section button:hover, 
-.submit-btn:hover {
+.modern-submit-btn:focus-visible, 
+.settings-section button:focus-visible, 
+.submit-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.modern-submit-btn:hover:not(:disabled), 
+.settings-section button:hover:not(:disabled), 
+.submit-btn:hover:not(:disabled) {
   background-color: var(--primary-hover);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.modern-submit-btn:active:not(:disabled), 
+.settings-section button:active:not(:disabled), 
+.submit-btn:active:not(:disabled) {
+  background-color: #3f2fa0;
+}
+
+.modern-submit-btn:disabled, 
+.settings-section button:disabled, 
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .submit-icon {

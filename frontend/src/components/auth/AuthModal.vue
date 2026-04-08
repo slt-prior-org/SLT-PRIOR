@@ -139,7 +139,7 @@ export default {
   right: 14px;
   top: 14px;
   border: none;
-  background: #f1f5f9;
+  background: #eef2f8;
   width: 32px;
   height: 32px;
   border-radius: 10px;
@@ -148,11 +148,18 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
+  color: #1d1d1d;
+  outline: none;
 }
 
 .close-btn:hover {
-  background: #e2e8f0;
+  background: #e3e8f3;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
 }
 
 .auth-header {
@@ -169,7 +176,7 @@ export default {
 
 .auth-subtitle {
   font-size: 14px;
-  color: #64748b;
+  color: #2d445a;
   margin: 0;
 }
 
@@ -190,7 +197,7 @@ export default {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  color: #1d3548;
   cursor: pointer;
   transition: all 0.15s ease;
 }

@@ -14,7 +14,7 @@
     /* Text Colors (Legible & Modern) */
     --text-light: #ffffff;
     --text-dark: #1d1d1d; /* Deep Charcoal for Perfect Readability */
-    --text-secondary: #4a6572; /* Soft Blue-Gray for Subtext */
+    --text-secondary: #1d3a52; /* Darker Blue-Gray for WCAG AAA Contrast (7:1) */
 
     /* Buttons & Borders (Professional Touch) */
     --button-hover: #005cbf; /* Stronger, Deeper Blue */

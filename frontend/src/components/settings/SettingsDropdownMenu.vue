@@ -1,7 +1,7 @@
 <template>
   <div class="menu">
     <template v-for="(item, index) in items" :key="item.key">
-      <AppButton class="menu-item" variant="neutral" @click="handleClick(item)">
+      <AppButton :class="['menu-item', item.key === 'logout' ? 'logout' : '']" variant="neutral" @click="handleClick(item)">
         <span class="menu-icon">
           <template v-if="item.key === 'edit-health-profile'">
             <svg
@@ -77,7 +77,7 @@ function handleClick(item) {
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
   z-index: 1001;
-  padding: 8px 0;
+  padding: 2px 2px;
   display: flex;
   flex-direction: column;
 }
@@ -85,13 +85,15 @@ function handleClick(item) {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 12px;
   border: none;
   background: transparent;
+  font-size: 16px;
   text-align: left;
   width: 100%;
-  padding: 10px 16px;
-  border-radius: 0;
+  padding: 12px 16px;
+  border-radius: 6px;
   cursor: pointer;
   color: #0f172a;
   transition: background 0.2s;
@@ -100,16 +102,35 @@ function handleClick(item) {
 .menu-item:hover {
   background: #f1f5f9;
 }
+.menu-item.logout {
+  color: #d32d2f !important;
+  font-weight: 600;
+}
+.menu-item.logout .menu-icon svg {
+  color: #d32d2f !important;
+  stroke: #d32d2f !important;
+}
+.menu-item.logout:hover {
+  background: #ffeaea;
+  color: #b71c1c !important;
+}
+.menu-item.logout:hover .menu-icon svg {
+  color: #b71c1c !important;
+  stroke: #b71c1c !important;
+}
 
 .menu-icon {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
 }
 
-.menu-divider {
-  height: 1px;
-  background: #e5e7eb;
-  margin: 4px 0;
+.menu-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .menu-backdrop {

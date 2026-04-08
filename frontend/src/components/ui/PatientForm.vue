@@ -19,6 +19,7 @@
       </div>
     </div>
 
+    <div class="form-content">
     <!-- HEALTH METRICS -->
 
     <div class="health-grid">
@@ -149,6 +150,7 @@
         />
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -197,9 +199,16 @@ export default {
 .patient-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-height: 70vh;
+  gap: 0;
+}
+
+.form-content {
+  flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 50vh;
 }
 
 /* HEADER */
@@ -292,6 +301,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-bottom: 20px;
 }
 
 .form-group {

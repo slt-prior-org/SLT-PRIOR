@@ -53,20 +53,6 @@ defineEmits(["click"])
   background: #0d4570;
 }
 
-.variant-secondary {
-  background: #4f46e5;
-  color: white;
-}
-
-.variant-secondary:hover:not(:disabled) {
-  background: #4338ca;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-}
-
-.variant-secondary:active:not(:disabled) {
-  background: #3f2fa0;
-}
-
 .variant-neutral {
   background: #eef2f8;
   color: #1d1d1d;

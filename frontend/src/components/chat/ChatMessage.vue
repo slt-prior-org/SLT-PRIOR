@@ -270,8 +270,8 @@ function formatPages(pages) {
 .bubble {
   position: relative;
   max-width: 100%;
-  padding: 16px 20px;
-  border-radius: 22px;
+  padding: 12px 16px;
+  border-radius: 16px;
   line-height: 1.5;
   white-space: pre-wrap;
   box-sizing: border-box;
@@ -298,7 +298,7 @@ function formatPages(pages) {
   content: "";
   position: absolute;
   left: -6px;
-  top: 18px;
+  top: 14px;
   width: 12px;
   height: 12px;
   background: #f1f5f9;
@@ -310,7 +310,7 @@ function formatPages(pages) {
   content: "";
   position: absolute;
   right: -6px;
-  top: 22px;
+  top: 16px;
   width: 14px;
   height: 12px;
   background: #16a34a;

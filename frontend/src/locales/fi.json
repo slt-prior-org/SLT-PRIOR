@@ -22,6 +22,10 @@
     "bot": "Bot",
     "professional": "Ammattilainen"
   },
+  "roles": {
+    "patient": "Potilas",
+    "professional": "Ammattilainen"
+  },
   "or": "tai",
   "authPromptSuffix": "saadaksesi ohjeisiin perustuvaa tietoa ja tarvittaessa ammattilaisen tarkistaman vastauksen.",
   "editMessage": "Muokkaa viestiä",

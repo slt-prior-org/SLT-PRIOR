@@ -33,7 +33,9 @@
         <div class="welcome-cards">
           <div class="welcome-card">
             <div class="card-icon" aria-hidden="true">
-              <span class="icon-dot" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
             </div>
 
             <h3 class="card-title">
@@ -47,7 +49,12 @@
 
           <div class="welcome-card">
             <div class="card-icon" aria-hidden="true">
-              <span class="icon-dot" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
             </div>
 
             <h3 class="card-title">
@@ -60,7 +67,9 @@
 
           <div class="welcome-card">
             <div class="card-icon" aria-hidden="true">
-              <span class="icon-dot" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
             </div>
 
             <h3 class="card-title">
@@ -114,7 +123,7 @@
       />
 
       <!-- Bot typing indicator -->
-      <div v-if="waitingForBot" class="typing-indicator">
+      <div v-if="waitingForBot && !welcomeMessageDisplayed" class="typing-indicator">
         <span></span>
         <span></span>
         <span></span>
@@ -469,20 +478,19 @@ export default {
 }
 
 .card-icon {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
-  background: #eff6ff;
+  background: #dbeafe;
   display: grid;
   place-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  color: #1264a3;
 }
 
-.icon-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: #2563eb;
+.card-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .card-title {

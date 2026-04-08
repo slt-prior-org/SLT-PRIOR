@@ -25,12 +25,14 @@
     <div class="left" :style="{ left: sidebarOpen ? '280px' : 'clamp(12px, 2vw, 28px)' }">
       <div v-if="loggedIn" class="user" :style="{ marginLeft: (isPatient && !sidebarOpen) ? '70px' : '20px' }">
         <strong>{{ fullName }}</strong>
-        <small>{{ user?.role || "" }}</small>
+        <small>{{ userRole }}</small>
       </div>
     </div>
 
     <div class="center">
-      <img src="@/assets/new_logo.png" alt="HeartWise Logo" class="logo" />
+      <button class="logo-btn" @click="startNewChat" :title="$t('sidebar.newChat')">
+        <img src="@/assets/new_logo.png" alt="HeartWise Logo" class="logo" />
+      </button>
     </div>
 
     <div class="right">
@@ -132,7 +134,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['sidebar-toggle'])
+const emit = defineEmits(['sidebar-toggle', 'start-new-chat'])
 
 // Alustetaan kielituki ja käyttäjästore
 const auth = useAuthStore()
@@ -160,9 +162,21 @@ const fullName = computed(() => {
   return name || u.name || u.email || "..."
 })
 
+// Käytetään käännettyä roolia
+const userRole = computed(() => {
+  const role = user.value?.role
+  if (!role) return ""
+  return t(`roles.${role}`)
+})
+
 // Funktio sivupalkin kytkelemiseen
 function toggleSidebar() {
   emit('sidebar-toggle')
+}
+
+// Funktio uuden chatin aloitukseen
+function startNewChat() {
+  emit('start-new-chat')
 }
 
 // Funktio sovelluksen kielen vaihtamiseen
@@ -338,6 +352,32 @@ async function handleLogout() {
   align-items: center;
 }
 
+.logo-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.logo-btn:hover {
+  background: #f1f5f9;
+}
+
+.logo-btn:focus-visible {
+  outline: 2px solid #0f5791;
+  outline-offset: 2px;
+}
+
+.logo-btn:active {
+  background: #e3e8f3;
+}
+
 .logo {
   max-height: clamp(30px, 4vw, 100px);
   width: auto;
@@ -364,6 +404,12 @@ async function handleLogout() {
   gap: 16px;
   align-items: center;
   z-index: 1;
+}
+
+.counts {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
 }
 
 .user { 

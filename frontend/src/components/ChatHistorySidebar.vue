@@ -312,7 +312,7 @@ export default {
 }
 
 .new-chat-btn:focus-visible {
-  outline: 2px solid #0f5791;
+  outline: 2px solid #1264a3;
   outline-offset: 2px;
 }
 
@@ -397,11 +397,12 @@ export default {
 
 .chat-item:hover {
   background: #f1f5f9;
-  border-left-color: #1d4ed8;
+  border-left-color: #1264a3;
 }
 
 .chat-item.active-chat {
-  background: #e5e7eb;
+  background: #dbeafe;
+  border-left-color: #1264a3;
 }
 
 .chat-title {

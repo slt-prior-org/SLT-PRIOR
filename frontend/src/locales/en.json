@@ -23,6 +23,10 @@
     "bot": "Bot",
     "professional": "Professional"
   },
+  "roles": {
+    "patient": "Patient",
+    "professional": "Professional"
+  },
   "or": "or",
   "authPromptSuffix": "to get information based on regulations and a professional-verified answer if needed.",
   "editMessage": "Edit message",

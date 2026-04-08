@@ -40,6 +40,7 @@
     "waiting": "Odotetaan terveydenhuollon ammattilaisen vastausta",
     "responseTime": "Tyypillinen vastausaika: 1–5 minuuttia"
   },
+  "disclaimer": "Demo / tutkimusprototyyppi. Tämä palvelu ei ole virallinen terveydenhuollon palvelu eikä lääkinnällinen laite.",
   "chatbotHelpsTitle": "Chatbot auttaa",
   "chatbotHelpsDesc": "Voit keskustella itsehoitoon liittyvissä asioissa ja chatbot vastaa hoitosuositusten perusteella.",
   "chatbotHelpsDescBold": "Chatbot käyttää tekoälyä ja virheet ovat mahdollisia.",

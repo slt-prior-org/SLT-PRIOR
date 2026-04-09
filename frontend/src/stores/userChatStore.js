@@ -73,21 +73,23 @@ export const useUserChatStore = defineStore("userChat", {
 
         // Jos chat odottaa ammattilaista ja sisältää käypähoidon ohjeen mutta ei
         // vahvistusviestiä, lisätään se synteettisesti (ei tallennu DB:hen).
-        // Ehto: guideline-viesti on viimeinen viesti jota ei seuraa käyttäjäviesti
-        // (eli käyttäjä klikkasi "Ei" eikä jatkanut kirjoittamista)
+        // Ehto: on olemassa guideline-viesti (käyttäjä kävi läpi Kyllä/Ei-valinnan)
         const hasForwardConfirmation = messages.some(m => m.is_forward_confirmation)
+        // Botti-viesti ilman guideline_excerpt näyttää automaattisesti "Tämä aihe liittyy..."
+        // → erillistä confirmation-viestiä ei tarvita
+        const hasDirectForwardMsg = messages.some(
+          m => m.sender === 'bot' && !m.content && !m.guideline_excerpt
+        )
         const guidelineMsgIdx = [...messages].map((m, i) => ({ m, i }))
           .filter(({ m }) => m.guideline_excerpt && m.sender === 'bot')
           .map(({ i }) => i)
-          .at(-1) // viimeisen guideline-viestin indeksi
+          .at(-1)
         const guidelineMsg = guidelineMsgIdx !== undefined ? messages[guidelineMsgIdx] : null
-        const noUserMsgAfterGuideline = guidelineMsg &&
-          !messages.slice(guidelineMsgIdx + 1).some(m => m.sender === 'user')
         if (
           chat.status === 'waiting_for_professional' &&
           guidelineMsg &&
-          noUserMsgAfterGuideline &&
-          !hasForwardConfirmation
+          !hasForwardConfirmation &&
+          !hasDirectForwardMsg
         ) {
           messages.push({
             id: 'forward-confirmation-' + chatId,

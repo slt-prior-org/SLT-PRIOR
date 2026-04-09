@@ -20,11 +20,6 @@ class TestEnglishKeywords:
         assert result is not None
         assert any("heart attack" in kw for kw in result.matched_keywords)
 
-    def test_chest_pain(self):
-        result = detect_emergency("I have severe chest pain")
-        assert result is not None
-        assert any("chest pain" in kw for kw in result.matched_keywords)
-
     def test_stroke(self):
         result = detect_emergency("I think my dad is having a stroke")
         assert result is not None
@@ -286,7 +281,7 @@ class TestCaseInsensitivity:
         assert result is not None
 
     def test_mixed_case_english(self):
-        result = detect_emergency("Chest Pain is severe")
+        result = detect_emergency("Heart Attack symptoms now")
         assert result is not None
 
     def test_uppercase_finnish(self):

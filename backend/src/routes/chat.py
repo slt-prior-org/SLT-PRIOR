@@ -31,7 +31,8 @@ from utils.chat_utils import (
     set_chat_title,
     touch_chat,
 )
-from src.websocket_manager import manager
+
+from websocket_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ async def _generate_and_save_title(chat_id: str, first_message: str) -> None:
             logger.info("Chat title saved for %s: %r", chat_id, title)
     except Exception as e:
         logger.error("Title generation task failed for chat %s: %s", chat_id, e)
+
 
 
 async def _get_owned_chat_or_404(chat_id: str, current_user: Dict[str, Any]) -> dict:
@@ -265,6 +267,7 @@ async def send_message_to_chat(
             guideline_source_url=guideline_source_url,
         )
 
+
         if excerpt_data:
             return SendChatMessageResponse(
                 userMessage=saved_user_message,
@@ -277,6 +280,7 @@ async def send_message_to_chat(
             )
         else:
             await touch_chat(chatId, status=ChatStatus.WAITING)
+            await manager.broadcast("professionals", {"type": "chat_waiting", "chat_id": chatId})
             return SendChatMessageResponse(
                 userMessage=saved_user_message,
                 botMessage=saved_bot_message,

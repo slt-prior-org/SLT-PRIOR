@@ -197,8 +197,6 @@ const formattedToday = computed(() => {
   return today.charAt(0).toUpperCase() + today.slice(1)
 })
 
-let refreshInterval
-
 // hakee käyttäjän session ja chat-jonot
 onMounted(async () => {
   try {
@@ -208,9 +206,7 @@ onMounted(async () => {
 
     await chatStore.initializeQueues()
 
-    refreshInterval = setInterval(() => {
-      chatStore.initializeQueues()
-    }, 60000)
+    chatStore.connectToQueueSocket()
 
   } catch (e) {
     console.error("Failed to fetch queues", e)
@@ -218,7 +214,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  clearInterval(refreshInterval)
+  chatStore.disconnectFromQueueSocket()
 })
 
 // avaa chatin esikatselu

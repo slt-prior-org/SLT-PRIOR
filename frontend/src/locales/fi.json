@@ -22,6 +22,10 @@
     "bot": "Bot",
     "professional": "Ammattilainen"
   },
+  "roles": {
+    "patient": "Potilas",
+    "professional": "Ammattilainen"
+  },
   "or": "tai",
   "authPromptSuffix": "saadaksesi ohjeisiin perustuvaa tietoa ja tarvittaessa ammattilaisen tarkistaman vastauksen.",
   "editMessage": "Muokkaa viestiä",
@@ -36,6 +40,7 @@
     "waiting": "Odotetaan terveydenhuollon ammattilaisen vastausta",
     "responseTime": "Tyypillinen vastausaika: 1–5 minuuttia"
   },
+  "disclaimer": "Demo / tutkimusprototyyppi. Tämä palvelu ei ole virallinen terveydenhuollon palvelu eikä lääkinnällinen laite.",
   "chatbotHelpsTitle": "Chatbot auttaa",
   "chatbotHelpsDesc": "Voit keskustella itsehoitoon liittyvissä asioissa ja chatbot vastaa hoitosuositusten perusteella.",
   "chatbotHelpsDescBold": "Chatbot käyttää tekoälyä ja virheet ovat mahdollisia.",
@@ -64,7 +69,7 @@
     "title": "Asetukset",
     "personalInfo": "Henkilötiedot",
     "modifyPersonalInfo": "Muokkaa henkilötietoja",
-    "login": "Kirjaudu sisään",
+    "login": "Kirjaudu",
     "register": "Rekisteröidy",
     "accessibility": "Saavutettavuus",
     "analytics": "Analytiikka",
@@ -240,7 +245,9 @@
   "status": "Status",
   "received": "Saapunut",
   "waiting": "Odottaa",
-  "medication": "Lääkitys"
+  "medication": "Lääkitys",
+  "confirmCloseText": "Haluatko varmasti päättää keskustelun?",
+  "cancel": "Peruuta"
 
 },
   "sidebar": {

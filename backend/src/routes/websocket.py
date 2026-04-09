@@ -1,12 +1,11 @@
 from fastapi import (APIRouter,
                      WebSocket,
-                     Query,
                      WebSocketDisconnect,
                      )
 from jose import JWTError, jwt
-from src.websocket_manager import manager
+from websocket_manager import manager
 from typing import Any, Dict
-from src.utils.chat_utils import get_chat
+from utils.chat_utils import get_chat
 from bson import ObjectId
 from config import settings
 from database.db import users_collection
@@ -25,6 +24,7 @@ async def verify_token(token: str) -> Dict[str, Any]:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
         user_id = payload.get("sub")
         if not user_id or not ObjectId.is_valid(user_id):
+
             raise WebSocketDisconnect(code=1008)
     except JWTError:
         raise WebSocketDisconnect(code=1008)
@@ -36,12 +36,13 @@ async def verify_token(token: str) -> Dict[str, Any]:
     user["_id"] = str(user["_id"])
     return user
 
+
 @router.websocket("/ws/chats/{chat_id}")
 async def chat_ws(websocket: WebSocket, chat_id: str):
     token = websocket.query_params.get("token")
-    user = await verify_token(token)
-
-    if not user:
+    try:
+        user = await verify_token(token)
+    except WebSocketDisconnect:
         await websocket.close(code=1008)
         return
     
@@ -71,4 +72,32 @@ async def chat_ws(websocket: WebSocket, chat_id: str):
         manager.disconnect(websocket, f"chat:{chat_id}")
     except Exception as e:
         manager.disconnect(websocket, f"chat:{chat_id}")
+        raise e 
+
+
+@router.websocket("/ws/professional/queue")
+async def websocket_endpoint(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    try:
+        user = await verify_token(token)
+    except WebSocketDisconnect:
+        await websocket.close(code=1008)
+        return
+    
+    # Step 3: Check role == "professional"
+    # If not → websocket.close(code=1008) and return
+    if user["role"] != "professional":
+         await websocket.close(code=1008)
+         return
+
+    #Stub (step 4 ->)
+    await manager.connect(websocket, "professionals")
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, "professionals")
+    except Exception as e:
+        manager.disconnect(websocket, "professionals")
         raise e 

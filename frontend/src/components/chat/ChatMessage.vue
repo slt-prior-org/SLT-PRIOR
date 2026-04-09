@@ -12,7 +12,7 @@
   <!-- Normal chat message -->
   <div v-else :class="['message', fromClass, extraClass]">
     <div class="bubble-wrapper">
-      <span class="sender-label">
+      <span v-if="showLabel && formattedSender" class="sender-label">
         {{ formattedSender }}
       </span>
 
@@ -111,6 +111,18 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  side: {
+    type: String,
+    default: null, // "left" | "right"
+  },
+  senderType: {
+    type: String,
+    default: null,
+  },
+  showLabel: {
+    type: Boolean,
+    default: true,
+  },
   text: {
     type: String,
     default: "",
@@ -176,6 +188,9 @@ const isInfo = computed(() => {
 
 // Lasketaan CSS-luokka lähettäjän perusteella (self = käyttäjä, other = botti/muu)
 const fromClass = computed(() => {
+  if (props.side === "right") return "self"
+  if (props.side === "left") return "other"
+
   if (props.from === "self" || props.from === "user") return "self"
   if (props.from === "professional") return "professional"
   if (props.from === "info") return "info"
@@ -184,6 +199,10 @@ const fromClass = computed(() => {
 
 // Muotoillaan lähettäjän nimi käännösten perusteella
 const formattedSender = computed(() => {
+  if (props.senderType) {
+    return t(`sender.${props.senderType}`)
+  }
+
   if (props.from === "self" || props.from === "user") {
     return t("sender.customer")
   }
@@ -252,13 +271,12 @@ function formatPages(pages) {
 .sender-label {
   display: block;
   font-size: 12px;
-  color: #64748b;
+  color: #2d445a;
   margin: 0 0 6px;
 }
 .message.self .sender-label {
   text-align: right;
   padding-right: 8px;
-  display: none; /* Piilotetaan oma nimi tilan säästämiseksi */
 }
 
 .message.other .sender-label {
@@ -270,8 +288,8 @@ function formatPages(pages) {
 .bubble {
   position: relative;
   max-width: 100%;
-  padding: 16px 20px;
-  border-radius: 22px;
+  padding: 12px 16px;
+  border-radius: 16px;
   line-height: 1.5;
   white-space: pre-wrap;
   box-sizing: border-box;
@@ -298,7 +316,7 @@ function formatPages(pages) {
   content: "";
   position: absolute;
   left: -6px;
-  top: 18px;
+  top: 14px;
   width: 12px;
   height: 12px;
   background: #f1f5f9;
@@ -310,7 +328,7 @@ function formatPages(pages) {
   content: "";
   position: absolute;
   right: -6px;
-  top: 22px;
+  top: 16px;
   width: 14px;
   height: 12px;
   background: #16a34a;
@@ -329,18 +347,29 @@ function formatPages(pages) {
 }
 .citation-header { color: #15803d; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
 .citation-text { margin: 0 0 6px; font-style: italic; line-height: 1.6; color: #0f172a; }
-.citation-source { color: #64748b; font-size: 13px; }
+.citation-source { color: #2d445a; font-size: 13px; }
 .citation-source-link {
   background: none;
   border: none;
-  padding: 0;
+  padding: 2px 4px;
   color: #15803d;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
+  transition: all 0.2s ease;
+  outline: none;
+  border-radius: 4px;
 }
+
 .citation-source-link:hover {
   color: #166534;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.citation-source-link:focus-visible {
+  outline: 2px solid #15803d;
+  outline-offset: 1px;
 }
 
 .confirmation-buttons {
@@ -355,27 +384,55 @@ function formatPages(pages) {
   margin: 0 0 4px;
 }
 .btn-yes, .btn-no {
-  padding: 8px 20px;
-  border-radius: 20px;
+  padding: 10px 20px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  transition: all 0.2s ease;
+  outline: none;
 }
+
+.btn-yes:focus-visible,
+.btn-no:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
+}
+
 .btn-yes {
   background: #16a34a;
   color: white;
 }
+
+.btn-yes:hover {
+  background: #15803d;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.btn-yes:active {
+  background: #166534;
+}
+
 .btn-no {
-  background: #f1f5f9;
-  color: #374151;
-  border: 1px solid #cbd5e1;
+  background: #eef2f8;
+  color: #1d1d1d;
+  border: 1px solid #d0d5e5;
+}
+
+.btn-no:hover {
+  background: #e3e8f3;
+  border-color: #bcc4d5;
+}
+
+.btn-no:active {
+  background: #d8dce9;
 }
 
 /* NEEDS REVIEW */
 .message.other.needs-review .bubble {
   background: #fff3cd;
-  color: #856404;
+  color: #6b4803;
   border: 1px solid #ffc107;
 }
 
@@ -400,17 +457,31 @@ function formatPages(pages) {
   margin-top: 10px;
 }
 .sources-toggle {
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
-  border-radius: 9999px;
-  padding: 6px 12px;
+  border: 1px solid #d0d5e5;
+  background: #eef2f8;
+  color: #1d1d1d;
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   margin-top: 10px;
+  transition: all 0.2s ease;
+  outline: none;
 }
+
+.sources-toggle:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
+}
+
 .sources-toggle:hover {
-  background: #f8fafc;
+  background: #e3e8f3;
+  border-color: #bcc4d5;
+}
+
+.sources-toggle:active {
+  background: #d8dce9;
 }
 
 /* Lähdelistan tyyli: tausta, reunus ja sisennys */
@@ -445,7 +516,7 @@ function formatPages(pages) {
 .source-preview {
   margin-top: 4px;
   font-size: 12px;
-  color: #475569;
+  color: #1d2e3e;
   line-height: 1.45;
 }
 
@@ -494,7 +565,7 @@ function formatPages(pages) {
   align-items: center;
   text-align: center;
   font-size: 13px;
-  color: #64748b;
+  color: #2d445a;
   margin-bottom: 10px;
 }
 
@@ -515,7 +586,7 @@ function formatPages(pages) {
 .system-message {
   text-align: center;
   font-size: 16px;
-  color: #475569;
+  color: #1d2e3e;
   line-height: 1.5;
   max-width: 70%;
   margin: 0 auto;

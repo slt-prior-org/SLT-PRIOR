@@ -5,6 +5,7 @@
       :closed-count="closedCount"
       :sidebar-open="sidebarOpen && isAuthenticated && isPatient"
       @sidebar-toggle="toggleSidebar"
+      @start-new-chat="handleStartNewChat"
     />
     <div class="main-content">
       <Transition name="sidebar-fade">

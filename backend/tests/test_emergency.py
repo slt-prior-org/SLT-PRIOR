@@ -281,7 +281,7 @@ class TestCaseInsensitivity:
         assert result is not None
 
     def test_mixed_case_english(self):
-        result = detect_emergency("Heart Attack symptoms now")
+        result = detect_emergency("I Am Having A Heart Attack")
         assert result is not None
 
     def test_uppercase_finnish(self):

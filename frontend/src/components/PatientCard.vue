@@ -150,7 +150,7 @@ const formattedSummary = computed(() => {
 
 .stat-card .label {
   font-size: clamp(12px, 0.8vw, 20px);
-  color: #64748b;
+  color: #2d445a;
   margin-bottom: 2px;
 }
 

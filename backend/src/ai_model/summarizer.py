@@ -142,3 +142,27 @@ async def generate_summary_for_professional(
         "draft_sources": draft_sources,
         "requires_approval": True,
     }
+
+
+CHAT_TITLE_PROMPT = """Generate an extremely concise title (3-6 words) for a health chat conversation.
+Detect the language of the message (Finnish or English) and write the title in the SAME language.
+Do NOT use quotes, punctuation marks, or any surrounding text — output ONLY the title words.
+
+User's first message: {message}
+
+Title:"""
+
+
+async def generate_chat_title(first_message: str) -> str | None:
+    """
+    Generates a short 3-6 word title for a chat based on the user's first message.
+    Returns None on failure. Never raises.
+    """
+    try:
+        prompt = CHAT_TITLE_PROMPT.format(message=first_message[:400])
+        response = await summarizer_llm.ainvoke(prompt)
+        title = response.content.strip().strip('"\'')
+        return title[:80] if title else None
+    except Exception as e:
+        logger.error(f"Chat title generation failed: {e}")
+        return None

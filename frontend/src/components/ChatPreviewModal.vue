@@ -128,7 +128,24 @@ function formatTime(date) {
   border: none;
   font-size: 18px;
   cursor: pointer;
-  color: #64748b;
+  color: #2d445a;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  outline: none;
+  border-radius: 8px;
+}
+
+.close-btn:hover {
+  background: #f0f6ff;
+  color: #0f172a;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
 }
 
 /* SECTION */

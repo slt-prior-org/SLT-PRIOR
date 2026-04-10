@@ -6,6 +6,7 @@ import {
   sendUserMessage,
   fetchChat,
   updateChatStatus,
+  updateChatTitle,
 } from "@/services/userChatService"
 
 export const useUserChatStore = defineStore("userChat", {
@@ -68,10 +69,44 @@ export const useUserChatStore = defineStore("userChat", {
 
       try {
         const chat = await fetchChat(chatId)
+        const messages = chat.messages || []
+
+        // Jos chat odottaa ammattilaista ja sisältää käypähoidon ohjeen mutta ei
+        // vahvistusviestiä, lisätään se synteettisesti (ei tallennu DB:hen).
+        // Ehto: on olemassa guideline-viesti (käyttäjä kävi läpi Kyllä/Ei-valinnan)
+        const hasForwardConfirmation = messages.some(m => m.is_forward_confirmation)
+        // Botti-viesti ilman guideline_excerpt näyttää automaattisesti "Tämä aihe liittyy..."
+        // → erillistä confirmation-viestiä ei tarvita
+        const hasDirectForwardMsg = messages.some(
+          m => m.sender === 'bot' && !m.content && !m.guideline_excerpt
+        )
+        const guidelineMsgIdx = [...messages].map((m, i) => ({ m, i }))
+          .filter(({ m }) => m.guideline_excerpt && m.sender === 'bot')
+          .map(({ i }) => i)
+          .at(-1)
+        const guidelineMsg = guidelineMsgIdx !== undefined ? messages[guidelineMsgIdx] : null
+        if (
+          chat.status === 'waiting_for_professional' &&
+          guidelineMsg &&
+          !hasForwardConfirmation &&
+          !hasDirectForwardMsg
+        ) {
+          messages.push({
+            id: 'forward-confirmation-' + chatId,
+            sender: 'bot',
+            content: '',
+            classification: 'needs_review',
+            is_forward_confirmation: true,
+            flagged_for_human: false,
+            sources: [],
+            created_at: guidelineMsg.created_at,
+            updated_at: guidelineMsg.updated_at,
+          })
+        }
 
         this.activeChat = {
           ...chat,
-          messages: chat.messages || [],
+          messages,
         }
       } catch (error) {
         console.error("Failed to load chat:", error)
@@ -80,7 +115,22 @@ export const useUserChatStore = defineStore("userChat", {
         this.isLoadingChat = false
       }
     },
-    // Uuden chatin luonti
+    // Luodaan paikallinen draft-chat ilman backend-tallennusta
+    createDraftChat() {
+      const draftChat = {
+        id: crypto.randomUUID(),
+        status: "draft",
+        messages: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        isDraft: true,
+      }
+
+      this.activeChat = draftChat
+
+      return draftChat
+    },
+    // Luodaan chat backendissä
     async createChat() {
       try {
         const newChat = await addChat()
@@ -88,6 +138,7 @@ export const useUserChatStore = defineStore("userChat", {
         this.userChats.unshift({
           id: newChat.id,
           status: newChat.status,
+          title: newChat.title ?? null,
           created_at: newChat.created_at,
           updated_at: newChat.updated_at,
         })
@@ -97,6 +148,32 @@ export const useUserChatStore = defineStore("userChat", {
         return this.activeChat
       } catch (error) {
         console.error("Failed to create chat:", error)
+        throw error
+      }
+    },
+    // Tallennetaan draft-chat backendiin
+    async saveDraftChat() {
+      if (!this.activeChat || !this.activeChat.isDraft) return
+
+      try {
+        const newChat = await addChat()
+
+        this.activeChat = {
+          ...newChat,
+          messages: [],
+        }
+
+        this.userChats.unshift({
+          id: newChat.id,
+          status: newChat.status,
+          title: newChat.title ?? null,
+          created_at: newChat.created_at,
+          updated_at: newChat.updated_at,
+        })
+
+        return this.activeChat
+      } catch (error) {
+        console.error("Failed to save draft chat:", error)
         throw error
       }
     },
@@ -131,7 +208,22 @@ export const useUserChatStore = defineStore("userChat", {
 
       this.isSending = true
 
-      const chat = this.activeChat
+      let chat = this.activeChat
+
+      // Tallenna draft-chat backendiin ennen ensimmäisen viestin lähettämistä
+      if (chat.isDraft) {
+        try {
+          await this.saveDraftChat()
+          // Päivitä chat-viittaus saveDraftChatista, jossa ID muuttuu
+          chat = this.activeChat
+        } catch (error) {
+          this.isSending = false
+          throw error
+        }
+      }
+
+      // Seurataan onko kyseessä ensimmäinen viesti (title-päivitystä varten)
+      const wasFirstMessage = chat.messages.length === 0
 
       // Näytetään käyttäjän viesti heti käyttöliittymässä ennen backend-vastausta
       const userMessage = {
@@ -144,7 +236,14 @@ export const useUserChatStore = defineStore("userChat", {
         updated_at: new Date().toISOString(),
       }
 
+
       chat.messages.push(userMessage)
+      // Päivitä userChats-listan messages myös
+      const chatIndex = this.userChats.findIndex(c => c.id === chat.id)
+      if (chatIndex !== -1) {
+        if (!this.userChats[chatIndex].messages) this.userChats[chatIndex].messages = []
+        this.userChats[chatIndex].messages.push(userMessage)
+      }
 
       try {
         const data = await sendUserMessage(chat.id, message)
@@ -181,13 +280,22 @@ export const useUserChatStore = defineStore("userChat", {
               }
             : null
 
+
         chat.messages = chat.messages.filter(
           (item) => item.id !== userMessage.id,
         )
         chat.messages.push(confirmedUserMessage)
+        // Päivitä userChats-listan messages myös
+        if (chatIndex !== -1) {
+          this.userChats[chatIndex].messages = chat.messages.slice()
+        }
 
         if (botMessage) {
           chat.messages.push(botMessage)
+          // Päivitä userChats-listan messages myös
+          if (chatIndex !== -1) {
+            this.userChats[chatIndex].messages = chat.messages.slice()
+          }
         }
 
         if (
@@ -209,6 +317,11 @@ export const useUserChatStore = defineStore("userChat", {
           botMessage?.updated_at ||
           confirmedUserMessage.updated_at ||
           chat.updated_at
+        
+        // Päivitä userChats-listan updated_at myös
+        if (chatIndex !== -1) {
+          this.userChats[chatIndex].updated_at = chat.updated_at
+        }
       } catch (error) {
         console.error("Käyttäjän viestin lähetys epäonnistui:", error)
         chat.messages = chat.messages.filter(
@@ -217,6 +330,25 @@ export const useUserChatStore = defineStore("userChat", {
         throw error
       } finally {
         this.isSending = false
+      }
+
+      // Haetaan AI-generoitu title ensimmäisen viestin jälkeen viiveellä
+      if (wasFirstMessage) {
+        const chatIdForRefresh = chat.id
+        setTimeout(async () => {
+          try {
+            const updated = await fetchChat(chatIdForRefresh)
+            if (updated.title) {
+              const idx = this.userChats.findIndex(c => c.id === chatIdForRefresh)
+              if (idx !== -1) {
+                this.userChats[idx] = { ...this.userChats[idx], title: updated.title }
+              }
+              if (this.activeChat?.id === chatIdForRefresh) {
+                this.activeChat = { ...this.activeChat, title: updated.title }
+              }
+            }
+          } catch (e) { /* ignore */ }
+        }, 5000)
       }
     },
 
@@ -241,6 +373,32 @@ export const useUserChatStore = defineStore("userChat", {
 
     dismissConfirmation() {
       this.pendingConfirmationMessageId = null
+    },
+    async updateChatTitle(chatId, title) {
+      await updateChatTitle(chatId, title)
+      const idx = this.userChats.findIndex(c => c.id === chatId)
+      if (idx !== -1) {
+        this.userChats[idx] = { ...this.userChats[idx], title }
+      }
+      if (this.activeChat?.id === chatId) {
+        this.activeChat = { ...this.activeChat, title }
+      }
+    },
+    async loadChatsWithMessages() {
+      if (this.userChats.length === 0) return
+
+      try {
+        // Hae data kaikille chateille
+        const fullChats = await Promise.all(
+          this.userChats.map(chat => fetchChat(chat.id))
+        )
+        
+        // Korvaa userChats full-datalla
+        this.userChats = fullChats
+      } catch (error) {
+        console.error('Chatien full-datan lataaminen epäonnistui:', error)
+        throw error
+      }
     },
   },
   persist: {

@@ -1,28 +1,38 @@
 <template>
-  <div
-    v-if="
-      loginNotification || registerNotification || profileUpdateNotification
-    "
-    class="login-toast"
-  >
-    <span class="toast-icon">✔️</span>
-    <span class="toast-text">
-      {{
+  <header class="header">
+    <div
+      v-if="
         loginNotification || registerNotification || profileUpdateNotification
-      }}
-    </span>
-  </div>
+      "
+      class="login-toast"
+    >
+      <span class="toast-icon">✔️</span>
+      <span class="toast-text">
+        {{
+          loginNotification || registerNotification || profileUpdateNotification
+        }}
+      </span>
+    </div>
 
-  <div class="header">
-    <div class="left">
-      <div v-if="loggedIn" class="user">
+    <AppButton :class="{ 'sidebar-toggle': true, 'hidden': sidebarOpen || !isPatient }" variant="neutral" @click="toggleSidebar">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: inline-block; vertical-align: middle;">
+        <rect y="4" width="24" height="2" rx="1" />
+        <rect y="11" width="24" height="2" rx="1" />
+        <rect y="18" width="24" height="2" rx="1" />
+      </svg>
+    </AppButton>
+
+    <div class="left" :style="{ left: sidebarOpen ? '280px' : 'clamp(12px, 2vw, 28px)' }">
+      <div v-if="loggedIn" class="user" :style="{ marginLeft: (isPatient && !sidebarOpen) ? '70px' : '20px' }">
         <strong>{{ fullName }}</strong>
-        <small>{{ user?.role || "" }}</small>
+        <small>{{ userRole }}</small>
       </div>
     </div>
 
     <div class="center">
-      <img src="@/assets/new_logo.png" alt="HeartWise Logo" class="logo" />
+      <button class="logo-btn" @click="startNewChat" :title="$t('sidebar.newChat')">
+        <img src="@/assets/new_logo.png" alt="HeartWise Logo" class="logo" />
+      </button>
     </div>
 
     <div class="right">
@@ -35,22 +45,19 @@
         </span>
       </div>
 
-      <div v-if="showLanguageSwitcher" class="language-switcher">
-        <AppButton
-          :class="{ active: i18n.locale.value === 'en' }"
-          variant="neutral"
-          @click="switchLanguage('en')"
-        >
-          EN
-        </AppButton>
-        <AppButton
-          :class="{ active: i18n.locale.value === 'fi' }"
-          variant="neutral"
-          @click="switchLanguage('fi')"
-        >
-          FI
-        </AppButton>
-      </div>
+      <AppButton
+        v-if="showLanguageSwitcher"
+        class="gear language-toggle"
+        variant="neutral"
+        @click="toggleLanguage"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          <path d="M2 12h20" />
+        </svg>
+        {{ languageToggleLabel }}
+      </AppButton>
 
       <AppButton
         v-if="loggedIn"
@@ -58,11 +65,9 @@
         variant="neutral"
         @click="toggleMenu"
       >
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-          <path
-            d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5a7.9 7.9 0 0 0-.08-1.12l2.04-1.59-2-3.46-2.46.98a8.15 8.15 0 0 0-1.94-1.13L15.2 2h-4.4l-.36 2.81a8.15 8.15 0 0 0-1.94 1.13l-2.46-.98-2 3.46 2.04 1.59A7.9 7.9 0 0 0 6 12c0 .38.03.75.08 1.12l-2.04 1.59 2 3.46 2.46-.98c.6.48 1.25.86 1.94 1.13L10.8 22h4.4l.36-2.81a8.15 8.15 0 0 0 1.94-1.13l2.46.98 2-3.46-2.04-1.59c.05-.37.08-.74.08-1.12Z"
-            fill="currentColor"
-          />
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: inline-block; vertical-align: middle;">
+          <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       </AppButton>
 
@@ -73,6 +78,11 @@
         variant="primary"
         @click="openAuthModal('login')"
       >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+          <polyline points="10 17 15 12 10 7" />
+          <line x1="15" y1="12" x2="3" y2="12" />
+        </svg>
         {{ $t("settings.login") }}
       </AppButton>
 
@@ -82,9 +92,7 @@
         @close="menuOpen = false"
       />
     </div>
-  </div>
-
-  <div v-if="menuOpen" class="menu-backdrop" @click="menuOpen = false" />
+  </header>
 
   <AuthModal
     :show="showAuth"
@@ -115,6 +123,7 @@ import { useAuthStore } from "@/stores/authStore"
 defineProps({
   queueCount: Number,
   closedCount: Number,
+  sidebarOpen: Boolean,
   showLanguageSwitcher: {
     type: Boolean,
     default: true,
@@ -124,6 +133,8 @@ defineProps({
     default: false,
   },
 })
+
+const emit = defineEmits(['sidebar-toggle', 'start-new-chat'])
 
 // Alustetaan kielituki ja käyttäjästore
 const auth = useAuthStore()
@@ -137,6 +148,7 @@ const profileUpdateNotification = ref("")
 
 // Tarkistetaan onko käyttäjä kirjautunut sisään
 const loggedIn = computed(() => auth.isAuthenticated)
+const isPatient = computed(() => auth.isPatient)
 const showAuth = ref(false)
 const user = computed(() => auth.user)
 
@@ -150,9 +162,37 @@ const fullName = computed(() => {
   return name || u.name || u.email || "..."
 })
 
+// Käytetään käännettyä roolia
+const userRole = computed(() => {
+  const role = user.value?.role
+  if (!role) return ""
+  return t(`roles.${role}`)
+})
+
+// Funktio sivupalkin kytkelemiseen
+function toggleSidebar() {
+  emit('sidebar-toggle')
+}
+
+// Funktio uuden chatin aloitukseen
+function startNewChat() {
+  emit('start-new-chat')
+}
+
 // Funktio sovelluksen kielen vaihtamiseen
 function switchLanguage(lang) {
   i18n.locale.value = lang
+}
+
+// Computed property for language toggle button label
+const languageToggleLabel = computed(() => {
+  return i18n.locale.value === 'fi' ? 'EN' : 'FI'
+})
+
+// Function to toggle language
+function toggleLanguage() {
+  const newLang = i18n.locale.value === 'fi' ? 'en' : 'fi'
+  switchLanguage(newLang)
 }
 
 // Valikkojen ja modaalien näkyvyyden hallinta
@@ -212,18 +252,25 @@ function openHealthProfile() {
 
 // Lasketaan pudotusvalikon kohteet kirjautumistilan mukaan
 const dropdownItems = computed(() => {
-  return [
-    {
+  const items = []
+  
+  // Only show health profile option for patients
+  if (isPatient.value) {
+    items.push({
       key: "edit-health-profile",
       labelKey: "settings.editHealthProfile",
       action: () => openHealthProfile(),
-    },
-    {
-      key: "logout",
-      labelKey: "logout",
-      action: handleLogout,
-    },
-  ]
+    })
+  }
+  
+  // Logout is always shown
+  items.push({
+    key: "logout",
+    labelKey: "logout",
+    action: () => handleLogout(),
+  })
+  
+  return items
 })
 
 // Uloskirjautumisen hallinta
@@ -259,13 +306,76 @@ async function handleLogout() {
 .left {
   position: absolute;
   left: clamp(12px, 2vw, 28px);
-  display: flex;
+  display:flex; 
+  align-items:center;
+  transition: left 0.3s ease-out;
+}
+
+/* Sidebar, settings, and language buttons: WCAG AAA contrast */
+.sidebar-toggle {
+  position: absolute;
+  left: clamp(12px, 2vw, 28px);
+  z-index: 1001;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0;
+  background: #ffffff;
+  border: 2px solid #eef1f6;
+  border-radius: 16px;
+  color: #0f172a;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.sidebar-toggle:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+.sidebar-toggle:focus-visible {
+  outline: 2px solid #0f5791;
+  outline-offset: 2px;
+}
+
+.sidebar-toggle.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .center {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.logo-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.logo-btn:hover {
+  background: #f1f5f9;
+}
+
+.logo-btn:focus-visible {
+  outline: 2px solid #0f5791;
+  outline-offset: 2px;
+}
+
+.logo-btn:active {
+  background: #e3e8f3;
 }
 
 .logo {
@@ -296,10 +406,17 @@ async function handleLogout() {
   z-index: 1;
 }
 
-.user {
+.counts {
   display: flex;
-  flex-direction: column;
-  font-size: clamp(14px, 1vw, 18px);
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.user { 
+  display:flex; 
+  flex-direction:column; 
+  font-size:clamp(14px, 1vw, 18px);
+  transition: margin-left 0.3s ease-out;
 }
 
 .auth-actions {
@@ -311,51 +428,54 @@ async function handleLogout() {
   background: #dfe7ff;
 }
 
-/* Kielivalitsimen painikkeiden tyylit */
-.language-switcher {
-  display: flex;
-  gap: 4px;
+/* Language toggle button - match login button size */
+.language-toggle {
+  padding: 12px 20px !important;
+  font-size: 19px !important;
+  min-width: 100px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  color: #0f172a !important;
 }
-
-.language-switcher button {
-  font-weight: 600;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.language-switcher button.active {
-  background: #3a5bdc;
-  color: white;
-  border-color: #3a5bdc;
-}
-
-.language-switcher button:hover:not(.active) {
-  background: #f5f5f5;
+.language-toggle:hover {
+  color: #0f172a !important;
 }
 
 /* Asetusrattaan tyylit ja animaatiot */
 .login-btn {
-  background: #3a5bdc;
+  background: #1264a3;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 500;
+  padding: 12px 20px;
   cursor: pointer;
-  transition:
-    background 0.2s,
-    transform 0.15s;
+  transition: all 0.2s ease;
+  outline: none;
+  font-size: 19px;
+  min-width: 140px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-btn:focus-visible {
+  outline: 2px solid #0f5791;
+  outline-offset: 2px;
 }
 
 .login-btn:hover {
-  background: #2a45b8;
+  background: #0f5791;
+  box-shadow: 0 2px 8px rgba(18, 100, 163, 0.3);
 }
 
 .login-btn:active {
-  transform: scale(0.97);
+  background: #0d4570;
 }
 
 /* Pudotusvalikon asemointi ja varjostus */
@@ -390,11 +510,37 @@ async function handleLogout() {
   background: #f1f5f9;
 }
 
-/* Taustan himmennys valikon ollessa auki */
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
+.gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0;
+  background: #ffffff;
+  border: 2px solid #eef1f6;
+  border-radius: 16px;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+.gear:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.gear:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.gear:focus-visible {
+  outline: 2px solid #0f5791;
+  outline-offset: 2px;
 }
 
 .login-toast {

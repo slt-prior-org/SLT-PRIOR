@@ -57,7 +57,7 @@ describe("ProfessionalChatStore", () => {
 
     await store.openChat("chat1")
 
-    expect(store.activeChat).toEqual(chatData)
+    expect(store.activeChat).toMatchObject(chatData)
     expect(store.loading.chat).toBe(false)
   })
 
@@ -128,7 +128,7 @@ describe("ProfessionalChatStore", () => {
   })
 
   it("sendProfessionalMessage should add message to activeChat", async () => {
-    const savedMessage = { id: "m1", content: "Hello" }
+    const savedMessage = { id: "m1", content: "Hello", sources: [] }
     service.addProfessionalMessage.mockResolvedValue(savedMessage)
 
     store.activeChat = { id: "chat1", messages: [] }

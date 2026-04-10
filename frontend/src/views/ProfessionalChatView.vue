@@ -30,12 +30,10 @@
             <ChatMessage
               v-for="msg in chat.messages.filter(m => m.sender !== 'info')"
               :key="msg.id"
+              :from="msg.sender"
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
-              :senderType="
-                msg.sender === 'user'
-                  ? 'customer'
-                  : msg.sender"
+              :senderType="msg.sender === 'user' ? 'customer' : msg.sender"
               :text="msg.content"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"

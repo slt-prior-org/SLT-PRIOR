@@ -130,7 +130,6 @@ EMERGENCY_PATTERNS_FI = [
 
 EMERGENCY_PATTERNS_EN = [
     re.compile(r"\bheart\s+attack\w*\b", re.IGNORECASE),
-    re.compile(r"\bchest\s+pain\w*\b", re.IGNORECASE),
     re.compile(r"\bstroke\b", re.IGNORECASE),
     re.compile(r"\bcan'?t\s+breathe\b", re.IGNORECASE),
     re.compile(r"\bunconscious\w*\b", re.IGNORECASE),

@@ -116,7 +116,7 @@
         :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
         :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'needs_review' && !message.requires_confirmation ? 'needs-review' : '',
+          message.classification === 'needs_review' && !message.requires_confirmation && !message.guideline_excerpt ? 'needs-review' : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
         @confirm-helpful="chatStore.dismissConfirmation()"

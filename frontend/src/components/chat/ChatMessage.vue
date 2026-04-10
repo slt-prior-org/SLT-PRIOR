@@ -18,7 +18,7 @@
 
       <div class="bubble">
         <template v-if="requiresConfirmation || guidelineExcerpt">{{ $t('guidelineFound') }}</template>
-        <template v-else-if="requiresProfessional">{{ $t('forwardedToProfessional') }}</template>
+        <template v-else-if="requiresProfessional || (fromClass === 'other' && !text && !guidelineExcerpt && !isEmergency && !isForwardConfirmation)">{{ $t('forwardedToProfessional') }}</template>
         <template v-else-if="isForwardConfirmation">{{ $t('confirmForwarded') }}</template>
         <span v-else-if="isEmergency && fromClass === 'other'" v-html="$t('emergencyMessage')" />
         <span v-else v-html="text" />

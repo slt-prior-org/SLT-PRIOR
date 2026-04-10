@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -7,7 +8,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ai_model.summarizer import generate_summary_for_professional
+from ai_model.summarizer import generate_summary_for_professional, generate_chat_title
 from ai_model import rag_cloud, utils
 from ai_model.classifier import classify_question, Classification as AiClassification
 from ai_model.emergency import detect_emergency
@@ -27,6 +28,7 @@ from utils.chat_utils import (
     get_chat_summaries,
     get_chats_with_messages,
     save_chat_message,
+    set_chat_title,
     touch_chat,
 )
 
@@ -35,6 +37,19 @@ from websocket_manager import manager
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _generate_and_save_title(chat_id: str, first_message: str) -> None:
+    """Fire-and-forget: generates and persists a chat title. Errors are swallowed."""
+    try:
+        title = await generate_chat_title(first_message)
+        if title:
+            await set_chat_title(chat_id, title)
+            logger.info("Chat title saved for %s: %r", chat_id, title)
+    except Exception as e:
+        logger.error("Title generation task failed for chat %s: %s", chat_id, e)
+
+
 
 async def _get_owned_chat_or_404(chat_id: str, current_user: Dict[str, Any]) -> dict:
     if not ObjectId.is_valid(chat_id):
@@ -106,6 +121,8 @@ async def send_message_to_chat(
     professional_id = chat.get("assigned_professional_id")
     chat_status = chat.get("status")
     messages = chat.get("messages", [])
+    existing_title = chat.get("title")
+    is_first_message = len(messages) == 0
 
     conversation_history = [
         {
@@ -119,6 +136,10 @@ async def send_message_to_chat(
     user_message = body.message
     user_data = current_user
     logged_in = True
+
+    # Fire-and-forget: generate title after first complete exchange
+    if is_first_message and not existing_title:
+        asyncio.create_task(_generate_and_save_title(chatId, user_message))
 
     # Lähetetään viesti suoraan ammattilaiselle websocketin välityksellä, jos
     # viestittely-yhteys ammattilaisen ja potilaan välillä on avoin -> ei tarvitse muodostaa
@@ -343,3 +364,17 @@ async def update_chat_status(
 ):
     await _get_owned_chat_or_404(chatId, current_user)
     await touch_chat(chatId, status=body.status)
+
+
+class ChatTitleUpdate(BaseModel):
+    title: str
+
+
+@router.put("/{chatId}/title", status_code=204)
+async def update_chat_title(
+    chatId: str,
+    body: ChatTitleUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    await _get_owned_chat_or_404(chatId, current_user)
+    await set_chat_title(chatId, body.title.strip()[:80])

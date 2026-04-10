@@ -10,7 +10,7 @@
   </div>
 
   <!-- Normal chat message -->
-  <div v-else :class="['message', fromClass, extraClass]">
+  <div v-else :class="['message', fromClass, alignmentClass, extraClass]">
     <div class="bubble-wrapper">
       <span v-if="showLabel && formattedSender" class="sender-label">
         {{ formattedSender }}
@@ -186,11 +186,17 @@ const isInfo = computed(() => {
   return props.from === "info"
 })
 
+const alignmentClass = computed(() => {
+  if (props.side === "right") return "align-right"
+  if (props.side === "left") return "align-left"
+
+  if (fromClass.value === "self") return "align-right"
+  return "align-left"
+})
+
+
 // Lasketaan CSS-luokka lähettäjän perusteella (self = käyttäjä, other = botti/muu)
 const fromClass = computed(() => {
-  if (props.side === "right") return "self"
-  if (props.side === "left") return "other"
-
   if (props.from === "self" || props.from === "user") return "self"
   if (props.from === "professional") return "professional"
   if (props.from === "info") return "info"
@@ -254,10 +260,11 @@ function formatPages(pages) {
 }
 
 /* Viestien kohdistus: omat viestit oikealle, muiden vasemmalle */
-.message.self {
+.message.align-right {
   justify-content: flex-end;
 }
-.message.other {
+
+.message.align-left {
   justify-content: flex-start;
 }
 
@@ -274,12 +281,12 @@ function formatPages(pages) {
   color: #2d445a;
   margin: 0 0 6px;
 }
-.message.self .sender-label {
+.message.align-right .sender-label {
   text-align: right;
   padding-right: 8px;
 }
 
-.message.other .sender-label {
+.message.align-left .sender-label {
   text-align: left;
   padding-left: 8px;
 }

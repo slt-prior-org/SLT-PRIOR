@@ -30,16 +30,15 @@
             <ChatMessage
               v-for="msg in chat.messages.filter(m => m.sender !== 'info')"
               :key="msg.id"
+              :from="msg.sender"
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
-              :senderType="
-                msg.sender === 'user'
-                  ? 'customer'
-                  : msg.sender"
+              :senderType="msg.sender === 'user' ? 'customer' : msg.sender"
               :text="msg.content"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"
               :guideline-source-url="msg.guideline_source_url ?? null"
+              :sources="msg.sources || []"
             />
           </div>
 
@@ -65,10 +64,38 @@
             </div>
 
             <ul class="sources-list">
-              <li v-for="(s, i) in chat.sources" :key="i">
-                {{ s }}
+              <li v-for="(source, i) in suggestedReplySources" :key="i">
+                <template v-if="typeof source === 'string'">
+                  {{ source }}
+                </template>
+
+                <template v-else>
+                  <strong>
+                    {{ source.source || source.title || source.name || `Source ${i + 1}` }}
+                  </strong>
+
+                  <span v-if="source.pages?.length">
+                    · p. {{ source.pages.join(", ") }}
+                  </span>
+                  <span v-else-if="source.page">
+                    · p. {{ source.page }}
+                  </span>
+
+                  <div v-if="source.preview || source.snippet || source.excerpt" class="source-preview">
+                    {{ source.preview || source.snippet || source.excerpt }}
+                  </div>
+                </template>
               </li>
             </ul>
+          </div>
+
+          <div v-else-if="showSources" class="sources-panel">
+            <div class="sources-title">
+              {{ $t("professional.sources") }}
+            </div>
+            <div class="source-preview">
+              No sources available for this suggested reply.
+            </div>
           </div>
 
           <div v-if="!isClosed" class="custom-input">
@@ -239,6 +266,10 @@ onUnmounted(() => {
   chatSocket.disconnect()
 })
 
+const suggestedReplySources = computed(() => {
+  return chat.value?.draft_sources || []
+})
+
 function connectWebsocket(chat) {
   if (!chat) return
 
@@ -250,6 +281,7 @@ function connectWebsocket(chat) {
       // päivitä AI:n ehdotus vastauksesta
       if (data.type === "new_user_message" && data.draft) {
         chat.draft_response = data.draft
+        chat.draft_sources = data.draft_sources || []
         editedReply.value = data.draft
       }
     }

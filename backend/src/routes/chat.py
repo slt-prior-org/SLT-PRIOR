@@ -167,6 +167,7 @@ async def send_message_to_chat(
                     "summary_cache": {
                         "chat_summary": summary_data["chat_summary"],
                         "draft_response": summary_data["draft_response"],
+                        "draft_sources": summary_data.get("draft_sources", []),
                         "cached_at": datetime.utcnow(),
                     }
                 }}
@@ -179,7 +180,8 @@ async def send_message_to_chat(
                 "message": json_compatible_message,
                 "sender": current_user["_id"],
                 "chatStatus": chat_status,
-                "draft": summary_data["draft_response"]
+                "draft": summary_data["draft_response"],
+                "draft_sources": summary_data.get("draft_sources", []),
             }
             # lähetetään uusi viesti sekä draft response websocketilla ammattilaiselle
             await manager.broadcast(f"chat:{chatId}", payload)

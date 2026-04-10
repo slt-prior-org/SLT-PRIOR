@@ -117,6 +117,7 @@ async def get_chat(id: str):
                 summary_data = {
                     "chat_summary": cached.get("chat_summary"),
                     "draft_response": cached.get("draft_response"),
+                    "draft_sources": cached.get("draft_sources", []),
                     "requires_approval": True,
                 }
             else:
@@ -131,6 +132,7 @@ async def get_chat(id: str):
                         "summary_cache": {
                             "chat_summary": summary_data["chat_summary"],
                             "draft_response": summary_data["draft_response"],
+                            "draft_sources": summary_data.get("draft_sources", []),
                             "cached_at": datetime.utcnow(),
                         }
                     }}
@@ -142,6 +144,7 @@ async def get_chat(id: str):
                 summary_data = {
                     "chat_summary": cached.get("chat_summary"),
                     "draft_response": cached.get("draft_response"),
+                    "draft_sources": cached.get("draft_sources", []),
                     "requires_approval": True,
                 }
             else:
@@ -155,6 +158,7 @@ async def get_chat(id: str):
                         "summary_cache": {
                             "chat_summary": summary_data["chat_summary"],
                             "draft_response": summary_data["draft_response"],
+                            "draft_sources": summary_data.get("draft_sources", []),
                             "message_count": current_msg_count,
                             "cached_at": datetime.utcnow(),
                         }

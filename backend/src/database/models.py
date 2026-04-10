@@ -184,6 +184,7 @@ class ChatDetailResponse(BaseModel):
     patient_context: Optional[PatientInfo] = None
     chat_summary: Optional[str] = None
     draft_response: Optional[str] = None
+    draft_sources: Optional[List[SourceItem]] = None
     requires_approval: Optional[bool] = None
 
 class SmallChatResponse(BaseModel):

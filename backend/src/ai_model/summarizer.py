@@ -10,6 +10,7 @@ from config import settings
 import logging
 from typing import Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langdetect import detect, LangDetectException
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +59,16 @@ def _infer_conversation_language(messages: list, latest_message: str) -> str:
         if sender in ("user", "human"):
             patient_texts.append(msg.get("content", ""))
 
-    text = "\n".join([*patient_texts, latest_message]).lower()
-    finnish_markers = (
-        "ä", "ö", "å", "minulla", "mulla", "olen", "onko", "voiko",
-        "pitääkö", "mitä", "mita", "kuinka", "verenpaine", "kolesteroli",
-        "sydän", "sydan", "lääke", "laake", "oire", "tarvitsen",
-    )
-    return "fi" if any(marker in text for marker in finnish_markers) else "en"
+    text = "\n".join([*patient_texts, latest_message]).strip()
+    if not text:
+        return "en"
+
+    try:
+        detected_language = detect(text)
+    except LangDetectException:
+        return "en"
+
+    return "fi" if detected_language == "fi" else "en"
 
 
 def _draft_language_instruction(language: str) -> str:

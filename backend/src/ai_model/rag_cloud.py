@@ -5,6 +5,7 @@ from .vectorstore import initialize_vectorstore
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
+from langdetect import detect, LangDetectException
 
 # -----------------------------
 # 1) Upotukset ja vektorivarasto
@@ -81,23 +82,17 @@ def _infer_response_language(user_input: str) -> str:
     Potilastiedot liitetään promptiin erillisenä englanninkielisenä osiona, joten
     niitä ei saa käyttää vastauskielen päättelyyn.
     """
-    question = (user_input or "").split("\n\nPatient info:", 1)[0].lower()
-    finnish_markers = (
-        "ä", "ö", "å", "minulla", "mulla", "olen", "onko", "voiko",
-        "pitääkö", "mitä", "mita", "kuinka", "miksi", "verenpaine",
-        "kolesteroli", "sydän", "sydan", "lääke", "laake", "oire",
-        "tarvitsen", "voinko", "pitäisikö", "pitäisiko", "arvo",
-        "arvot", "minun", "korkea", "matala",
-    )
-    english_markers = (
-        "what", "why", "how", "should", "can i", "could", " is ",
-        " are ", " my ", " i ", "blood pressure", "cholesterol",
-        "symptom", "medicine", "medication",
-    )
-    if any(marker in question for marker in finnish_markers):
-        return "fi"
-    if any(marker in question for marker in english_markers):
-        return "en"
+    question = (user_input or "").split("\n\nPatient info:", 1)[0].strip()
+    if not question:
+        return "unknown"
+
+    try:
+        detected_language = detect(question)
+    except LangDetectException:
+        return "unknown"
+
+    if detected_language in ("fi", "en"):
+        return detected_language
     return "unknown"
 
 

@@ -28,8 +28,8 @@
             ref="messagesContainer"
             >
             <ChatMessage
-              v-for="msg in chat.messages.filter(m => m.sender !== 'info')"
-              :key="msg.id"
+              v-for="(msg, index) in visibleMessages"
+              :key="messageKey(msg, index)"
               :from="msg.sender"
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
@@ -216,6 +216,13 @@ const closedToday = computed(() => chatStore.getClosedChats)
 
 // tarkistaa onko keskustelu suljettu
 const isClosed = computed(() => chat.value?.status === "closed")
+const visibleMessages = computed(() => {
+  return (chat.value?.messages || []).filter(m => m.sender !== 'info')
+})
+
+function messageKey(message, index) {
+  return `${message?.id || message?._id || message?.created_at || "message"}-${index}`
+}
 
 // vaihtaa vastauskentän muokkaustilan
 function toggleEdit() {

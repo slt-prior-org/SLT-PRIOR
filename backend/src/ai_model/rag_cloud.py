@@ -23,9 +23,9 @@ vectorstore = initialize_vectorstore(
 # -----------------------------
 
 llm = ChatGoogleGenerativeAI(
-    model='gemini-2.5-flash-lite',  # Gemini 2.0 Flash
-    temperature=0.3,  # Alustava lämpötila
-    max_tokens=1000,  # nostettu 500 -> 1000
+    model='gemini-2.5-flash-lite',  # Gemini 2.5 Flash Lite
+    temperature=0.3,
+    max_tokens=1000, 
     top_p=0.9,
     google_api_key=settings.GOOGLE_API_KEY
 )
@@ -33,7 +33,7 @@ llm = ChatGoogleGenerativeAI(
 selector_llm = ChatGoogleGenerativeAI(
     model='gemini-2.5-flash-lite',
     temperature=0.0,
-    max_tokens=5,           # Vain numero vastauksessa
+    max_tokens=5,
     google_api_key=settings.GOOGLE_API_KEY
 )
 
@@ -41,7 +41,7 @@ system_prompt = (
     "You are an assistant for question-answering tasks. "
     "Use the following pieces of retrieved context and chat history to answer the question. "
     "Do not use any outside knowledge or make assumptions. "
-    "Determine first whether the question is in Finnish or English, and respond in the same language. "
+    "{language_instruction} "
 
     "If the question is in English and the information is found in the context, first provide a concise answer. "
     "Then, naturally continue the conversation by asking a relevant follow-up question based on the user's query and chat history. "
@@ -73,6 +73,61 @@ rag_chain = prompt | llm
 
 
 ALLOWED_HISTORY_CLASSIFICATIONS = {"safe", "needs_review", "emergency"}
+
+
+def _infer_response_language(user_input: str) -> str:
+    """
+    Päättelee vastauskielen käyttäjän varsinaisesta viestistä.
+    Potilastiedot liitetään promptiin erillisenä englanninkielisenä osiona, joten
+    niitä ei saa käyttää vastauskielen päättelyyn.
+    """
+    question = (user_input or "").split("\n\nPatient info:", 1)[0].lower()
+    finnish_markers = (
+        "ä", "ö", "å", "minulla", "mulla", "olen", "onko", "voiko",
+        "pitääkö", "mitä", "mita", "kuinka", "miksi", "verenpaine",
+        "kolesteroli", "sydän", "sydan", "lääke", "laake", "oire",
+        "tarvitsen", "voinko", "pitäisikö", "pitäisiko", "arvo",
+        "arvot", "minun", "korkea", "matala",
+    )
+    english_markers = (
+        "what", "why", "how", "should", "can i", "could", " is ",
+        " are ", " my ", " i ", "blood pressure", "cholesterol",
+        "symptom", "medicine", "medication",
+    )
+    if any(marker in question for marker in finnish_markers):
+        return "fi"
+    if any(marker in question for marker in english_markers):
+        return "en"
+    return "unknown"
+
+
+def _language_instruction(language: str) -> str:
+    if language == "fi":
+        return (
+            "The user's actual question is in Finnish. Respond only in Finnish. "
+            "Ignore the language of metadata sections such as Patient info when choosing the response language."
+        )
+    if language == "unknown":
+        return (
+            "Determine whether the user's actual question is in Finnish or English, and respond in that same language. "
+            "Ignore the language of metadata sections such as Patient info when choosing the response language."
+        )
+    return (
+        "The user's actual question is in English. Respond only in English. "
+        "Ignore the language of metadata sections such as Patient info when choosing the response language."
+    )
+
+
+def _no_info_message(language: str) -> str:
+    if language != "en":
+        return (
+            "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
+            "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
+        )
+    return (
+        "Unfortunately, I do not have enough information on the topic you asked about. "
+        "I recommend reaching out to a specialist or your healthcare provider if needed."
+    )
 
 
 def _filter_chat_history(chat_history: list[dict] | None):
@@ -420,17 +475,14 @@ async def get_rag_response(
     """
     filtered_history = _filter_chat_history(chat_history)
     history_messages = _normalize_chat_history(filtered_history)
+    response_language = _infer_response_language(user_input)
 
     # Hae dokumentit threshold + fallback -logiikalla
     relevant_docs = await retrieve_with_fallback(user_input, vectorstore)
 
     if not relevant_docs:
-        no_info_msg = (
-            "Valitettavasti minulla ei ole riittävästi tietoa kysymääsi aiheeseen. "
-            "Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon."
-        )
         return {
-            "answer": no_info_msg,
+            "answer": _no_info_message(response_language),
             "sources": []
         }
 
@@ -440,6 +492,7 @@ async def get_rag_response(
     response = await rag_chain.ainvoke({
         "context": context_text,
         "chat_history": history_messages,
+        "language_instruction": _language_instruction(response_language),
         "input": user_input
     })
 

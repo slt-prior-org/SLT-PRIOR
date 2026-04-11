@@ -10,6 +10,7 @@ from config import settings
 import logging
 from typing import Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langdetect import detect, LangDetectException
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,32 @@ def _format_user_data(user_data: Optional[dict]) -> str:
             continue
         parts.append(f"- {key}: {value}")
     return "\n".join(parts) if parts else "No patient data available."
+
+
+def _infer_conversation_language(messages: list, latest_message: str) -> str:
+    """Päättelee keskustelukielen potilasviesteistä ammattilaisen draftia varten."""
+    patient_texts = []
+    for msg in messages:
+        sender = msg.get("sender") or msg.get("type", "")
+        if sender in ("user", "human"):
+            patient_texts.append(msg.get("content", ""))
+
+    text = "\n".join([*patient_texts, latest_message]).strip()
+    if not text:
+        return "en"
+
+    try:
+        detected_language = detect(text)
+    except LangDetectException:
+        return "en"
+
+    return "fi" if detected_language == "fi" else "en"
+
+
+def _draft_language_instruction(language: str) -> str:
+    if language == "fi":
+        return "Vastaa suomeksi. Säilytä sama kieli kuin potilaan keskustelussa."
+    return "Reply in English. Use the same language as the patient's conversation."
 
 
 PROFESSIONAL_SUMMARY_PROMPT = """You are a medical conversation summarizer. A patient has been chatting with a healthcare chatbot, and the system has flagged the conversation for professional review.
@@ -116,14 +143,18 @@ async def generate_summary_for_professional(
             break
 
     if last_human_msg:
+        language_instruction = _draft_language_instruction(
+            _infer_conversation_language(messages, last_human_msg)
+        )
         if chat_summary:
             draft_prompt = (
+                f"{language_instruction}\n\n"
                 f"[Conversation summary: {chat_summary}]\n\n"
                 f"[Patient info: {patient_context}]\n\n"
                 f"Patient's latest message: {last_human_msg}"
             )
         else:
-            draft_prompt = last_human_msg
+            draft_prompt = f"{language_instruction}\n\n{last_human_msg}"
         try:
             from ai_model import rag_cloud, utils
             draft_result = await rag_cloud.get_rag_response(draft_prompt)

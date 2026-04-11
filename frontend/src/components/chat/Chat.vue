@@ -101,8 +101,8 @@
       </section>
 
       <ChatMessage
-        v-for="message in messages"
-        :key="message.id"
+        v-for="(message, index) in messages"
+        :key="messageKey(message, index)"
         :from="message.sender"
         :showLabel="message.sender !== 'user'"
         :text="message.content"
@@ -350,6 +350,10 @@ export default {
       }
     }
 
+    const messageKey = (message, index) => {
+      return `${message?.id || message?._id || message?.created_at || "message"}-${index}`
+    }
+
     return {
       t,
       chatStore,
@@ -362,6 +366,7 @@ export default {
       showForm,
       scrollToBottom,
       handleSendFromInputBar,
+      messageKey,
       triggerAuthModal,
     }
   },

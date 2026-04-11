@@ -68,6 +68,7 @@
 <script>
 import { ref, watch, nextTick } from 'vue'
 import { useUserChatStore } from '@/stores/userChatStore'
+import { parseBackendDate } from '@/utils/dateTime'
 
 export default {
   name: 'ChatHistorySidebar',
@@ -188,8 +189,7 @@ export default {
     // Päivämäärän muotoilu (tänään, eilen, muuten pvm)
     formatDate(dateString) {
       if (!dateString) return '';
-      const correctedDateString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-      const date = new Date(correctedDateString);
+      const date = parseBackendDate(dateString);
       const today = new Date();
       const yesterday = new Date();
       yesterday.setDate(today.getDate() - 1);

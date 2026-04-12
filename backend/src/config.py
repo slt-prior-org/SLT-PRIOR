@@ -5,7 +5,7 @@ load_dotenv()
 
 class Settings:
     # External services
-    GOOGLE_API_KEY: str = os.getenv("GEMINI_API")
+    GOOGLE_API_KEY: str = os.getenv("GEMINI_API") or os.getenv("GOOGLE_API_KEY")
     BUCKET_NAME: str = "training_data-1"
     PERSIST_DIRECTORY: str = "/app/chroma"
 

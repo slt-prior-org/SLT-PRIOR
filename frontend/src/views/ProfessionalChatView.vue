@@ -32,10 +32,7 @@
               :key="msg.id"
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
-              :senderType="
-                msg.sender === 'user'
-                  ? 'customer'
-                  : msg.sender"
+              :from="msg.sender"
               :text="msg.content"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"
@@ -399,6 +396,7 @@ function goBack() {
     -apple-system,
     sans-serif;
   font-size: clamp(12px, 1vw, 18px);
+  max-height: 1000px;
   width: 100%;
   border-radius: 16px;
   border: 1px solid #e0e4ea;

@@ -35,13 +35,13 @@ jobs:
       - name: Run unit tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          GEMINI_API: ${{ secrets.GEMINI_API }}
+          GOOGLE_API_KEY: ${{ secrets.GEMINI_API }}
         run: pytest -v -m unit --maxfail=1 --disable-warnings tests/
 
       - name: Run integration tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          GEMINI_API: ${{ secrets.GEMINI_API }}
+          GOOGLE_API_KEY: ${{ secrets.GEMINI_API }}
         run: pytest -v -m integration --disable-warnings tests/
 
   frontend:

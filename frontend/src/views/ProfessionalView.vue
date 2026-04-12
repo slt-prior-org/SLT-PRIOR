@@ -154,6 +154,7 @@ import AppButton from "@/components/ui/AppButton.vue"
 import ChatPreviewModal from "@/components/ChatPreviewModal.vue"
 import { useAuthStore } from "@/stores/authStore"
 import { useI18n } from "vue-i18n"
+import { parseBackendDate } from "@/utils/dateTime"
 const { locale } = useI18n()
 
 // käyttäjän sessio ja tiedot
@@ -197,8 +198,6 @@ const formattedToday = computed(() => {
   return today.charAt(0).toUpperCase() + today.slice(1)
 })
 
-let refreshInterval
-
 // hakee käyttäjän session ja chat-jonot
 onMounted(async () => {
   try {
@@ -208,9 +207,7 @@ onMounted(async () => {
 
     await chatStore.initializeQueues()
 
-    refreshInterval = setInterval(() => {
-      chatStore.initializeQueues()
-    }, 60000)
+    chatStore.connectToQueueSocket()
 
   } catch (e) {
     console.error("Failed to fetch queues", e)
@@ -218,7 +215,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  clearInterval(refreshInterval)
+  chatStore.disconnectFromQueueSocket()
 })
 
 // avaa chatin esikatselu
@@ -261,7 +258,7 @@ function formatTime(date) {
 
   const lang = locale.value === "fi" ? "fi-FI" : "en-US"
 
-  return new Date(date).toLocaleTimeString(lang, {
+  return parseBackendDate(date).toLocaleTimeString(lang, {
     hour: "2-digit",
     minute: "2-digit"
   })

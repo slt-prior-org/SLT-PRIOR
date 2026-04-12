@@ -4,7 +4,7 @@
 
       <div class="sidebar-header">
         <h3>{{$t('sidebar.pastChats')}}</h3>
-        <button class="close-btn" @click="closeSidebar">X</button>
+        <button class="close-btn" @click="closeSidebar">✕</button>
       </div>
 
       <button class="new-chat-btn" @click="startNewChat">
@@ -17,12 +17,36 @@
             v-for="chat in groupedChats"
             :key="chat.id"
             class="chat-item"
-            :class="{ 'active-chat': chat.id === activeChatId }"
-            @click="selectChatAndClose(chat)"
+            :class="{ 'active-chat': chat.id === activeChatId, 'editing': editingChatId === chat.id }"
+            @click="editingChatId !== chat.id && selectChatAndClose(chat)"
           >
-            <span class="chat-title" :title="chat.lastMessage">
-              {{ chat.lastMessage || $t('sidebar.defaultTitle') }}
-            </span>
+            <div class="chat-title-row">
+              <span v-if="editingChatId !== chat.id" class="chat-title" :title="chat.lastMessage">
+                {{ chat.lastMessage || $t('sidebar.defaultTitle') }}
+              </span>
+              <input
+                v-else
+                ref="titleInputRef"
+                class="chat-title-input"
+                v-model="editingTitle"
+                :placeholder="$t('sidebar.titlePlaceholder')"
+                @keydown.enter.prevent="saveTitle(chat.id)"
+                @keydown.escape.prevent="cancelEdit"
+                @blur="saveTitle(chat.id)"
+                @click.stop
+              />
+              <button
+                v-if="editingChatId !== chat.id"
+                class="edit-title-btn"
+                :title="$t('sidebar.editTitle')"
+                @click.stop="startEdit(chat, $event)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            </div>
             <span class="chat-date">
               {{ formatDate(chat.lastMessageDate) }}
             </span>
@@ -42,7 +66,9 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
+import { useUserChatStore } from '@/stores/userChatStore'
+import { parseBackendDate } from '@/utils/dateTime'
 
 export default {
   name: 'ChatHistorySidebar',
@@ -84,6 +110,13 @@ export default {
     }
   },
 
+  data() {
+    return {
+      editingChatId: null,
+      editingTitle: '',
+    }
+  },
+
   computed: {
     // Ryhmitellään ja järjestetään chatit, haetaan viimeisin käyttäjän viesti
     groupedChats() {
@@ -93,16 +126,17 @@ export default {
             (a, b) => new Date(b.created_at) - new Date(a.created_at)
             )
 
-            // Etsi viimeisin käyttäjän viesti
+            // Etsi viimeisin käyttäjän viesti (fallback jos AI-otsikkoa ei ole)
             const lastUserMsg = messages.find(m => m.sender === 'user')
-            const messageText = lastUserMsg?.content || messages[0]?.content || this.$t('sidebar.defaultTitle')
-            
+            const fallback = lastUserMsg?.content || messages[0]?.content || this.$t('sidebar.defaultTitle')
+            const displayTitle = chat.title || fallback
+
             // Käytä viimeisin viestin aikaa tai chatin updated_at
             const lastMessageDate = messages[0]?.created_at || chat.updated_at || chat.created_at
 
             return {
             id: chat.id,
-            lastMessage: messageText,
+            lastMessage: displayTitle,
             lastMessageDate: lastMessageDate,
             }
         })
@@ -129,11 +163,33 @@ export default {
       this.$emit('close-sidebar');
     },
 
+    startEdit(chat, event) {
+      event.stopPropagation()
+      this.editingChatId = chat.id
+      this.editingTitle = chat.lastMessage
+      nextTick(() => {
+        const input = this.$refs.titleInputRef?.[0]
+        if (input) input.focus()
+      })
+    },
+
+    async saveTitle(chatId) {
+      const trimmed = this.editingTitle.trim()
+      if (trimmed) {
+        const chatStore = useUserChatStore()
+        await chatStore.updateChatTitle(chatId, trimmed)
+      }
+      this.editingChatId = null
+    },
+
+    cancelEdit() {
+      this.editingChatId = null
+    },
+
     // Päivämäärän muotoilu (tänään, eilen, muuten pvm)
     formatDate(dateString) {
       if (!dateString) return '';
-      const correctedDateString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-      const date = new Date(correctedDateString);
+      const date = parseBackendDate(dateString);
       const today = new Date();
       const yesterday = new Date();
       yesterday.setDate(today.getDate() - 1);
@@ -238,11 +294,11 @@ export default {
 }
 
 .sidebar-header {
+  position: relative;
   padding: 20px 0 0 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  min-height: 56px;
 }
 
 .sidebar-header h3 {
@@ -254,43 +310,66 @@ export default {
 }
 
 .close-btn {
-  background: none;
+  position: absolute;
+  right: 16px;
+  top: 16px;
   border: none;
+  background: #eef2f8;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
-  color: #64748b;
-  padding: 0 20px 0 0;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
-  flex-shrink: 0;
+  transition: all 0.2s ease;
+  color: #1d1d1d;
+  outline: none;
+  z-index: 2;
 }
 
 .close-btn:hover {
-  color: #0f172a;
+  background: #e3e8f3;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
 }
 
 .new-chat-btn {
   margin: 0 20px 20px 20px;
   padding: 14px 0;
   width: calc(100% - 40px);
-  background: #2563eb;
-  color: #fff;
+  background: #1264a3;
+  color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.08);
-  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(18, 100, 163, 0.2);
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .new-chat-btn:hover {
-  background: #1d4ed8;
+  background: #0f5791;
+  box-shadow: 0 4px 12px rgba(18, 100, 163, 0.3);
+}
+
+.new-chat-btn:active {
+  background: #0d4570;
+}
+
+.new-chat-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 2px;
 }
 
 .plus-icon {
@@ -340,7 +419,7 @@ export default {
   margin: 0 0 0 0;
   padding: 18px 20px 16px 20px;
   font-size: 14px;
-  color: #64748b;
+  color: #2d445a;
   text-align: left;
   background: #f8fafc;
   border-top: 1px solid #e5e7eb;
@@ -374,23 +453,72 @@ export default {
 
 .chat-item:hover {
   background: #f1f5f9;
-  border-left-color: #1d4ed8;
+  border-left-color: #1264a3;
 }
 
 .chat-item.active-chat {
-  background: #e5e7eb;
+  background: #dbeafe;
+  border-left-color: #1264a3;
+}
+
+.chat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .chat-title {
-  display: block;
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 500;
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-word;
   line-height: 1.3;
+}
+
+.edit-title-btn {
+  flex-shrink: 0;
+  opacity: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 3px;
+  color: #94a3b8;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.chat-item:hover .edit-title-btn {
+  opacity: 1;
+}
+
+.edit-title-btn:hover {
+  color: #2563eb;
+}
+
+.chat-title-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: white;
+  outline: none;
+  line-height: 1.3;
+}
+
+.chat-item.editing {
+  cursor: default;
 }
 
 .chat-date {

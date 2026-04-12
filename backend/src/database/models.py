@@ -145,6 +145,7 @@ class ChatSummaryItem(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    title: Optional[str] = None
 
 # Professional
 class MessageDetailResponse(BaseModel):
@@ -178,10 +179,12 @@ class ChatDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     messages: List[MessageDetailResponse]
+    title: Optional[str] = None
     # Summarizer fields — only populated in GET /chats/{id}, None in queue view
     patient_context: Optional[PatientInfo] = None
     chat_summary: Optional[str] = None
     draft_response: Optional[str] = None
+    draft_sources: Optional[List[SourceItem]] = None
     requires_approval: Optional[bool] = None
 
 class SmallChatResponse(BaseModel):

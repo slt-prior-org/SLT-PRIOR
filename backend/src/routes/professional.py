@@ -27,8 +27,8 @@ from database.db import chats_collection, users_collection
 from ai_model.summarizer import generate_summary_for_professional
 from database.models import SenderType, Classification, ChatStatus, ChatDetailResponse, ProfessionalMessageRequest, ChatQueueResponse, StatusResponse, MessageDetailResponse, SmallChatResponse
 from .auth import get_current_user
+from websocket_manager import manager
 from utils.chat_utils import get_chats_with_messages, get_chats_with_last_message, save_chat_message
-from src.websocket_manager import manager
 
 router = APIRouter()
 
@@ -117,6 +117,7 @@ async def get_chat(id: str):
                 summary_data = {
                     "chat_summary": cached.get("chat_summary"),
                     "draft_response": cached.get("draft_response"),
+                    "draft_sources": cached.get("draft_sources", []),
                     "requires_approval": True,
                 }
             else:
@@ -131,6 +132,7 @@ async def get_chat(id: str):
                         "summary_cache": {
                             "chat_summary": summary_data["chat_summary"],
                             "draft_response": summary_data["draft_response"],
+                            "draft_sources": summary_data.get("draft_sources", []),
                             "cached_at": datetime.utcnow(),
                         }
                     }}
@@ -142,6 +144,7 @@ async def get_chat(id: str):
                 summary_data = {
                     "chat_summary": cached.get("chat_summary"),
                     "draft_response": cached.get("draft_response"),
+                    "draft_sources": cached.get("draft_sources", []),
                     "requires_approval": True,
                 }
             else:
@@ -155,6 +158,7 @@ async def get_chat(id: str):
                         "summary_cache": {
                             "chat_summary": summary_data["chat_summary"],
                             "draft_response": summary_data["draft_response"],
+                            "draft_sources": summary_data.get("draft_sources", []),
                             "message_count": current_msg_count,
                             "cached_at": datetime.utcnow(),
                         }
@@ -189,6 +193,8 @@ async def close_chat(id: str, current_user: Dict[str, Any] = Depends(get_current
 
     if result.matched_count == 0:
         raise HTTPException(404, "Chat not found")
+    
+    await manager.broadcast("professionals", {"type": "chat_closed", "chat_id": id})
 
     message_text = (
         "Keskustelu terveydenhuollon ammattilaisen kanssa on päätetty. "
@@ -251,6 +257,8 @@ async def claim_chat(id: str, current_user: Dict[str, Any] = Depends(get_current
     if result.matched_count == 0:
         raise HTTPException(404, "Chat not found")
 
+    await manager.broadcast("professionals", {"type": "chat_claimed", "chat_id": id})
+
     return {"status": "success", "message": "Chat claimed"}
 
 
@@ -301,6 +309,8 @@ async def unclaim_chat(id: str, current_user: Dict[str, Any] = Depends(get_curre
 
     if result.matched_count == 0:
         raise HTTPException(404, "Chat not found")
+
+    await manager.broadcast("professionals", {"type": "chat_waiting", "chat_id": id})
 
     return {"status": "success", "message": "Chat unclaimed successfully"}
 

@@ -68,6 +68,7 @@
 <script setup>
 import AppButton from "@/components/ui/AppButton.vue"
 import { useI18n } from "vue-i18n"
+import { parseBackendDate } from "@/utils/dateTime"
 
 defineProps({
   chat: Object
@@ -80,7 +81,7 @@ function formatTime(date) {
 
   const lang = locale.value === "fi" ? "fi-FI" : "en-US"
 
-  return new Date(date).toLocaleTimeString(lang, {
+  return parseBackendDate(date).toLocaleTimeString(lang, {
     hour: "2-digit",
     minute: "2-digit"
   })
@@ -128,7 +129,24 @@ function formatTime(date) {
   border: none;
   font-size: 18px;
   cursor: pointer;
-  color: #64748b;
+  color: #2d445a;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  outline: none;
+  border-radius: 8px;
+}
+
+.close-btn:hover {
+  background: #f0f6ff;
+  color: #0f172a;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
 }
 
 /* SECTION */

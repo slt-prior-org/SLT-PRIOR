@@ -8,6 +8,7 @@ import {
   unclaim,
 } from "@/services/professionalChatService"
 import { useAuthStore } from "@/stores/authStore"
+import { professionalQueueSocket } from "@/services/professionalQueueSocket"
 
 export const useProfessionalChatStore = defineStore("professionalChat", {
   state: () => ({
@@ -24,6 +25,7 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
       send: false,
     },
     activeChat: null,
+    socket: null
   }),
 
   getters: {
@@ -62,7 +64,18 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         this.loading.chat = true
 
         const chat = await fetchChat(chatId)
-        this.activeChat = chat
+        this.activeChat = {
+          ...chat,
+          messages: (chat.messages || []).map((msg) => ({
+            ...msg,
+            sources:
+              msg.sources ||
+              [],
+          })),
+          draft_sources:
+            chat.draft_sources ||
+            [],
+        }
       } catch (error) {
         console.error("Failed to fetch chat:", error)
       } finally {
@@ -206,12 +219,32 @@ export const useProfessionalChatStore = defineStore("professionalChat", {
         const savedMessage = await addProfessionalMessage(chat.id, { message })
 
         if (!chat.messages) chat.messages = []
-        chat.messages.push(savedMessage)
+        chat.messages.push({
+          ...savedMessage,
+          sources:
+            savedMessage.sources ||
+            savedMessage.message_sources ||
+            savedMessage.references ||
+            [],
+        })
       } catch (error) {
         console.error("Failed to send professional message:", error)
       } finally {
         this.loading.send = false
       }
+    },
+
+    // Connect to professionalQueueSocket
+    async connectToQueueSocket(){
+      professionalQueueSocket.connect(() => {
+        // Update the professional queue
+        this.initializeQueues()
+      })
+    },
+    
+    // End the websocket connection
+    async disconnectFromQueueSocket(){
+      professionalQueueSocket.disconnect()
     },
   },
 })

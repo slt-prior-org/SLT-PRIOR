@@ -3,11 +3,13 @@
     <div class="patient-modal">
       <button class="close-btn" @click="close">✕</button>
 
-      <PatientForm
-        mode="edit"
-        :patient="patientData"
-        @update:patient="patientData = $event"
-      />
+      <div class="scrollable-content">
+        <PatientForm
+          mode="edit"
+          :patient="patientData"
+          @update:patient="patientData = $event"
+        />
+      </div>
 
       <div class="modal-actions">
         <AppButton variant="neutral" @click="close">
@@ -145,21 +147,57 @@ async function saveProfile() {
 .patient-modal {
   width: 760px;
   max-width: 92vw;
+  max-height: 90vh;
   background: white;
   border-radius: 14px;
-  padding: 28px 34px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  padding: 28px 34px 0 34px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollable-content :deep(.form-header) {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  padding-bottom: 20px;
+}
+
+.scrollable-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .close-btn {
   position: absolute;
-  top: 14px;
-  right: 16px;
+  right: 6px;
+  top: 6px;
   border: none;
-  background: none;
-  font-size: 20px;
+  background: #eef2f8;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
   cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #1d1d1d;
+  outline: none;
+}
+
+.close-btn:hover {
+  background: #e3e8f3;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 1px;
 }
 
 /* ACTION BUTTONS */
@@ -167,7 +205,10 @@ async function saveProfile() {
 .modal-actions {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
+  padding: 20px 34px 28px 34px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
 }
 
 .modal-actions button {

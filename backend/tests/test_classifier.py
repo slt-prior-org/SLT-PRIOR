@@ -274,8 +274,8 @@ class TestNeedsReviewPersonalSymptoms:
 
     @pytest.mark.asyncio
     async def test_personal_shortness_breath_with_values(self):
-        # Oiremaininta kontekstilla mutta ei arviopyyntöä → SAFE
-        assert await classify("Minulla on hengenahdistusta kun kävelen 100 metriä") == Classification.SAFE
+        # Epämääräinen tapaus. Varmuuden vuoksi → NEEDS_REVIEW
+        assert await classify("Minulla on hengenahdistusta kun kävelen 100 metriä") == Classification.NEEDS_REVIEW
 
     @pytest.mark.asyncio
     async def test_is_my_symptom_dangerous(self):

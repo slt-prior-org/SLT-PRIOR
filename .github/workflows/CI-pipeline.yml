@@ -32,13 +32,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
 
-      - name: Run tests
+      - name: Run unit tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GEMINI_API: ${{ secrets.GEMINI_API }}
-        run: |
-          pip install pytest pytest-asyncio
-          pytest -v -m "not integration" --maxfail=1 --disable-warnings tests/
+        run: pytest -v -m unit --maxfail=1 --disable-warnings tests/
+
+      - name: Run integration tests
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GEMINI_API: ${{ secrets.GEMINI_API }}
+        run: pytest -v -m integration --disable-warnings tests/
 
   frontend:
     name: Test frontend

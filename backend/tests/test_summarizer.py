@@ -10,6 +10,8 @@ from unittest.mock import AsyncMock, patch, MagicMock
 # Lisää src-hakemisto importteihin
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+pytestmark = pytest.mark.unit
+
 # Mock langchain_google_genai jos sitä ei ole asennettu (lokaalissa ympäristössä)
 try:
     import langchain_google_genai  # noqa: F401

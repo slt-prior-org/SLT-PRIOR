@@ -271,7 +271,7 @@ function formatPages(pages) {
 .bubble-wrapper {
   position: relative;
   display: inline-block;
-  max-width: 65%;
+  max-width: clamp(60%, 65%, 75%);
 }
 
 /* Lähettäjän nimen tyylit ja piilotus omissa viesteissä */
@@ -301,7 +301,7 @@ function formatPages(pages) {
   white-space: pre-wrap;
   box-sizing: border-box;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 18px;
+  font-size: clamp(14px, 1vw, 18px);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -560,7 +560,8 @@ function formatPages(pages) {
 
 /* System wrapper */
 .system-wrapper {
-  margin: 28px 0;
+  margin-top: clamp(16px, 3vw, 28px);
+  margin-bottom: clamp(4px, 1vw, 12px);
 }
 
 /* Divider line */

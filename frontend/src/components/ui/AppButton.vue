@@ -119,8 +119,8 @@ defineEmits(["click"])
 }
 
 .size-md {
-  padding: 12px 20px;
-  font-size: 15px;
+  padding: clamp(10px, 0.6vw, 14px) clamp(14px, 1.0vw, 24px);
+  font-size: clamp(12px, 0.75vw, 18px);
   border-radius: 10px;
 }
 

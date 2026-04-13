@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from ai_model.emergency import detect_emergency, EmergencyResult
 
+pytestmark = pytest.mark.unit
 
 # ---------- Englanninkieliset hätäsanat ----------
 

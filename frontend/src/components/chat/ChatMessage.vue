@@ -536,9 +536,6 @@ function formatPages(pages) {
 
 
 /* Professional message */
-.message.professional {
-  justify-content: flex-start;
-}
 
 .message.professional .bubble {
   background: #e8f5e9;

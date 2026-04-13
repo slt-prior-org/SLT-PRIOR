@@ -83,9 +83,9 @@ function trySend() {
   width: 100%;
   border-radius: 16px;
   border: 1px solid #e0e4ea;
-  padding: 14px;
+  padding: clamp(10px, 1vw, 14px);
   resize: none;
-  font-size: 18px;
+  font-size: clamp(14px, 1vw, 18px);
   min-height: 44px;
   background: #f0f7fc;
   box-sizing: border-box;

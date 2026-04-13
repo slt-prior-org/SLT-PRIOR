@@ -33,7 +33,6 @@
               :from="msg.sender"
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
-              :from="msg.sender"
               :text="msg.content"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"

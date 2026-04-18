@@ -50,12 +50,10 @@ system_prompt = (
     "If the question is in Finnish and the information is found in the context, first provide a concise answer. "
     "Sen jälkeen jatka keskustelua luontevasti kysymällä aiheeseen liittyvän jatkokysymyksen, joka auttaa käyttäjää syventämään ymmärrystään ottaen huomioon aikaisemman keskustelun. "
 
-    "If the question is in English and the information is not found in the context, say: "
-    "'Unfortunately, I do not have enough information on the topic you asked about. I recommend reaching out to a specialist or your healthcare provider if needed.' "
+    "If the question is in English and the information is not found in the context, respond that you do not have enough information and recommend consulting a specialist. "
     "Then, naturally ask a relevant follow-up question based on the chat history to better understand the user's concern. "
 
-    "If the question is in Finnish and the information is not found in the context, say: "
-    "'Valitettavasti minulla ei ole riittävästi tietoa esittämääsi aiheeseen. Suosittelen ottamaan yhteyttä asiantuntijaan tai hoitavaan tahoon tarvittaessa.' "
+    "If the question is in Finnish and the information is not found in the context, vastaa että sinulla ei ole riittävästi tietoa ja suosittele ottamaan yhteyttä asiantuntijaan. "
     "Tämän jälkeen kysy luontevasti jatkokysymys, joka auttaa käyttäjää tarkentamaan tilannettaan ottaen huomioon aikaisemman keskustelun. "
 
     "\n\n"

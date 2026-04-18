@@ -61,6 +61,42 @@ class TestEnglishKeywords:
         result = detect_emergency("There is severe bleeding from the wound")
         assert result is not None
 
+    def test_chest_pain_not_relieved(self):
+        result = detect_emergency("I have chest pain that won't go away")
+        assert result is not None
+
+    def test_chest_pain_continues_and_does_not_go_away(self):
+        result = detect_emergency("My chest pain continues and doesn't go away")
+        assert result is not None
+
+    def test_chest_pain_not_relieved_at_rest(self):
+        result = detect_emergency("My chest pain doesn't get better at rest")
+        assert result is not None
+
+    def test_chest_pain_persists_after_an_hour(self):
+        result = detect_emergency("My chest pain is still there after an hour")
+        assert result is not None
+
+    def test_chest_pain_still_hurts_while_resting(self):
+        result = detect_emergency("My chest pressure still hurts even while resting")
+        assert result is not None
+
+    def test_chest_pain_nitro_does_not_help(self):
+        result = detect_emergency("My chest pain keeps going and nitro doesn't help")
+        assert result is not None
+
+    def test_chest_pain_exertion_not_emergency(self):
+        result = detect_emergency("I had chest pain during exercise but it went away with rest")
+        assert result is None
+
+    def test_chest_pain_walk_exertion_not_emergency(self):
+        result = detect_emergency("I feel chest discomfort when walking")
+        assert result is None
+
+    def test_chest_pain_exertional_symptoms_not_emergency(self):
+        result = detect_emergency("Chest discomfort appears only with exertion")
+        assert result is None
+
 
 # ---------- Suomenkieliset hätäsanat ----------
 
@@ -112,6 +148,96 @@ class TestFinnishKeywords:
     def test_en_saa_henkea(self):
         result = detect_emergency("En saa henkeä")
         assert result is not None
+
+    def test_rintakipu_ei_helpota_nitroilla(self):
+        result = detect_emergency(
+            "Minulla on kova rintakipu joka ei ohitu levolla eikä nitroilla. Se on kestänyt jo 2 h"
+        )
+        assert result is not None
+
+    def test_rintakipu_jatkuu_ei_mene_ohi(self):
+        result = detect_emergency(
+            "Rintakipu jatkuu edelleen eikä mene ohi"
+        )
+        assert result is not None
+
+    def test_rintakipu_ei_helpota_levossa(self):
+        result = detect_emergency(
+            "Rintakipu ei helpotu levossa"
+        )
+        assert result is not None
+
+    def test_rintakipu_kestaa_tunteja(self):
+        result = detect_emergency(
+            "Rintakipu ei ole helpottanut tuntiin"
+        )
+        assert result is not None
+
+    def test_rintakipu_puristaa_levosta_huolimatta(self):
+        result = detect_emergency(
+            "Rintaa puristaa edelleen vaikka lepään"
+        )
+        assert result is not None
+
+    def test_rintakipu_jatkuu_nitro_ei_auta(self):
+        result = detect_emergency(
+            "Rintakipu jatkuu eikä nitro auta"
+        )
+        assert result is not None
+
+    def test_rintakipu_rasituksessa_ei_hata(self):
+        result = detect_emergency(
+            "Minulla oli aiemmin rintakipua rasituksessa mutta se meni levolla ohi"
+        )
+        assert result is None
+
+    def test_rintakipu_kavellessa_ei_hata(self):
+        result = detect_emergency(
+            "Rintaan pistää välillä kävellessä"
+        )
+        assert result is None
+
+    def test_rintatuntemukset_rasituksessa_ei_hata(self):
+        result = detect_emergency(
+            "Rasituksessa tulee rintatuntemuksia"
+        )
+        assert result is None
+
+    def test_rintakipu_tajulähtö_tunne(self):
+        result = detect_emergency(
+            "Minulla meinaa taju lähteä ja rintaan puristaa todella kovaa"
+        )
+        assert result is not None
+
+    def test_vakava_hengitysteiden_tukos_rytmihairio(self):
+        result = detect_emergency(
+            "Tuntuu että tukehdun, henki ei kulje lainkaan ja on rytmihäiriö tuntemus. Taju lähtee"
+        )
+        assert result is not None
+
+    def test_ranneverenvuoto_ei_tyrehtynyt(self):
+        result = detect_emergency(
+            "Minulta tulee ranteesta pistopaikasta todella paljon verta enkä saa sitä tyrehtymään"
+        )
+        assert result is not None
+
+    def test_eloton_paineluelvytys(self):
+        result = detect_emergency(
+            "Olin äsken eloton, puolisoni paineluelvytti minua"
+        )
+        assert result is not None
+
+    def test_ranne_turpoaa_suurenee(self):
+        result = detect_emergency("Ranne turpoaa ja suurenee kokoajan, mitä teen?")
+        assert result is not None
+
+    def test_verta_tulee_paljon(self):
+        result = detect_emergency("Verta tulee ja paljon")
+        assert result is not None
+
+    def test_hengenahdistus_rasituksessa_ei_hätä(self):
+        result = detect_emergency("Minulla on hengenahdistusta rasituksessa")
+        assert result is None
 
 
 # ---------- Suomen taivutusmuodot (regex) ----------
@@ -235,6 +361,18 @@ class TestNonEmergencies:
 
     def test_medication_question(self):
         result = detect_emergency("What does aspirin do?")
+        assert result is None
+
+    def test_coffee_question(self):
+        result = detect_emergency("Saanko juoda kaksi litraa kahvia päivässä jos verenpaineet ovat korkeita?")
+        assert result is None
+
+    def test_stent_question(self):
+        result = detect_emergency("Mikä on stentti?")
+        assert result is None
+
+    def test_prescription_renewal_question(self):
+        result = detect_emergency("Reseptit pitäisi uusia")
         assert result is None
 
     def test_blood_pressure_general(self):

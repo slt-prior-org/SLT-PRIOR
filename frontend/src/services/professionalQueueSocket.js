@@ -23,6 +23,7 @@ class professionalQueueSocketManager {
 
         // onmessage
         this.socket.onmessage = (event) => {
+            console.log("Received message from queue websocket:", event.data)
             const data = JSON.parse(event.data)
             onMessage(data)
         }
@@ -37,7 +38,7 @@ class professionalQueueSocketManager {
             console.log("Queue websocket closed")
             this.socket = null
             if(this.shouldReconnect){
-                setTimeout(() => this.connect(token, onMessage), 3000)
+                setTimeout(() => this.connect(onMessage), 3000)
             }
         }
     }

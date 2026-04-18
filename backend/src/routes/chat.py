@@ -365,6 +365,8 @@ async def update_chat_status(
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     await _get_owned_chat_or_404(chatId, current_user)
+    if body.status == ChatStatus.WAITING:
+        await manager.broadcast("professionals", {"type": "chat_waiting", "chat_id": chatId})
     await touch_chat(chatId, status=body.status)
 
 

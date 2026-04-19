@@ -3,7 +3,6 @@
     <HeaderBar
       :queueCount="waiting.length"
       :closedCount="closedToday.length"
-      :user="currentUser"
       :showLanguageSwitcher="true"
       :showCounts="true"
     />
@@ -462,6 +461,10 @@ function goBack() {
 
   padding: 16px 20px;
   margin: 12px 28px 16px 28px;
+
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .sources-title {

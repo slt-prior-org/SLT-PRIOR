@@ -354,6 +354,29 @@ export const useUserChatStore = defineStore("userChat", {
 
     async forwardToProfessional() {
       if (!this.activeChat) return
+      
+      // Mark the original confirmation message as handled
+      if (this.pendingConfirmationMessageId) {
+        const messageIndex = this.activeChat.messages.findIndex(
+          m => m.id === this.pendingConfirmationMessageId
+        )
+        if (messageIndex !== -1) {
+          // Mark requires_confirmation as false but keep needs_review to keep input disabled
+          this.activeChat.messages[messageIndex].requires_confirmation = false
+          
+          // Also update in userChats list
+          const chatIndex = this.userChats.findIndex(c => c.id === this.activeChat.id)
+          if (chatIndex !== -1 && this.userChats[chatIndex].messages) {
+            const userChatMsgIndex = this.userChats[chatIndex].messages.findIndex(
+              m => m.id === this.pendingConfirmationMessageId
+            )
+            if (userChatMsgIndex !== -1) {
+              this.userChats[chatIndex].messages[userChatMsgIndex].requires_confirmation = false
+            }
+          }
+        }
+      }
+      
       const forwardMsg = {
         id: crypto.randomUUID(),
         sender: "bot",
@@ -372,6 +395,30 @@ export const useUserChatStore = defineStore("userChat", {
     },
 
     dismissConfirmation() {
+      // When user clicks "Kyllä, tämä auttoi" (Yes, this helped)
+      // Mark the message as no longer requiring confirmation
+      if (this.activeChat && this.pendingConfirmationMessageId) {
+        const messageIndex = this.activeChat.messages.findIndex(
+          m => m.id === this.pendingConfirmationMessageId
+        )
+        if (messageIndex !== -1) {
+          // Remove the needs_review classification since user confirmed it helped
+          this.activeChat.messages[messageIndex].requires_confirmation = false
+          this.activeChat.messages[messageIndex].classification = 'safe'
+          
+          // Also update in userChats list
+          const chatIndex = this.userChats.findIndex(c => c.id === this.activeChat.id)
+          if (chatIndex !== -1 && this.userChats[chatIndex].messages) {
+            const userChatMsgIndex = this.userChats[chatIndex].messages.findIndex(
+              m => m.id === this.pendingConfirmationMessageId
+            )
+            if (userChatMsgIndex !== -1) {
+              this.userChats[chatIndex].messages[userChatMsgIndex].requires_confirmation = false
+              this.userChats[chatIndex].messages[userChatMsgIndex].classification = 'safe'
+            }
+          }
+        }
+      }
       this.pendingConfirmationMessageId = null
     },
     async updateChatTitle(chatId, title) {

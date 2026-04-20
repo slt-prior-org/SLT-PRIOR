@@ -151,7 +151,7 @@
         <ChatInputBar
           v-model="newMessage"
           :placeholder="$t('prompt')"
-          :input-disabled="false"
+          :input-disabled="isInputDisabled"
           :send-disabled="waitingForBot"
           :show-edit="false"
           :is-editing="false"
@@ -184,7 +184,7 @@ import ChatInputBar from "./ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
-import { onMounted, watch, ref, nextTick } from "vue"
+import { onMounted, watch, ref, nextTick, computed } from "vue"
 import { chatSocket } from "@/services/chatSocket"
 
 export default {
@@ -354,6 +354,27 @@ export default {
       return `${message?.id || message?._id || message?.created_at || "message"}-${index}`
     }
 
+    const isInputDisabled = computed(() => {
+      const messages = chatStore.activeChat?.messages ?? []
+      
+      // Check if there's an emergency message - disable permanently if so
+      if (messages.some(msg => msg.classification === 'emergency')) {
+        return true
+      }
+      
+      // Check if there's a message waiting for user confirmation (Yes/No buttons)
+      if (messages.some(msg => msg.requires_confirmation === true)) {
+        return true
+      }
+      
+      // Check if chat is waiting for professional response
+      if (chatStore.activeChat?.status === 'waiting_for_professional') {
+        return true
+      }
+      
+      return false
+    })
+
     return {
       t,
       chatStore,
@@ -368,6 +389,7 @@ export default {
       handleSendFromInputBar,
       messageKey,
       triggerAuthModal,
+      isInputDisabled,
     }
   },
 

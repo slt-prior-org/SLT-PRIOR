@@ -33,6 +33,7 @@
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
               :text="msg.content"
+              :timestamp="msg.created_at"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"
               :guideline-source-url="msg.guideline_source_url ?? null"

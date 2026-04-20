@@ -106,6 +106,7 @@
         :from="message.sender"
         :showLabel="message.sender !== 'user'"
         :text="message.content"
+        :timestamp="message.created_at"
         :guideline-excerpt="message.guideline_excerpt"
         :guideline-source="message.guideline_source"
         :guideline-source-url="message.guideline_source_url ?? null"

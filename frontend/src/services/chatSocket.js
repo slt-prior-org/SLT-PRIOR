@@ -22,6 +22,7 @@ class ChatSocketManager {
     this.socket.onmessage = (event) => {
       const data = JSON.parse(event.data)
       if (data.type === "chat_closed") {
+        console.log("Chat websocket closed by server")
         this.socket.close()
       } else {
         onMessage(data)

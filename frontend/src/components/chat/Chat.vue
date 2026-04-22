@@ -1,6 +1,5 @@
 <template>
   <div class="chat-container">
-
     <div
       class="messages"
       :class="{ 'messages--welcome': welcomeMessageDisplayed }"
@@ -33,8 +32,17 @@
         <div class="welcome-cards">
           <div class="welcome-card">
             <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
               </svg>
             </div>
 
@@ -49,7 +57,14 @@
 
           <div class="welcome-card">
             <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -67,7 +82,14 @@
 
           <div class="welcome-card">
             <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
@@ -114,10 +136,16 @@
         :requires-professional="message.requires_professional ?? false"
         :is-forward-confirmation="message.is_forward_confirmation ?? false"
         :is-emergency="message.classification === 'emergency'"
-        :confirmation-answered="chatStore.pendingConfirmationMessageId !== message.id"
+        :confirmation-answered="
+          chatStore.pendingConfirmationMessageId !== message.id
+        "
         :sources="message.sources || []"
         :extra-class="[
-          message.classification === 'needs_review' && !message.requires_confirmation && !message.guideline_excerpt ? 'needs-review' : '',
+          message.classification === 'needs_review' &&
+          !message.requires_confirmation &&
+          !message.guideline_excerpt
+            ? 'needs-review'
+            : '',
           message.classification === 'emergency' ? 'emergency' : '',
         ]"
         @confirm-helpful="chatStore.dismissConfirmation()"
@@ -125,7 +153,10 @@
       />
 
       <!-- Bot typing indicator -->
-      <div v-if="waitingForBot && !welcomeMessageDisplayed" class="typing-indicator">
+      <div
+        v-if="waitingForBot && !welcomeMessageDisplayed"
+        class="typing-indicator"
+      >
         <span></span>
         <span></span>
         <span></span>
@@ -160,20 +191,20 @@
         />
       </div>
       <div class="disclaimer">
-        {{ $t('disclaimer') }}
+        {{ $t("disclaimer") }}
       </div>
     </div>
 
     <div v-else class="input-shell auth-prompt-shell">
       <p class="auth-prompt-text">
         <a href="#" @click.prevent="triggerAuthModal('login')">
-          {{ $t('settings.login') }}
+          {{ $t("settings.login") }}
         </a>
-        {{ $t('or') }}
+        {{ $t("or") }}
         <a href="#" @click.prevent="triggerAuthModal('register')">
-          {{ $t('settings.register') }}
+          {{ $t("settings.register") }}
         </a>
-        {{ $t('authPromptSuffix') }}
+        {{ $t("authPromptSuffix") }}
       </p>
     </div>
   </div>
@@ -185,7 +216,7 @@ import ChatInputBar from "./ChatInputBar.vue"
 import { useI18n } from "vue-i18n"
 import { useUserChatStore } from "@/stores/userChatStore"
 import { useAuthStore } from "@/stores/authStore"
-import { onMounted, watch, ref, nextTick, computed } from "vue"
+import { onMounted, onUnmounted, watch, ref, nextTick, computed } from "vue"
 import { chatSocket } from "@/services/chatSocket"
 
 export default {
@@ -199,9 +230,9 @@ export default {
   emits: ["update:externalShowForm", "trigger-auth-modal"],
 
   setup(props, { emit }) {
-        function triggerAuthModal(tab) {
-          emit('trigger-auth-modal', tab)
-        }
+    function triggerAuthModal(tab) {
+      emit("trigger-auth-modal", tab)
+    }
     const { t } = useI18n()
     const chatStore = useUserChatStore()
     const authStore = useAuthStore()
@@ -241,8 +272,10 @@ export default {
       // Älä yhdistä websocketia draft-chateille
       if (chat.isDraft) return
       chatSocket.connect(chat.id, authStore.token, (data) => {
+        console.log("Received websocket message:", data)
+
         if (data.sender !== authStore.getCurrentUserID) {
-          chat.messages.push(data.message)
+          chatStore.addProfessionalMessage(data.message)
 
           if (data.chatStatus !== chat.status) {
             chatStore.updateChatStatus(data.chatStatus)
@@ -264,22 +297,27 @@ export default {
       syncWaitingIndicators(chatStore.activeChat)
 
       if (chatStore.activeChat) {
-        connectWebsocket(chatStore.activeChat)
         welcomeMessageDisplayed.value = !chatStore.activeChat.messages?.length
         scrollToBottom()
       }
     })
 
+    onUnmounted(() => {
+      chatSocket.disconnect()
+    })
+
     watch(
-      () => chatStore.activeChat,
-      (newChat) => {
-        if (!newChat) {
+      () => chatStore.activeChat?.id,
+      (newChatId) => {
+        if (!newChatId) {
           syncWaitingIndicators(null)
           welcomeMessageDisplayed.value = true
           return
         }
+        const newChat = chatStore.activeChat
         syncWaitingIndicators(newChat)
         connectWebsocket(newChat)
+
         welcomeMessageDisplayed.value = !newChat.messages?.length
         scrollToBottom()
       },
@@ -357,22 +395,22 @@ export default {
 
     const isInputDisabled = computed(() => {
       const messages = chatStore.activeChat?.messages ?? []
-      
+
       // Check if there's an emergency message - disable permanently if so
-      if (messages.some(msg => msg.classification === 'emergency')) {
+      if (messages.some((msg) => msg.classification === "emergency")) {
         return true
       }
-      
+
       // Check if there's a message waiting for user confirmation (Yes/No buttons)
-      if (messages.some(msg => msg.requires_confirmation === true)) {
+      if (messages.some((msg) => msg.requires_confirmation === true)) {
         return true
       }
-      
+
       // Check if chat is waiting for professional response
-      if (chatStore.activeChat?.status === 'waiting_for_professional') {
+      if (chatStore.activeChat?.status === "waiting_for_professional") {
         return true
       }
-      
+
       return false
     })
 
@@ -584,7 +622,7 @@ export default {
   background: rgba(226, 240, 255, 0.92);
   backdrop-filter: blur(6px);
   border-top: 1px solid rgba(203, 213, 225, 0.7);
-  
+
   display: flex;
   flex-direction: column;
   gap: 12px;

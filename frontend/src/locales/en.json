@@ -19,7 +19,7 @@
   "send": "Send",
   "done": "Done",
   "sender": {
-    "customer": "Customer",
+    "customer": "Patient",
     "bot": "Bot",
     "professional": "Professional"
   },
@@ -135,7 +135,8 @@
     "success": "Login successful!",
     "invalid_id": "Invalid user ID",
     "not_found": "User not found",
-    "server_error": "Server error"
+    "server_error": "Server error",
+    "invalid_credentials": "Invalid email or password"
   },
   "login": {
     "title": "Login",
@@ -158,6 +159,10 @@
     "continue": "Continue",
     "back": "Return",
     "optional": "All fields are optional"
+  },
+  "sources": {
+    "show": "Show sources",
+    "hide": "Hide sources"
   },
   "guidelineExcerpt": "Care guideline excerpt",
   "guidelineSource": "Source",

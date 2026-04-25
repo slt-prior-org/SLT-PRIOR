@@ -64,7 +64,7 @@
         class="sources-toggle"
         @click="showSources = !showSources"
       >
-        {{ showSources ? "Hide sources" : "Show sources" }}
+        {{ showSources ? $t("sources.hide") : $t("sources.show") }}
       </button>
 
       <!-- Sources -->

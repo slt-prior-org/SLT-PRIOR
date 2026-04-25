@@ -18,7 +18,7 @@
   "sending": "Lähetetään...",
   "done": "Valmis",
   "sender": {
-    "customer": "Asiakas",
+    "customer": "Potilas",
     "bot": "Bot",
     "professional": "Ammattilainen"
   },
@@ -135,7 +135,8 @@
     "success": "Kirjautuminen onnistui!",
     "invalid_id": "Virheellinen käyttäjätunnus",
     "not_found": "Käyttäjää ei löytynyt",
-    "server_error": "Palvelinvirhe"
+    "server_error": "Palvelinvirhe",
+    "invalid_credentials": "Virheelliset tunnukset"
   },
   "login": {
     "title": "Kirjaudu sisään",
@@ -158,6 +159,10 @@
     "continue": "Seuraava",
     "return": "Takaisin",
     "optional": "Kaikki kentät ovat valinnaisia"
+  },
+  "sources": {
+    "show": "Näytä lähteet",
+    "hide": "Piilota lähteet"
   },
   "guidelineExcerpt": "Hoitosuosituksesta",
   "guidelineSource": "Lähde",

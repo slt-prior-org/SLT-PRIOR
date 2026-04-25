@@ -19,7 +19,7 @@
   "send": "Send",
   "done": "Done",
   "sender": {
-    "customer": "Customer",
+    "customer": "Patient",
     "bot": "Bot",
     "professional": "Professional"
   },
@@ -135,7 +135,8 @@
     "success": "Login successful!",
     "invalid_id": "Invalid user ID",
     "not_found": "User not found",
-    "server_error": "Server error"
+    "server_error": "Server error",
+    "invalid_credentials": "Invalid email or password"
   },
   "login": {
     "title": "Login",
@@ -159,14 +160,18 @@
     "back": "Return",
     "optional": "All fields are optional"
   },
+  "sources": {
+    "show": "Show sources",
+    "hide": "Hide sources"
+  },
   "guidelineExcerpt": "Care guideline excerpt",
   "guidelineSource": "Source",
   "guidelineFound": "I found a relevant care guideline.",
-  "forwardedToProfessional": "This topic relates to a personal health assessment that I cannot answer. Your conversation has been forwarded to a professional for review.",
+  "forwardedToProfessional": "This topic relates to a personal health assessment that I cannot answer. Your conversation has been forwarded to a professional for review.\n\nConversation will continue automatically after the review.",
   "confirmationQuestion": "Did this care guideline help you?",
   "confirmYes": "Yes, this helped",
   "confirmNo": "No, I need more help",
-  "confirmForwarded": "Understood. Your conversation has been forwarded to a professional.",
+  "confirmForwarded": "Understood. Your conversation has been forwarded to a professional.\n\nConversation will continue automatically after the review.",
   "emergencyMessage": "<strong>⚠️ This appears to be an emergency situation.</strong><br><br>If you or someone near you is in a life-threatening situation, <strong>call the emergency number 112 immediately.</strong><br><br>This chatbot cannot provide first aid or replace emergency services.",
   "patientForm": {
     "title": "Preliminary Form",

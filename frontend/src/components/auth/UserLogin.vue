@@ -1,5 +1,5 @@
 <template>
-  <form class="auth-section" @submit.prevent="handleLogin">
+  <form class="auth-section" novalidate @submit.prevent="handleLogin">
     <div class="form-group">
       <input
         type="email"
@@ -70,7 +70,15 @@ const handleLogin = async () => {
     }
   } catch (err) {
     const detail = err?.response?.data?.detail
-    error.value = typeof detail === "string" ? detail : t("loginStatus.failed")
+
+    const code =
+      typeof detail === "object" && detail?.code
+        ? detail.code
+        : typeof detail === "string"
+          ? detail
+          : "loginStatus.failed"
+
+    error.value = t(code) === code ? t("loginStatus.invalid_credentials") : t(code)
   } finally {
     loading.value = false
   }

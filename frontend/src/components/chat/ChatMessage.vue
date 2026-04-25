@@ -14,7 +14,12 @@
     <div class="bubble-wrapper">
       <span v-if="showLabel && formattedSender" class="sender-label">
         {{ formattedSender }}
+        <span v-if="formattedTime" class="message-time">{{ formattedTime }}</span>
       </span>
+
+      <div v-else-if="formattedTime" class="message-time-only">
+        {{ formattedTime }}
+      </div>
 
       <div class="bubble">
         <template v-if="requiresConfirmation || guidelineExcerpt">{{ $t('guidelineFound') }}</template>
@@ -59,7 +64,7 @@
         class="sources-toggle"
         @click="showSources = !showSources"
       >
-        {{ showSources ? "Hide sources" : "Show sources" }}
+        {{ showSources ? $t("sources.hide") : $t("sources.show") }}
       </button>
 
       <!-- Sources -->
@@ -101,6 +106,7 @@
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { api } from "@/services/api"
+import { formatMessageTime } from "@/utils/dateTime"
 
 const { t } = useI18n()
 const showSources = ref(false);
@@ -166,6 +172,10 @@ const props = defineProps({
   confirmationAnswered: {
     type: Boolean,
     default: false,
+  },
+  timestamp: {
+    type: [String, Date],
+    default: null,
   },
 })
 
@@ -250,6 +260,10 @@ function formatPages(pages) {
   return `pp. ${pages.join(", ")}`
 }
 
+const formattedTime = computed(() => {
+  return formatMessageTime(props.timestamp)
+})
+
 </script>
 
 <style scoped>
@@ -287,6 +301,29 @@ function formatPages(pages) {
 }
 
 .message.align-left .sender-label {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.message-time {
+  margin-left: 8px;
+  color: #666;
+  font-size: 11px;
+}
+
+.message-time-only {
+  display: block;
+  font-size: 11px;
+  color: #666;
+  margin: 0 0 6px;
+}
+
+.message.align-right .message-time-only {
+  text-align: right;
+  padding-right: 8px;
+}
+
+.message.align-left .message-time-only {
   text-align: left;
   padding-left: 8px;
 }

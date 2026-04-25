@@ -74,28 +74,32 @@ export const useUserChatStore = defineStore("userChat", {
         // Jos chat odottaa ammattilaista ja sisältää käypähoidon ohjeen mutta ei
         // vahvistusviestiä, lisätään se synteettisesti (ei tallennu DB:hen).
         // Ehto: on olemassa guideline-viesti (käyttäjä kävi läpi Kyllä/Ei-valinnan)
-        const hasForwardConfirmation = messages.some(m => m.is_forward_confirmation)
+        const hasForwardConfirmation = messages.some(
+          (m) => m.is_forward_confirmation,
+        )
         // Botti-viesti ilman guideline_excerpt näyttää automaattisesti "Tämä aihe liittyy..."
         // → erillistä confirmation-viestiä ei tarvita
         const hasDirectForwardMsg = messages.some(
-          m => m.sender === 'bot' && !m.content && !m.guideline_excerpt
+          (m) => m.sender === "bot" && !m.content && !m.guideline_excerpt,
         )
-        const guidelineMsgIdx = [...messages].map((m, i) => ({ m, i }))
-          .filter(({ m }) => m.guideline_excerpt && m.sender === 'bot')
+        const guidelineMsgIdx = [...messages]
+          .map((m, i) => ({ m, i }))
+          .filter(({ m }) => m.guideline_excerpt && m.sender === "bot")
           .map(({ i }) => i)
           .at(-1)
-        const guidelineMsg = guidelineMsgIdx !== undefined ? messages[guidelineMsgIdx] : null
+        const guidelineMsg =
+          guidelineMsgIdx !== undefined ? messages[guidelineMsgIdx] : null
         if (
-          chat.status === 'waiting_for_professional' &&
+          chat.status === "waiting_for_professional" &&
           guidelineMsg &&
           !hasForwardConfirmation &&
           !hasDirectForwardMsg
         ) {
           messages.push({
-            id: 'forward-confirmation-' + chatId,
-            sender: 'bot',
-            content: '',
-            classification: 'needs_review',
+            id: "forward-confirmation-" + chatId,
+            sender: "bot",
+            content: "",
+            classification: "needs_review",
             is_forward_confirmation: true,
             flagged_for_human: false,
             sources: [],
@@ -187,17 +191,35 @@ export const useUserChatStore = defineStore("userChat", {
         this.userChats[index].status = status
       }
     },
+    addProfessionalMessage(message) {
+      if (!this.activeChat) return
+
+      this.activeChat.messages.push(message)
+
+      const chatIndex = this.userChats.findIndex(
+        (c) => c.id === this.activeChat.id,
+      )
+
+      if (chatIndex !== -1) {
+        if (!this.userChats[chatIndex].messages) {
+          this.userChats[chatIndex].messages = []
+        }
+
+        this.userChats[chatIndex].messages.push(message)
+
+        if (message.updated_at) {
+          this.userChats[chatIndex].updated_at = message.updated_at
+          this.activeChat.updated_at = message.updated_at
+        }
+      }
+    },
     // Viestin lähetys chatissa (vain tila ja API, ei UI)
     async addUserMessage(message) {
       if (!this.activeChat) return
 
       if (this.isSending) return // Estää useat lähetykset
 
-      if (
-        ["waiting_for_professional"].includes(
-          this.activeChat.status,
-        )
-      ) {
+      if (["waiting_for_professional"].includes(this.activeChat.status)) {
         throw new Error("Chat is locked") // Estää viestit tietyissä tiloissa
       }
 
@@ -236,12 +258,12 @@ export const useUserChatStore = defineStore("userChat", {
         updated_at: new Date().toISOString(),
       }
 
-
       chat.messages.push(userMessage)
       // Päivitä userChats-listan messages myös
-      const chatIndex = this.userChats.findIndex(c => c.id === chat.id)
+      const chatIndex = this.userChats.findIndex((c) => c.id === chat.id)
       if (chatIndex !== -1) {
-        if (!this.userChats[chatIndex].messages) this.userChats[chatIndex].messages = []
+        if (!this.userChats[chatIndex].messages)
+          this.userChats[chatIndex].messages = []
         this.userChats[chatIndex].messages.push(userMessage)
       }
 
@@ -280,7 +302,6 @@ export const useUserChatStore = defineStore("userChat", {
               }
             : null
 
-
         chat.messages = chat.messages.filter(
           (item) => item.id !== userMessage.id,
         )
@@ -299,8 +320,9 @@ export const useUserChatStore = defineStore("userChat", {
         }
 
         if (
-          (data.requires_professional || confirmedUserMessage.classification === "needs_review")
-          && !data.requires_confirmation
+          (data.requires_professional ||
+            confirmedUserMessage.classification === "needs_review") &&
+          !data.requires_confirmation
         ) {
           this.updateChatStatus("waiting_for_professional")
         }
@@ -317,7 +339,7 @@ export const useUserChatStore = defineStore("userChat", {
           botMessage?.updated_at ||
           confirmedUserMessage.updated_at ||
           chat.updated_at
-        
+
         // Päivitä userChats-listan updated_at myös
         if (chatIndex !== -1) {
           this.userChats[chatIndex].updated_at = chat.updated_at
@@ -339,21 +361,57 @@ export const useUserChatStore = defineStore("userChat", {
           try {
             const updated = await fetchChat(chatIdForRefresh)
             if (updated.title) {
-              const idx = this.userChats.findIndex(c => c.id === chatIdForRefresh)
+              const idx = this.userChats.findIndex(
+                (c) => c.id === chatIdForRefresh,
+              )
               if (idx !== -1) {
-                this.userChats[idx] = { ...this.userChats[idx], title: updated.title }
+                this.userChats[idx] = {
+                  ...this.userChats[idx],
+                  title: updated.title,
+                }
               }
               if (this.activeChat?.id === chatIdForRefresh) {
                 this.activeChat = { ...this.activeChat, title: updated.title }
               }
             }
-          } catch (e) { /* ignore */ }
+          } catch (e) {
+            /* ignore */
+          }
         }, 5000)
       }
     },
 
     async forwardToProfessional() {
       if (!this.activeChat) return
+
+      // Mark the original confirmation message as handled
+      if (this.pendingConfirmationMessageId) {
+        const messageIndex = this.activeChat.messages.findIndex(
+          (m) => m.id === this.pendingConfirmationMessageId,
+        )
+        if (messageIndex !== -1) {
+          // Mark requires_confirmation as false but keep needs_review to keep input disabled
+          this.activeChat.messages[messageIndex].requires_confirmation = false
+
+          // Also update in userChats list
+          const chatIndex = this.userChats.findIndex(
+            (c) => c.id === this.activeChat.id,
+          )
+          if (chatIndex !== -1 && this.userChats[chatIndex].messages) {
+            const userChatMsgIndex = this.userChats[
+              chatIndex
+            ].messages.findIndex(
+              (m) => m.id === this.pendingConfirmationMessageId,
+            )
+            if (userChatMsgIndex !== -1) {
+              this.userChats[chatIndex].messages[
+                userChatMsgIndex
+              ].requires_confirmation = false
+            }
+          }
+        }
+      }
+
       const forwardMsg = {
         id: crypto.randomUUID(),
         sender: "bot",
@@ -372,11 +430,43 @@ export const useUserChatStore = defineStore("userChat", {
     },
 
     dismissConfirmation() {
+      // When user clicks "Kyllä, tämä auttoi" (Yes, this helped)
+      // Mark the message as no longer requiring confirmation
+      if (this.activeChat && this.pendingConfirmationMessageId) {
+        const messageIndex = this.activeChat.messages.findIndex(
+          (m) => m.id === this.pendingConfirmationMessageId,
+        )
+        if (messageIndex !== -1) {
+          // Remove the needs_review classification since user confirmed it helped
+          this.activeChat.messages[messageIndex].requires_confirmation = false
+          this.activeChat.messages[messageIndex].classification = "safe"
+
+          // Also update in userChats list
+          const chatIndex = this.userChats.findIndex(
+            (c) => c.id === this.activeChat.id,
+          )
+          if (chatIndex !== -1 && this.userChats[chatIndex].messages) {
+            const userChatMsgIndex = this.userChats[
+              chatIndex
+            ].messages.findIndex(
+              (m) => m.id === this.pendingConfirmationMessageId,
+            )
+            if (userChatMsgIndex !== -1) {
+              this.userChats[chatIndex].messages[
+                userChatMsgIndex
+              ].requires_confirmation = false
+              this.userChats[chatIndex].messages[
+                userChatMsgIndex
+              ].classification = "safe"
+            }
+          }
+        }
+      }
       this.pendingConfirmationMessageId = null
     },
     async updateChatTitle(chatId, title) {
       await updateChatTitle(chatId, title)
-      const idx = this.userChats.findIndex(c => c.id === chatId)
+      const idx = this.userChats.findIndex((c) => c.id === chatId)
       if (idx !== -1) {
         this.userChats[idx] = { ...this.userChats[idx], title }
       }
@@ -390,13 +480,13 @@ export const useUserChatStore = defineStore("userChat", {
       try {
         // Hae data kaikille chateille
         const fullChats = await Promise.all(
-          this.userChats.map(chat => fetchChat(chat.id))
+          this.userChats.map((chat) => fetchChat(chat.id)),
         )
-        
+
         // Korvaa userChats full-datalla
         this.userChats = fullChats
       } catch (error) {
-        console.error('Chatien full-datan lataaminen epäonnistui:', error)
+        console.error("Chatien full-datan lataaminen epäonnistui:", error)
         throw error
       }
     },

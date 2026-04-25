@@ -60,6 +60,7 @@ async def chat_ws(websocket: WebSocket, chat_id: str):
     professional_id = str(chat.get("assigned_professional_id"))
 
     if user_id != patient_id and user_id != professional_id:
+        logger.warning("User %s is not the owner of chat %s", user_id, chat_id)
         await websocket.close()
         return
 

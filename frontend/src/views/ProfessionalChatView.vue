@@ -3,7 +3,6 @@
     <HeaderBar
       :queueCount="waiting.length"
       :closedCount="closedToday.length"
-      :user="currentUser"
       :showLanguageSwitcher="true"
       :showCounts="true"
     />
@@ -34,6 +33,7 @@
               :showLabel="true"
               :side="msg.sender === 'user' ? 'left' : 'right'"
               :text="msg.content"
+              :timestamp="msg.created_at"
               :guideline-excerpt="msg.guideline_excerpt ?? null"
               :guideline-source="msg.guideline_source ?? null"
               :guideline-source-url="msg.guideline_source_url ?? null"
@@ -462,6 +462,10 @@ function goBack() {
 
   padding: 16px 20px;
   margin: 12px 28px 16px 28px;
+
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .sources-title {

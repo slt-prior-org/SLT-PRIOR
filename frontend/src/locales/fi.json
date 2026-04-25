@@ -18,7 +18,7 @@
   "sending": "Lähetetään...",
   "done": "Valmis",
   "sender": {
-    "customer": "Asiakas",
+    "customer": "Potilas",
     "bot": "Bot",
     "professional": "Ammattilainen"
   },
@@ -135,7 +135,8 @@
     "success": "Kirjautuminen onnistui!",
     "invalid_id": "Virheellinen käyttäjätunnus",
     "not_found": "Käyttäjää ei löytynyt",
-    "server_error": "Palvelinvirhe"
+    "server_error": "Palvelinvirhe",
+    "invalid_credentials": "Virheelliset tunnukset"
   },
   "login": {
     "title": "Kirjaudu sisään",
@@ -159,14 +160,18 @@
     "return": "Takaisin",
     "optional": "Kaikki kentät ovat valinnaisia"
   },
+  "sources": {
+    "show": "Näytä lähteet",
+    "hide": "Piilota lähteet"
+  },
   "guidelineExcerpt": "Hoitosuosituksesta",
   "guidelineSource": "Lähde",
   "guidelineFound": "Löysin aiheeseen liittyvän hoitosuosituksen.",
-  "forwardedToProfessional": "Tämä aihe liittyy henkilökohtaiseen terveysarviointiin, johon en voi antaa vastausta. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.",
+  "forwardedToProfessional": "Tämä aihe liittyy henkilökohtaiseen terveysarviointiin, johon en voi antaa vastausta. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.\n\nKeskustelu jatkuu arvioinnin jälkeen automaattisesti.",
   "confirmationQuestion": "Auttoiko tämä hoitosuositus sinua?",
   "confirmYes": "Kyllä, tämä auttoi",
   "confirmNo": "Ei, tarvitsen lisäapua",
-  "confirmForwarded": "Ymmärretty. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.",
+  "confirmForwarded": "Ymmärretty. Keskustelusi on välitetty ammattilaiselle arvioitavaksi.\n\nKeskustelu jatkuu arvioinnin jälkeen automaattisesti.",
   "emergencyMessage": "<strong>⚠️ Tämä vaikuttaa hätätilanteelta.</strong><br><br>Jos sinulla tai jollakin lähelläsi on henkeä uhkaava tilanne, <strong>soita hätänumeroon 112 välittömästi.</strong><br><br>Tämä chatbot ei voi antaa ensiapua eikä korvata hätäpalvelua.",
   "patientForm": {
     "title": "Esitietolomake",

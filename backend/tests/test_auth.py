@@ -5,6 +5,7 @@ import os
 # Must be set before importing config, otherwise raises RuntimeError
 os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("JWT_ALG", "HS256")
+os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 

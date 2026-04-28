@@ -1,4 +1,4 @@
-<!-- Ammattilaisen dashboard: chat-jonot ja esikatselu -->
+<!-- Professional dashboard: chat queues and preview -->
 
 <template>
   <HeaderBar
@@ -11,7 +11,8 @@
   <div v-if="chatStore.loading.queues" class="loading">Loading...</div>
 
   <div v-else class="dashboard-container">
-    <!-- Päivämäärä ja näkymän otsikko -->
+
+    <!-- Date and view header -->
     <div class="workspace-header">
       <div class="workspace-label">
         {{ $t("professional.dashboardTitle") }}
@@ -24,7 +25,7 @@
 
     <div class="divider"></div>
 
-    <!-- Chat-jonot -->
+    <!-- Chat queues -->
     <div class="main-card">
       <div class="main-card-header">
         <h2>{{ $t("professional.queueTitle") }}</h2>
@@ -111,7 +112,7 @@
       </div>
     </div>
 
-    <!-- Esikatselumodal odottaville chateille -->
+    <!-- Preview modal for waiting chats -->
     <ChatPreviewModal
       v-if="showModal"
       :chat="selectedChat"
@@ -133,11 +134,12 @@ import { useI18n } from "vue-i18n"
 import { parseBackendDate } from "@/utils/dateTime"
 const { locale } = useI18n()
 
-// käyttäjän sessio ja tiedot
+// user session and data
 const authStore = useAuthStore()
 
 const chatStore = useProfessionalChatStore()
 
+// combine user's active chats with global waiting queue
 const activeChats = computed(() => {
   const userId = authStore.user?.id
   if (!userId) return []
@@ -154,13 +156,12 @@ const showClosed = ref(false)
 
 const router = useRouter()
 
-// valittu chat esikatselussa
+// selected chat for preview
 const selectedChat = ref(null)
 
-// modalin näkyvyys
 const showModal = ref(false)
 
-// päivämäärä headeriin
+// formatted date for header
 const formattedToday = computed(() => {
   const lang = locale.value === "fi" ? "fi-FI" : "en-US"
 
@@ -174,7 +175,7 @@ const formattedToday = computed(() => {
   return today.charAt(0).toUpperCase() + today.slice(1)
 })
 
-// hakee käyttäjän session ja chat-jonot
+// initialize user session and chat queues
 onMounted(async () => {
   try {
     if (!authStore.user) {
@@ -193,7 +194,6 @@ onUnmounted(() => {
   chatStore.disconnectFromQueueSocket()
 })
 
-// avaa chatin esikatselu
 function openPreview(chat) {
   selectedChat.value = chat
   showModal.value = true
@@ -203,7 +203,7 @@ function closeModal() {
   showModal.value = false
 }
 
-// varaa chatin ja navigoi siihen
+// claim chat and navigate to it
 async function claimChat() {
   if (!selectedChat.value) return
 
@@ -219,14 +219,14 @@ async function claimChat() {
   }
 }
 
-// avaa seuraavan odottavan chatin esikatselun
+// open preview for next waiting chat
 function openNext() {
   if (waiting.value.length > 0) {
     openPreview(waiting.value[0])
   }
 }
 
-// muotoilee ajan backendista
+// format time from backend
 function formatTime(date) {
   if (!date) return ""
 
@@ -291,7 +291,7 @@ function formatTime(date) {
   border-top: 1px solid #b3b3b3;
 }
 
-/* chat-lista korttina */
+/* chat list as a card */
 .main-card {
   max-width: clamp(720px, 45vw, 1800px);
   width: 100%;
@@ -350,7 +350,6 @@ function formatTime(date) {
   overflow-y: auto;
 }
 
-/* chat-kortit */
 .chat-card {
   display: flex;
   align-items: stretch;

@@ -18,7 +18,7 @@
 
       <div class="layout">
 
-        <!-- CHAT -->
+        <!-- Chat conversation area -->
         <div class="conversation-card">
 
           <div 
@@ -138,7 +138,7 @@
           </div>
         </div>
 
-        <!-- SIDEBAR -->
+        <!-- Patient sidebar -->
         <PatientCard
           v-if="chat?.patient_context"
           :patient="chat.patient_context"
@@ -147,7 +147,7 @@
 
       </div>
     </div>
-        <!-- CLOSE CONFIRM MODAL -->
+        <!-- Close chat confirmation modal -->
       <div v-if="showCloseConfirm"
       class="modal-overlay"
       @click.self="showCloseConfirm = false"
@@ -191,7 +191,7 @@ import { chatSocket } from "@/services/chatSocket"
 const route = useRoute()
 const router = useRouter()
 
-// route-parametrina tuleva chatin id
+// chat ID from route params
 const chatId = route.params.id
 
 const authStore = useAuthStore()
@@ -205,15 +205,15 @@ const showCloseConfirm = ref(false)
 const chat = computed(() => chatStore.activeChat)
 const editedReply = ref("")
 
-// UI:n tilat: vastauskentän muokkaus ja lähteiden näkyvyys
+// UI states: reply editing and source visibility
 const isEditing = ref(false)
 const showSources = ref(false)
 
-// jonot headerbaria varten
+// queues for headerbar
 const waiting = computed(() => chatStore.getWaitingChats)
 const closedToday = computed(() => chatStore.getClosedChats)
 
-// tarkistaa onko keskustelu suljettu
+// checks if the conversation is closed
 const isClosed = computed(() => chat.value?.status === "closed")
 const visibleMessages = computed(() => {
   return (chat.value?.messages || []).filter(m => m.sender !== 'info')
@@ -223,7 +223,6 @@ function messageKey(message, index) {
   return `${message?.id || message?._id || message?.created_at || "message"}-${index}`
 }
 
-// vaihtaa vastauskentän muokkaustilan
 function toggleEdit() {
   isEditing.value = !isEditing.value
 }
@@ -245,7 +244,7 @@ watch(
   }
 )
 
-// hakee chatin ja jonot backendista
+// fetches chat and queues from backend
 onMounted(async () => {
   try {
     if (!authStore.user) {
@@ -282,9 +281,9 @@ function connectWebsocket(chat) {
   chatSocket.connect(chat.id, authStore.token, (data) => {
     console.log("Received websocket message:", data)
     if (data.sender !== authStore.getCurrentUserID) {
-      // lisää uusi viesti chattiin
+      // add new message to chat
       chat.messages.push(data.message)
-      // päivitä AI:n ehdotus vastauksesta
+      // update AI suggested reply
       if (data.type === "new_user_message" && data.draft) {
         chat.draft_response = data.draft
         chat.draft_sources = data.draft_sources || []
@@ -294,7 +293,7 @@ function connectWebsocket(chat) {
   })
 }
 
-// lähettää ammattilaisen viestin
+// sends professional's message
 async function sendReply() {
   if (!editedReply.value.trim()) return
   if (!currentUser.value) return
@@ -308,7 +307,7 @@ async function sendReply() {
   }
 }
 
-// palauttaa chatin jonoon
+// returns chat to queue
 async function returnToQueue() {
   if (!chat.value) return
 
@@ -323,7 +322,6 @@ async function returnToQueue() {
   }
 }
 
-// sulkee keskustelun
 async function closeChat() {
   try {
     const chatId = chat.value.id || chat.value._id
@@ -334,7 +332,6 @@ async function closeChat() {
   }
 }
 
-// navigoi takaisin jonoon
 function goBack() {
   router.push("/professional")
 }
@@ -358,7 +355,7 @@ function goBack() {
     sans-serif;
 }
 
-/* chat-näkymän pääcontainer */
+/* main chat view container */
 .chat-container {
   flex: 1;
   min-height: 0;
@@ -389,7 +386,7 @@ function goBack() {
   padding-bottom: 16px;
 }
 
-/* keskustelukortti */
+/* conversation card */
 .conversation-card {
   display: flex;
   flex-direction: column;
@@ -400,7 +397,7 @@ function goBack() {
   margin-left: auto;
 }
 
-/* tekstilaatikon header */
+/* reply input header */
 .reply-header {
   padding: 0 28px 8px 28px;
   display: flex;
@@ -421,7 +418,7 @@ function goBack() {
   background: #e6eaf0;
 }
 
-/* CHAT INPUT AREA */
+/* Chat input area */
 .custom-input {
   display: flex;
   flex-shrink: 0;
@@ -454,7 +451,7 @@ function goBack() {
   gap: 10px;
 }
 
-/* SOURCES */
+/* Sources */
 .sources-panel {
   background: #f8fafc;
   border: 1px solid #dbeafe;
@@ -500,7 +497,7 @@ function goBack() {
   margin-left: auto;
 }
 
-/* CLOSE CONFIRM MODAL */
+/* Close confirm modal */
 .modal-overlay {
   position: fixed;
   inset: 0;

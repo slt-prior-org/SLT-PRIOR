@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- STEP 1 : REGISTER FORM -->
-    <form v-if="step === 1" class="auth-section" @submit.prevent="goToStep2">
+    <form v-if="step === 1" class="auth-section" novalidate @submit.prevent="goToStep2">
       <div class="form-group">
         <input
           v-model="register.email"

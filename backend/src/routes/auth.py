@@ -90,11 +90,11 @@ async def login(body: LoginRequest, request: Request):
 
     user = await users_collection.find_one({"email": body.email})
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="loginStatus.invalid_credentials")
 
     hashed = user.get("password")
     if not hashed or not pwd_context.verify(body.password, hashed):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="loginStatus.invalid_credentials")
 
     token = create_access_token(str(user["_id"]))
     return {"token": token, "user": _public_user(user)}

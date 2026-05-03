@@ -86,7 +86,10 @@ The project is divided into two main parts:
 
 ## 🔐 Environment Configuration
 
-The backend requires environment variables such as:
+Set up the required environment variables:
+
+1. Place the downloaded `cloud_storage_key.json` file in the root of the backend directory.
+2. Create a `.env` file in the root of the backend directory and add the following content:
 
 ```env
 GEMINI_API=your_api_key
@@ -94,8 +97,14 @@ MONGO_URI=your_mongodb_uri
 JWT_SECRET=your_jwt_secret
 JWT_ALG=HS256
 JWT_EXPIRES_MIN=60
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/cloud_storage_key.json
 ```
+> [!NOTE]
+> Note: Make sure that `GOOGLE_APPLICATION_CREDENTIALS` correctly points to the `cloud_storage_key.json` file you added. 
+> For example, when running with Docker Compose, the path should match the container filesystem: 
+> ```
+> GOOGLE_APPLICATION_CREDENTIALS='/app/cloud_storage_key.json' 
+> ```
 
 ## Running the Application
 

@@ -5,6 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
+    "test": "vitest run",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
@@ -12,6 +13,9 @@
     "@fortawesome/vue-fontawesome": "^3.0.8",
     "axios": "^1.7.9",
     "core-js": "^3.8.3",
+    "lucide-vue-next": "^0.575.0",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "vue": "^3.2.13",
     "vue-i18n": "^11.1.2",
     "vue-router": "^4.5.0"
@@ -24,6 +28,7 @@
     "@vue/cli-service": "~5.0.0",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^9.32.0",
+    "jsdom": "^28.1.0",
     "vitest": "^1.0.0"
   },
   "eslintConfig": {

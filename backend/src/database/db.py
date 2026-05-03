@@ -1,7 +1,6 @@
 import os
-import asyncio
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 import logging
 
 # Handles MongoDB connection
@@ -31,15 +30,27 @@ client = None
 db = None
 users_collection = None
 
+# Add chats and messages
+chats_collection = None
+messages_collection = None
+
 # Connect to MongoDB
 try:
-    client = AsyncIOMotorClient(MONGO_URI)
+    client = AsyncMongoClient(MONGO_URI)
     db = client["chatbot_database"] 
     users_collection = db["users"]
+    
+    chats_collection = db["chats"]
+    messages_collection = db["messages"]
+    
     logger.info("✅ Successfully connected to MongoDB!")
 except Exception as e:
     logger.error(f"❌ ERROR: Failed to connect to MongoDB: {e}")
     raise
 
-# Expose db and users_collection for other modules
-__all__ = ["db", "users_collection"]
+# Expose collections for other modules
+__all__ = ["db",
+           "users_collection",
+           "chats_collection",
+           "messages_collection"
+           ]

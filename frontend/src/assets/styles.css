@@ -14,7 +14,7 @@
     /* Text Colors (Legible & Modern) */
     --text-light: #ffffff;
     --text-dark: #1d1d1d; /* Deep Charcoal for Perfect Readability */
-    --text-secondary: #4a6572; /* Soft Blue-Gray for Subtext */
+    --text-secondary: #1d3a52; /* Darker Blue-Gray for WCAG AAA Contrast (7:1) */
 
     /* Buttons & Borders (Professional Touch) */
     --button-hover: #005cbf; /* Stronger, Deeper Blue */
@@ -24,6 +24,10 @@
     --success-color: #23d189; /* Balanced Bright Green */
     --warning-color: #ffb400; /* Slightly Muted Yellow */
     --danger-color: #ff4d4d; /* Friendly but Noticeable Red */
+
+        /* Typography */
+        --font-family-base: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+            Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
 * {
@@ -36,4 +40,16 @@ body, html {
     width: 100%;
     height: 100%;
     background-color: var(--background-light); /* Ensure background covers */
+    font-family: var(--font-family-base);
+}
+
+#app {
+    font-family: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
 }

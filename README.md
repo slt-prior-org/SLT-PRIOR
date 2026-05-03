@@ -10,6 +10,8 @@ HeartWise 2.0 is a web application that provides evidence-based information and 
 
 The chatbot answers general questions based on official clinical care guidelines and patient education materials (n=106). If a message requires personal medical assessment, the conversation can be escalated to a healthcare professional. The system also includes emergency detection, guideline excerpt retrieval, and AI-generated summaries to support professional review.
 
+Check out the demo [video](https://drive.google.com/file/d/1ae96brJXKzf0QEynVH7n7e0K9W9f8nmP/view?usp=drive_link)
+
 ## ✨ Main Features
 
 - Patient chatbot for coronary artery disease related questions
